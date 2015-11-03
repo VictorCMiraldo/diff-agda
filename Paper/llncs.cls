@@ -373,12 +373,12 @@ You should not use \verb|\subparagraph| with this class.\vskip0.5cm}
 
 \let\footnotesize\small
 
-\if@custvec
-\def\vec#1{\mathchoice{\mbox{\boldmath$\displaystyle#1$}}
-{\mbox{\boldmath$\textstyle#1$}}
-{\mbox{\boldmath$\scriptstyle#1$}}
-{\mbox{\boldmath$\scriptscriptstyle#1$}}}
-\fi
+% \if@custvec
+% \def\vec#1{\mathchoice{\mbox{\boldmath$\displaystyle#1$}}
+% {\mbox{\boldmath$\textstyle#1$}}
+% {\mbox{\boldmath$\scriptstyle#1$}}
+% {\mbox{\boldmath$\scriptscriptstyle#1$}}}
+% \fi
 
 \def\squareforqed{\hbox{\rlap{$\sqcap$}$\sqcup$}}
 \def\qed{\ifmmode\squareforqed\else{\unskip\nobreak\hfil

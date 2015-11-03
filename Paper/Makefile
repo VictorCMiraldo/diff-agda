@@ -28,13 +28,15 @@ COMPILER=pdflatex -etex
 
 all: $(MAINPDF)
 
-paper.pdf: \
+$(MAINPDF): \
 	$(REFERENCES) $(MAINTEX) \
 	$(TEXT_PARTS:%=$(TEXT_PARTS_SRC_GENTEX)/%.tex) \
 	$(CODE_AGDA_STY) \
 	$(CODE_AGDA_MODULES:%=$(CODE_AGDA_EXCERPTS)/%.tex)
 	latexmk $(LATEXMKOPTS) $(MAINTEX)
-  
+	
+$(TEXT_PARTS_SRC_GENTEX)/%.tex: $(TEXT_PARTS_SRC_GENTEX)/%.lhs
+	lhs2TeX -o $@ $<
 	
 force:
 	$(COMPILER) $(MAINTEX)
