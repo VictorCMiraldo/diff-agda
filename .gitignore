@@ -10,6 +10,17 @@ Thesis/*_um.*
 Thesis/text/*_um.*
 Thesis/dissertation.sty
 
+# Agda code snippets #
+######################
+
+Paper/excerpts
+
+# latex stuff #
+###############
+
+*.fls
+*.fdb_latexmk
+
 
 # Compiled source #
 ###################
