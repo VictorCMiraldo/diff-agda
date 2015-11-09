@@ -47,9 +47,9 @@ module Diffing.Diff where
   cost {n} (D-set _ _) = n
   cost {n} (D-pair d d₁) = cost d + cost d₁
   cost {n} D-mu-end = 0
-  cost {n} (D-mu-cpy x d) = n + cost d
-  cost {n} (D-mu-ins x d) = 2 * n + cost d
-  cost {n} (D-mu-del x d) = 2 * n + cost d
+  cost {n} (D-mu-cpy x d) = 2 * n + cost d
+  cost {n} (D-mu-ins x d) = n + 1 + cost d
+  cost {n} (D-mu-del x d) = n + 1 + cost d
   cost {n} (D-mu-down d d₁) = cost d + cost d₁
   cost {n} (D-β d) = cost d
   cost {suc n} (D-top d) = cost d

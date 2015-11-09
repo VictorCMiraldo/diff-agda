@@ -3,11 +3,19 @@
 \usepackage{savesym}
 \usepackage{amsmath}
 \usepackage{wrapfig}
+\usepackage{hyperref}
 \usepackage{catchfilebetweentags}
 \usepackage{agda}
+\usepackage[all]{xypic}
 
 \newenvironment{TODO}{%
   \color{blue} \itshape \begin{itemize}
+}{%
+  \end{itemize}
+}
+
+\newenvironment{RESEARCH}{%
+  \color{magenta} \textbf{To Research!} \itshape \begin{itemize} 
 }{%
   \end{itemize}
 }
@@ -46,7 +54,7 @@
 \newcommand{\textrho}{$\rho$}
 \newcommand{\textLambda}{$\Lambda$}
 \newcommand{\textpi}{$\pi$}
-\newcommand{\textmu}{$\mu$}
+\renewcommand{\textmu}{$\mu$}
 \newcommand{\textsigma}{$\sigma$}
 \newcommand{\textSigma}{$\Sigma$}
 \newcommand{\texteta}{$\eta$}
@@ -83,18 +91,44 @@ stuff
   a file as a list of lines that can be inserted, deleted or modified, with no regard to
   the semantics of that specific file. The immediate consequence of such design decision
   is that we, humans, have to solve a large number of conflicts that arise from, in fact,
-  no conflicting edits, yet, the tools fail to see such edits as non-conflicting as they
-  are not aware of the file's semantics. Implementing a tool that knows the semantics 
-  of any file we happen to need, however, is clearly not an easy task, specially given the 
-  plethora of file formats we see nowadays. 
+  no conflicting edits. Implementing a tool that knows the semantics of any file we happen 
+  to need, however, is no simple task, specially given the plethora of file formats we see nowadays. 
   
-  Let us illustrate this with the following three CSV files:
+  \begin{figure}[h]
+  \begin{center}
+  \begin{minipage}[t]{.3\textwidth}
+  \begin{verbatim}
+items      ,qty ,unit
+wheat-flour,2   ,cp
+eggs       ,2   ,units
+  \end{verbatim}
+  \begin{center}Alice\end{center}
+  \end{minipage}
+  \vline
+  \begin{minipage}[t]{.3\textwidth}
+    \begin{verbatim}
+items      ,qty ,unit
+wheat-flour,1   ,cp
+eggs       ,2   ,units
+  \end{verbatim}
+  \begin{center}Original\end{center}
+  \end{minipage}
+  \vline
+  \begin{minipage}[t]{.3\textwidth}
+    \begin{verbatim}
+items      ,qty ,unit
+cake-flour ,1   ,cp
+eggs       ,2   ,units
+sugar      ,1   ,tsp
+  \end{verbatim}
+  \begin{center}Bob\end{center}
+  \end{minipage}
+  \end{center}
+  \caption{CSV files}
+  \label{fig:csvfiles}
+  \end{figure}
   
-  \begin{TODO}
-    \item show three different CSV files that conflict under diff3.
-  \end{TODO}
-  
-  It is not hard to see that Alice's and Bob's edits do \emph{not} conflict. However,
+  It is not hard to see that Alice's and Bob's edits, in figure \ref{fig:csvfiles} do \emph{not} conflict. However,
   the diff3 \warnme{cite!} tool will flag them as such. Using generic programming techniques
   we can do a better job at identifying actual conflicts. The problem is twofold, however: 
   (A) how to parse things generically and (B) how to diff over the results
@@ -144,7 +178,7 @@ stuff
   \end{wrapfigure}
   
   The idea here lies in the fact that a BNF already looks like a Haskell type declaration, and at the
-  same time, acts as the \emph{type} of a language. We want to have (empty) types
+  same time, acts as the \emph{type} of a language. We want to have type constructors
   that mimick the BNF syntax and allow us to define instances by induction on their
   structure. The CSV grammar gives us the following datatype.
   
@@ -265,7 +299,7 @@ We call standard types any type built using |()| , |Either| , |(,)| , |[]| and
 atomic types such as |Integer|, |String|, |Double|, ...
 %%%%% END FOOTNOTE
   } ones. The important observation is
-  that any Haskell type is isomorphic to a sum-of-products, which can be expressed
+  that any Haskell type is isomorphic, by definition, to a sum-of-products, which can be expressed
   using standard types. 
   
   The parser instance for |a :<$> b| is defined as:
@@ -279,7 +313,7 @@ atomic types such as |Integer|, |String|, |Double|, ...
   
   Where the |HasIso a b| class defines two functions |go :: a -> b| and |og :: b -> a|
   to convert values from one type to another. In our CSV example, we have the following
-  instance:
+  instance (which is nothing more than the initial algebra for the underlying functor):
   
 \vskip .5em
 \begin{code}
@@ -308,6 +342,11 @@ atomic types such as |Integer|, |String|, |Double|, ...
   And the result is precisely the |HasIso| instance that we have for the type |Line|.
   In fact, we provide Template Haskell code to generate these mechanical isomorphisms
   automatically, the user would just call |$(deriveIso ''Line)|.
+  
+  Even though we still have something of type |Line| on the right-hand-side of our isomorphism,
+  that does not represent a problem as the instances will open it into another sum-of-products
+  whenever needed. This is possible since the instance chosing is guided by induction
+  in our grammar combinators, and a |LineParser| is always \emph{tagged} by |Line|.
   
   
 \subsection{Lexing Remarks}
@@ -357,40 +396,131 @@ $(deriveIso  ''Line)
 \vskip .5em
 
   And it decides which characters start an identifier. For the readers familiar with
-  \texttt{Text.Parsec}, our HasLexer is just a lifting from Parsec's lexing primitives
-  to a typeclass.
+  \texttt{Text.Parsec}, our |HasLexer| is just a lifting from Parsec's lexing primitives
+  to a typeclass. In fact, we use \texttt{Text.Parsec} and \texttt{Text.PrettyPrint} as our
+  underlying libraries for parsing and printing.
   
 \subsection{Pretty Printing}
 
-  \begin{TODO}
-    \item show the HasPrinter class.
-    \item Mention the comments problem, and say that this is left as future work.
-    \item Explain that |deriveRec| also devires a HasPrinter instance for the 
-          encapsulated recursive type.
-  \end{TODO}
+  Generating a pretty-printer is analogous to generating a parser, with the difference
+  that a few combinators will have the same parsing behaviour but not the same
+  pretty printing behaviour.
+  
+  Our |HasPrinter| class also needs to access the |Result| type family declared
+  in the |HasParser| class. We therefore assume that |HasParser a => HasPrinter a|.
+  
+\vskip .5em
+\begin{code}
+  class (HasParser a) => HasPrinter a where
+    pp :: Proxy a -> Result a -> Doc
+\end{code}
+\vskip .5em
+
+  The |deriveRec| template haskell directive will also generate a |HasPrinter| instance
+  for an encapsulated type.
+  
+  If we require our pretty printer and parser to be an isomorphism, we run into a few problems.
+  Namelly, this isomorphism has to be modulo formating and comments. These problems are
+  left as future work.
   
 \subsection{Summary}
 
   On this section we presented our \emph{grammar combinators} library with
-  a simple use case. The important points the reader whould take are:
+  a simple use case. We showed how to encode a language's grammar on Haskell
+  type-level, which allows us to generate both a parser and a pretty printer for it.
+  We proposed a solution for handling mutually recursive and user defined types.
   
-  \begin{itemize}
-    \item Having type-level combinators to specify a language's grammar
-          gives us an easy way to generate both a parser and a pretty-printer.
-    \item Handling user defined types or mutually recursive grammars is not a problem.
-    \item The type of the elements of a grammar is very regular, in fact, it is built
-          using products, coproducts, units and lists (minus isomorphism for user defined types).
-  \end{itemize}
+  The advantages of this approach are many. On one side, it is easy to do generic
+  programming on the elements resulting from our parsers, once the target types
+  are all built using products, coproducts, unit and lists (minus isomorphism for user defined types).
+  On the other hand, it is extensible! For a user can always define new domain-specific
+  combinators and immediatly integrate them with the rest of the library.
+  
+  In the following sections we give the intuition behind what captures differences
+  in a type |a|. As expected, this definition follows by induction on the structure of |a|.
+  Later, we show how we proved that this definition of a \emph{diff} is correct, in Agda.
+  
+  
+  
+\section{Structure-aware Diffing}
+  
+  \begin{TODO}
+    \item Give some context: Tree-edit distance; 
+  \end{TODO}
+  
+  \begin{RESEARCH}
+    \item Check out the antidiagonal with more attention: 
+          \url{ http://blog.sigfpe.com/2007/09/type-of-distinct-pairs.html }
+    \item The LCS problem is closely related to diffing.
+          We want to preserve the LCS of two structures!
+          How does our diffing relate?
+          Does this imply maximum sharing?
+  \end{RESEARCH}
 
-  \warnme{Find a name for our library! : How about "Grammar Combinators"?}
+  Having a regular, yet extensible, way to parse different files gives us a stepping
+  stone to start discussing how to track differences in the results of those parsers.
+  There has been plenty of research on this topic (\warnme{CITE STUFF!}), however,
+  most of the time data is converted to an untyped intermediate representation.
+  We would like to stay type-safe. \warnme{WHY?}  
+  Our research shows that the type |D a| that expresses the differences between
+  two elements of type |a| can be determined by induction on |a|'s structure.
   
-\section{Diffing the results}
+  \begin{TODO} 
+    \item introduce \emph{edit-script}, \emph{diffing} and \emph{patching} or \emph{apply}
+  \end{TODO}
+  
+  For example, let us see the differences between the original CSV and Alice's edits: 
+  
+  \begin{figure}[h]
+  \begin{center}
+  \begin{minipage}[t]{.3\textwidth}
+  \begin{verbatim}
+items      ,qty ,unit
+wheat-flour,2   ,cp
+eggs       ,2   ,units
+  \end{verbatim}
+  \begin{center}Alice\end{center}
+  \end{minipage}
+  \vline
+  \begin{minipage}[t]{.3\textwidth}
+    \begin{verbatim}
+items      ,qty ,unit
+wheat-flour,1   ,cp
+eggs       ,2   ,units
+  \end{verbatim}
+  \begin{center}Original\end{center}
+  \end{minipage}
+  \end{center}
+  \caption{Alice's edits}
+  \label{fig:aliceedit}
+  \end{figure}
+  
+  \begin{wrapfigure}{r}{.4\textwidth}
+  \begin{code}
+    Cpy "items,qty,unit" 
+      (Del "weat-flour,1,cp" 
+        (Ins "wheat-flour,2,cp" 
+          (Cpy "eggs,2,unis"
+            End)))
+  \end{code}
+  \caption{Line-based edit-script for figure \ref{fig:aliceedit}}
+  \label{fig:line-based-ES}
+  \end{wrapfigure}
+  
+  As we can see, Alice edited the second line of the file. A line-based edit script,
+  which is something that transform a file into another, would look like the one
+  presented in figure \ref{fig:line-based-ES}. That edit script has a few problems:
+  (A) it is deleting and inserting almost identical lines and (B) it is unaware
+  of the CSV file semantics, making it harder to identify actual conflicts.
+  
+
   \begin{TODO}
     \item Explain the patching problem.
     \item We want a type-safe approach.
     \item Argue that the types resulting from our parser
           are in a sub-language of what we treated next.
   \end{TODO}  
+  
 
 \section{Context Free Datatypes}
   
