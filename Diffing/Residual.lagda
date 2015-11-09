@@ -114,5 +114,3 @@ module Diffing.Residual where
   a few lemmas:
 
     p / p  ≡ id
-    id / p ≡ id
-    p / id ≡ p

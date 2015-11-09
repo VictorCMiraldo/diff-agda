@@ -15,4 +15,5 @@ Directory structure is as follows:
     * **Monads.agda** , easier to use than the Monads in agda's std-lib.
     * **Propositions.agda** , a bunch of propositions for rewriting things here and there.
 * **Diff.lagda** , The actual diff algorithm and correspondent apply function.
-* **DiffCorrect.agda** , Correctness proof of the above. WARNING: typecheck takes 20 minutes.
+* **DiffCorrect.agda** , Correctness proof of the above.
+* **Residual.lagda** , Defines the notion of a residual over Diffs.
