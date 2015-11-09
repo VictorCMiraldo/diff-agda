@@ -1,6 +1,7 @@
 open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Diff
+open import Diffing.Residual
 -- open import Diffing.DiffCorrect
 
 module Diffing.Examples.NatList where
@@ -25,15 +26,6 @@ module Diffing.Examples.NatList where
 
   to-nat-0 : ℕ → ElU nat tnil
   to-nat-0 = to-nat
-
-  d1 : D tnil nat
-  d1 = gdiff (to-nat-0 4) (to-nat-0 2)
-
-  d2 : D tnil nat
-  d2 = D-mu-del (inr (top void))
-         (D-mu-del (inr (top void))
-          (D-mu-del (inr (top void))
-           (D-mu-del (inr (top void)) (D-mu-cpy (inl void) D-mu-end))))
 
   gapplyℕ : D tnil nat → ℕ → Maybe ℕ
   gapplyℕ d n with gapply d (to-nat-0 n)
@@ -114,42 +106,3 @@ module Diffing.Examples.NatList where
   b3 = red (CONS (red (CONS TRUE (CONS TRUE NIL)))
            (CONS (red (CONS FALSE (CONS TRUE NIL))) 
            NIL))
-
-  patch1 : D tnil bool-list2
-  patch1 = D-β (D-mu-ins
-     (inr
-      (pop
-       (top
-        (red
-         (mu
-          (inr
-           (pop (top (inl void)) ,
-            top (mu (inr (pop (top (inl void)) , top (mu (inl void))))))))))
-       , top void)) (D-mu-del
-         (inr
-          (pop
-           (top
-            (red
-             (mu
-              (inr
-               (pop (top (inl void)) ,
-                top (mu (inr (pop (top (inr void)) , top (mu (inl void))))))))))
-           , top void)) D-mu-end))
-
-  
-  
-  patch2 : D tnil bool-list2
-  patch2 = D-β
-    (D-mu-down
-     (D-β
-      (D-inr
-       (D-pair
-        (D-pop
-         (D-top
-          (D-β
-           (D-mu-cpy (inr (pop (top (inl void)) , top void))
-            (D-mu-down
-             (D-β
-              (D-inr (D-pair (D-pop (D-top (D-set void void))) (D-top D-void))))
-             (D-mu-cpy (inl void) D-mu-end))))))
-        (D-top D-void)))) D-mu-end)

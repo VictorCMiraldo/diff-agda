@@ -69,40 +69,43 @@ module Diffing.Residual where
   _/_ {ty = vl} (D-top p) (D-top q) = D-top <$>+1 (p / q)
   _/_ {ty = wk ty} (D-pop p) (D-pop q) = D-pop <$>+1 (p / q)
 
-  _/_ {ty = μ ty} p q = res p q
+  _/_ {ty = μ ty} (D-mu p) (D-mu q) = D-mu <$>+1 res p q
     where
       res : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-          → D t (μ ty) → D t (μ ty) → Maybe (D t (μ ty))
+          → List (Dμ t ty) → List (Dμ t ty) → Maybe (List (Dμ t ty))
 
       -- if both patches finishes together, easy.
-      res D-mu-end D-mu-end = just D-mu-end
+      res [] [] = just []
 
       -- we can always keep inserting things, though.
-      res dp (D-mu-ins x dq) = D-mu-cpy x <$>+1 res dp dq
-      res (D-mu-ins x dp) dq = D-mu-ins x <$>+1 res dp dq
+      res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-cpy x) <$>+1 res dp dq
+      res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-ins x) <$>+1 res dp dq
       
       -- Copies must be consistent.
-      res (D-mu-cpy x dp) (D-mu-cpy y dq) with x ≟-U y
-      ...| yes _ = D-mu-cpy x <$>+1 res dp dq
+      res (Dμ-cpy x ∷ dp) (Dμ-cpy y ∷ dq) with x ≟-U y
+      ...| yes _ = _∷_ (Dμ-cpy x) <$>+1 res dp dq
       ...| no  _ = nothing
 
       -- Erasing is a bit more tricky.
-      res (D-mu-del x dp) (D-mu-cpy y dq) with x ≟-U y
-      ...| yes _ = D-mu-del x <$>+1 res dp dq
+      res (Dμ-del x ∷ dp) (Dμ-cpy y ∷ dq) with x ≟-U y
+      ...| yes _ = _∷_ (Dμ-del x) <$>+1 res dp dq
       ...| no  _ = nothing
-      res (D-mu-cpy x dp) (D-mu-del y dq) with x ≟-U y
+      res (Dμ-cpy x ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
       ...| yes _ = res dp dq
       ...| no  _ = nothing
-      res (D-mu-del x dp) (D-mu-del y dq) with x ≟-U y
+      res (Dμ-del x ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
       ...| yes _ = res dp dq
       ...| no  _ = nothing
 
-      res (D-mu-down dx dp) (D-mu-cpy y dq) with gapply dx (red y)
-      ...| just _ = D-mu-down dx <$>+1 res dp dq
+      res (Dμ-dwn dx ∷ dp) (Dμ-cpy y ∷ dq) with gapply dx (red y)
+      ...| just _ = _∷_ (Dμ-dwn dx) <$>+1 res dp dq
       ...| nothing = nothing
-      res (D-mu-cpy x dp) (D-mu-down dy dq) with gapply dy (red x)
-      ...| just (red x2) = D-mu-cpy x2 <$>+1 res dp dq
+      res (Dμ-cpy x ∷ dp) (Dμ-dwn dy ∷ dq) with gapply dy (red x)
+      ...| just (red x2) = _∷_ (Dμ-cpy x2) <$>+1 res dp dq
       ...| nothing       = nothing
+      res (Dμ-dwn dx ∷ dp) (Dμ-dwn dy ∷ dq) with dx / dy
+      ...| just x2  = _∷_ (Dμ-dwn x2) <$>+1 res dp dq
+      ...| nothing  = nothing
 
       res _ _ = nothing    
 \end{code}

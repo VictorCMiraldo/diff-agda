@@ -16,36 +16,35 @@ module Diffing.Diff where
 
 %<*D-def>
 \begin{code}
-  data D : {n : ℕ} → Tel n → U n → Set where
-    D-void : {n : ℕ}{t : Tel n} → D t u1
-    D-inl  : {n : ℕ}{t : Tel n}{a b : U n} 
-           → D t a → D t (a ⊕ b)
-    D-inr  : {n : ℕ}{t : Tel n}{a b : U n} 
-           → D t b → D t (a ⊕ b)
-    D-set  : {n : ℕ}{t : Tel n}{a b : U n} 
-           → ElU a t → ElU b t → D t (a ⊕ b)
-    D-pair : {n : ℕ}{t : Tel n}{a b : U n} 
-           → D t a → D t b → D t (a ⊗ b)
-    D-mu-end : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → D t (μ a)
-    D-mu-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → ValU a t → D t (μ a) → D t (μ a)
-    D-mu-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → ValU a t → D t (μ a) → D t (μ a)
-    D-mu-del : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → ValU a t → D t (μ a) → D t (μ a)
-    D-mu-down : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-              → D t (β a u1) → D t (μ a) → D t (μ a)
-    D-β : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n} 
-        → D (tcons x t) F → D t (β F x)
-    D-top : {n : ℕ}{t : Tel n}{a : U n}
-          → D t a → D (tcons a t) vl
-    D-pop : {n : ℕ}{t : Tel n}{a b : U n}
-          → D t b → D (tcons a t) (wk b)
-    _∘ᴰ_  : {n : ℕ}{t : Tel n}{a : U n}
-          → D t a → D t a → D t a
-    D-id  : {n : ℕ}{t : Tel n}{a : U n}
-          → D t a
+  mutual
+    data D : {n : ℕ} → Tel n → U n → Set where
+      D-void : {n : ℕ}{t : Tel n} → D t u1
+      D-inl  : {n : ℕ}{t : Tel n}{a b : U n} 
+             → D t a → D t (a ⊕ b)
+      D-inr  : {n : ℕ}{t : Tel n}{a b : U n} 
+             → D t b → D t (a ⊕ b)
+      D-set  : {n : ℕ}{t : Tel n}{a b : U n} 
+             → ElU a t → ElU b t → D t (a ⊕ b)
+      D-pair : {n : ℕ}{t : Tel n}{a b : U n} 
+             → D t a → D t b → D t (a ⊗ b)
+      D-mu : {n : ℕ}{t : Tel n}{a : U (suc n)}
+           → List (Dμ t a) → D t (μ a)
+      D-β : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n} 
+          → D (tcons x t) F → D t (β F x)
+      D-top : {n : ℕ}{t : Tel n}{a : U n}
+            → D t a → D (tcons a t) vl
+      D-pop : {n : ℕ}{t : Tel n}{a b : U n}
+            → D t b → D (tcons a t) (wk b)
+      _∘ᴰ_  : {n : ℕ}{t : Tel n}{a : U n}
+            → D t a → D t a → D t a
+      D-id  : {n : ℕ}{t : Tel n}{a : U n}
+            → D t a
+
+    data Dμ : {n : ℕ} → Tel n → U (suc n) → Set where
+      Dμ-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
+      Dμ-del : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
+      Dμ-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
+      Dμ-dwn : {n : ℕ}{t : Tel n}{a : U (suc n)} → D t (β a u1) → Dμ t a
 \end{code}
 %</D-def>
 
@@ -77,24 +76,33 @@ module Diffing.Diff where
   
   With this in mind, we implement the cost function as follows:
 
+\begin{code}
+  mutual
+\end{code}
 %<*cost-def>
 \begin{code}
-  cost : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → ℕ
-  cost  D-void        = 1
-  cost (D-inl d)      = cost d
-  cost (D-inr d)      = cost d
-  cost (D-set _ _)    = 1
-  cost (D-pair da db) = cost da + cost db
-  cost D-mu-end                   = 0
-  cost (D-mu-cpy x d)             = sizeElU x     + cost d
-  cost {ty = μ ty} (D-mu-ins x d) = sizeElU x + 1 + cost d
-  cost {ty = μ ty} (D-mu-del x d) = sizeElU x + 1 + cost d
-  cost (D-mu-down dx d)           = 1 + cost dx   + cost d
-  cost (D-β d)   = cost d
-  cost (D-top d) = cost d
-  cost (D-pop d) = cost d
-  cost (x ∘ᴰ y)  = cost x + cost y
-  cost D-id      = 0
+    cost : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → ℕ
+    cost  D-void        = 1
+    cost (D-inl d)      = cost d
+    cost (D-inr d)      = cost d
+    cost (D-set _ _)    = 1
+    cost (D-pair da db) = cost da + cost db
+    cost (D-β d)   = cost d
+    cost (D-top d) = cost d
+    cost (D-pop d) = cost d
+    cost (x ∘ᴰ y)  = cost x + cost y
+    cost D-id      = 0
+    cost (D-mu l)  = sum-cost l
+      where
+        sum-cost : {n : ℕ}{t : Tel n}{ty : U (suc n)} → List (Dμ t ty) → ℕ
+        sum-cost [] = 0
+        sum-cost (x ∷ l) = costμ x + sum-cost l
+
+    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ t ty → ℕ
+    costμ (Dμ-ins x) = sizeElU x + 1
+    costμ (Dμ-del x) = sizeElU x + 1
+    costμ (Dμ-cpy x) = sizeElU x
+    costμ (Dμ-dwn x) = cost x
 \end{code}
 %</cost-def>
 
@@ -108,8 +116,19 @@ module Diffing.Diff where
 \end{code}
 %</lub-def>
 
+%<*lubmu-def>
+\begin{code}
+  _⊔μ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      → List (Dμ t ty) → List (Dμ t ty) → List (Dμ t ty)
+  _⊔μ_ {ty = ty} da db with cost (D-mu da) ≤?-ℕ cost (D-mu db)
+  ...| yes _ = da
+  ...| no  _ = db
+\end{code}
+%</lubmu-def>
+
 \begin{code}
   infixr 20 _⊔_
+  infixr 20 _⊔μ_
 \end{code}
 
 \begin{code}
@@ -139,41 +158,33 @@ module Diffing.Diff where
     -- Now we get to the interesting bit.
     -- Note that we need to use lists to handle
     -- the possibility of multiple arguments.
-    gdiff {ty = μ ty} a b = gdiffL (a ∷ []) (b ∷ [])
+    gdiff {ty = μ ty} a b = D-mu (gdiffL (a ∷ []) (b ∷ []))
 \end{code}
 %</gdiff-def>
 
 %<*gdiffL-def>
 \begin{code}
     gdiffL : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
-           → List (ElU (μ ty) t) → List (ElU (μ ty) t) → D t (μ ty)
-    gdiffL [] [] = D-mu-end
+           → List (ElU (μ ty) t) → List (ElU (μ ty) t) → List (Dμ t ty)
+    gdiffL [] [] = []
     gdiffL [] (y ∷ ys) with μ-open y
-    ...| hdY , chY = D-mu-ins hdY (gdiffL [] (chY ++ ys)) 
+    ...| hdY , chY = Dμ-ins hdY ∷ (gdiffL [] (chY ++ ys)) 
     gdiffL (x ∷ xs) [] with μ-open x
-    ...| hdX , chX = D-mu-del hdX (gdiffL (chX ++ xs) [])
+    ...| hdX , chX = Dμ-del hdX ∷ (gdiffL (chX ++ xs) [])
     gdiffL (x ∷ xs) (y ∷ ys) with μ-open x | μ-open y
     ...| hdX , chX | hdY , chY with hdX ≟-U hdY
     ...| no  _ = let
-          d1 = D-mu-ins hdY (gdiffL (x ∷ xs) (chY ++ ys))
-          d2 = D-mu-del hdX (gdiffL (chX ++ xs) (y ∷ ys))
-          d3 = D-mu-down (gdiff (red hdX) (red hdY)) (gdiffL (chX ++ xs) (chY ++ ys))
-       in d1 ⊔ d2 ⊔ d3
+          d1 = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
+          d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
+          d3 = Dμ-dwn (gdiff (red hdX) (red hdY)) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
+       in d1 ⊔μ d2 ⊔μ d3
     ...|  yes _ = let
           -- d1 = D-mu-ins hdY (gdiffL (x ∷ xs) (chY ++ ys))
           -- d2 = D-mu-del hdX (gdiffL (chX ++ xs) (y ∷ ys))
-          d3 = D-mu-cpy hdX (gdiffL (chX ++ xs) (chY ++ ys))
+          d3 = Dμ-cpy hdX ∷ (gdiffL (chX ++ xs) (chY ++ ys))
        in d3
 \end{code}
 %</gdiffL-def>
-
-%</gdiff-id-def>
-\begin{code}
-  gdiff-id : {n : ℕ}{t : Tel n}{ty : U n} 
-           → ElU ty t → D t ty
-  gdiff-id t = gdiff t t
-\end{code}
-%</gdiff-id>
 
 \begin{code}
   open import Diffing.Utils.Monads
@@ -213,7 +224,7 @@ module Diffing.Diff where
 
     gapply (dx ∘ᴰ dy) el = gapply dy el >>= gapply dx
 
-    gapply {ty = μ ty} d el = gapplyL d (el ∷ []) >>= safeHead
+    gapply {ty = μ ty} (D-mu d) el = gapplyL d (el ∷ []) >>= safeHead
 \end{code}
 %</gapply-def>
 
@@ -250,15 +261,13 @@ module Diffing.Diff where
 %<*gapplyL-def>
 \begin{code}
     gapplyL : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → D t (μ ty) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
-    gapplyL D-id l     = just l
-    gapplyL D-mu-end l = just l
-    gapplyL (dx ∘ᴰ dy) l = gapplyL dy l >>= gapplyL dx
-    gapplyL (D-mu-ins x d) l = gapplyL d l >>= gIns x
-    gapplyL (D-mu-del x d) l = gDel x l    >>= gapplyL d 
-    gapplyL (D-mu-cpy x d) l = gDel x l    >>= gapplyL d >>= gIns x
-    gapplyL (D-mu-down x d) [] = nothing
-    gapplyL (D-mu-down dx d) (y ∷ l) with μ-open y
+            → List (Dμ t ty) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+    gapplyL [] l = just l
+    gapplyL (Dμ-ins x  ∷ d) l = gapplyL d l >>= gIns x
+    gapplyL (Dμ-del x  ∷ d) l = gDel x l    >>= gapplyL d 
+    gapplyL (Dμ-cpy x  ∷ d) l = gDel x l    >>= gapplyL d >>= gIns x
+    gapplyL (Dμ-dwn dx ∷ d) [] = nothing
+    gapplyL (Dμ-dwn dx ∷ d) (y ∷ l) with μ-open y
     ...| hdY , chY with gapply dx (red hdY)
     ...| nothing       = nothing
     ...| just (red y') = gapplyL d (chY ++ l) >>= gIns y' 
