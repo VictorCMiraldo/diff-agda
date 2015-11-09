@@ -140,3 +140,45 @@ And some general purpose functions
         → ElU (wk a) (tcons x t) → ElU a t
   unpop (pop el) = el
 \end{code}
+
+%<*countU>
+\begin{code}
+  countU : {n : ℕ} → Fin n → U n → ℕ
+  countU i u1 = 0
+  countU i (a ⊕ b) = countU i a + countU i b
+  countU i (a ⊗ b) = countU i a + countU i b
+  countU i (β F x) = countU i x + countU (fs i) F
+  countU i (μ u) = countU (fs i) u
+  countU fz vl = 1
+  countU (fs i) vl = 0
+  countU fz (wk u) = 0
+  countU (fs i) (wk u) = countU i u
+\end{code}
+%</countU>
+
+%<*sizeU>
+\begin{code}
+  sizeU : {n : ℕ} → U n → ℕ
+  sizeU u1 = 1
+  sizeU (a ⊕ b) = sizeU a + sizeU b
+  sizeU (a ⊗ b) = sizeU a * sizeU b
+  sizeU (β F x) = sizeU x * countU fz F + sizeU F
+  sizeU (μ u) = sizeU u
+  sizeU vl = 1
+  sizeU (wk u) = sizeU u
+\end{code}
+%</sizeU>
+
+%<*sizeEl>
+\begin{code}
+  sizeElU : {n : ℕ}{t : Tel n}{u : U n} → ElU u t → ℕ
+  sizeElU void = 1
+  sizeElU (inl el) = sizeElU el
+  sizeElU (inr el) = sizeElU el
+  sizeElU (ela , elb) = sizeElU ela + sizeElU elb
+  sizeElU (top el) = sizeElU el
+  sizeElU (pop el) = sizeElU el
+  sizeElU (mu el) = 1 + sizeElU el
+  sizeElU (red el) = sizeElU el
+\end{code}
+%</sizeEl>

@@ -7,6 +7,13 @@ open import Diffing.Universe.MuUtils
 module Diffing.Diff where
 \end{code}
 
+%<*ValU>
+\begin{code}
+  ValU : {n : ℕ} → U (suc n) → Tel n → Set
+  ValU ty t = ElU ty (tcons u1 t)
+\end{code}
+%</ValU>
+
 %<*D-def>
 \begin{code}
   data D : {n : ℕ} → Tel n → U n → Set where
@@ -22,11 +29,11 @@ module Diffing.Diff where
     D-mu-end : {n : ℕ}{t : Tel n}{a : U (suc n)} 
              → D t (μ a)
     D-mu-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → ElU a (tcons u1 t) → D t (μ a) → D t (μ a)
+             → ValU a t → D t (μ a) → D t (μ a)
     D-mu-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → ElU a (tcons u1 t) → D t (μ a) → D t (μ a)
+             → ValU a t → D t (μ a) → D t (μ a)
     D-mu-del : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → ElU a (tcons u1 t) → D t (μ a) → D t (μ a)
+             → ValU a t → D t (μ a) → D t (μ a)
     D-mu-down : {n : ℕ}{t : Tel n}{a : U (suc n)} 
               → D t (β a u1) → D t (μ a) → D t (μ a)
     D-β : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n} 
@@ -35,25 +42,59 @@ module Diffing.Diff where
           → D t a → D (tcons a t) vl
     D-pop : {n : ℕ}{t : Tel n}{a b : U n}
           → D t b → D (tcons a t) (wk b)
+    _∘ᴰ_  : {n : ℕ}{t : Tel n}{a : U n}
+          → D t a → D t a → D t a
+    D-id  : {n : ℕ}{t : Tel n}{a : U n}
+          → D t a
 \end{code}
 %</D-def>
+
+  The cost function is trivial for the non-inductive types.
+  The inductive types are a bit trickier, though.
+  We want our diff to have maximum sharing, that means
+  we seek to copy most of the information we see.
+  However, there are two obvious ways of copying:
+
+    (D-mu-cpy x d) ∨ (D-mu-down (diff x x) d)
+
+  We want the first one to be chosen.
+  Which means, 
+  
+    cost (D-mu-cpy x d) < cost (D-mu-down (diff x x) d)
+  ↔         k + cost d  < cost (diff x x) + 1 + cost d
+  ⇐                  k  < cost (diff x x) + 1
+  
+  However, diff x x will basically be copying every constructor of x,
+  which is intuitively the size of x. We then define the cost of
+  copying x as the size of x.
+
+  Inserting and deleting, on the other hand, must be more
+  expensive than making structural changes (when possible!)
+  The same reasoning applies to the fact that we prefer copying
+  over inserting and deleting.
+
+    D-mu-cpy x d ≈ D-mu-down (diff x x) d ≈ D-mu-ins x (D-mu-del x d)
+  
+  With this in mind, we implement the cost function as follows:
 
 %<*cost-def>
 \begin{code}
   cost : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → ℕ
-  cost {n} D-void = n
-  cost {n} (D-inl d) = cost d
-  cost {n} (D-inr d) = cost d
-  cost {n} (D-set _ _) = n
-  cost {n} (D-pair d d₁) = cost d + cost d₁
-  cost {n} D-mu-end = 0
-  cost {n} (D-mu-cpy x d) = 2 * n + cost d
-  cost {n} (D-mu-ins x d) = n + 1 + cost d
-  cost {n} (D-mu-del x d) = n + 1 + cost d
-  cost {n} (D-mu-down d d₁) = cost d + cost d₁
-  cost {n} (D-β d) = cost d
-  cost {suc n} (D-top d) = cost d
-  cost {suc n} (D-pop d) = cost d
+  cost  D-void        = 1
+  cost (D-inl d)      = cost d
+  cost (D-inr d)      = cost d
+  cost (D-set _ _)    = 1
+  cost (D-pair da db) = cost da + cost db
+  cost D-mu-end                   = 0
+  cost (D-mu-cpy x d)             = sizeElU x     + cost d
+  cost {ty = μ ty} (D-mu-ins x d) = sizeElU x + 1 + cost d
+  cost {ty = μ ty} (D-mu-del x d) = sizeElU x + 1 + cost d
+  cost (D-mu-down dx d)           = 1 + cost dx   + cost d
+  cost (D-β d)   = cost d
+  cost (D-top d) = cost d
+  cost (D-pop d) = cost d
+  cost (x ∘ᴰ y)  = cost x + cost y
+  cost D-id      = 0
 \end{code}
 %</cost-def>
 
@@ -126,6 +167,14 @@ module Diffing.Diff where
 \end{code}
 %</gdiffL-def>
 
+%</gdiff-id-def>
+\begin{code}
+  gdiff-id : {n : ℕ}{t : Tel n}{ty : U n} 
+           → ElU ty t → D t ty
+  gdiff-id t = gdiff t t
+\end{code}
+%</gdiff-id>
+
 \begin{code}
   open import Diffing.Utils.Monads
   open Monad {{...}}
@@ -137,6 +186,7 @@ module Diffing.Diff where
 \begin{code}
     gapply : {n : ℕ}{t : Tel n}{ty : U n}
            → D t ty → ElU ty t → Maybe (ElU ty t)
+    gapply D-id   el   = just el
     gapply D-void void = just void
 
     gapply (D-inl diff) (inl el) = inl <$>+1 gapply diff el
@@ -160,6 +210,8 @@ module Diffing.Diff where
     gapply (D-β diff) (red el) = red <$>+1 gapply diff el
     gapply (D-top diff) (top el) = top <$>+1 gapply diff el
     gapply (D-pop diff) (pop el) = pop <$>+1 gapply diff el
+
+    gapply (dx ∘ᴰ dy) el = gapply dy el >>= gapply dx
 
     gapply {ty = μ ty} d el = gapplyL d (el ∷ []) >>= safeHead
 \end{code}
@@ -199,15 +251,26 @@ module Diffing.Diff where
 \begin{code}
     gapplyL : {n : ℕ}{t : Tel n}{ty : U (suc n)}
             → D t (μ ty) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+    gapplyL D-id l     = just l
     gapplyL D-mu-end l = just l
+    gapplyL (dx ∘ᴰ dy) l = gapplyL dy l >>= gapplyL dx
     gapplyL (D-mu-ins x d) l = gapplyL d l >>= gIns x
     gapplyL (D-mu-del x d) l = gDel x l    >>= gapplyL d 
     gapplyL (D-mu-cpy x d) l = gDel x l    >>= gapplyL d >>= gIns x
     gapplyL (D-mu-down x d) [] = nothing
-    gapplyL (D-mu-down (D-β x) d) (y ∷ l) with μ-open y
-    ...| hdY , chY with gapply x hdY
-    ...| nothing = nothing
-    ...| just y' = gapplyL d (chY ++ l) >>= gIns y' 
+    gapplyL (D-mu-down dx d) (y ∷ l) with μ-open y
+    ...| hdY , chY with gapply dx (red hdY)
+    ...| nothing       = nothing
+    ...| just (red y') = gapplyL d (chY ++ l) >>= gIns y' 
 \end{code}
 %</gapplyL-def>
-  
+
+  And finally, we define an extensional equality for patches.
+
+%<*patch-equality>
+\begin{code}
+  _≡-D_ : {n : ℕ}{t : Tel n}{ty : U n}
+        → D t ty → D t ty → Set
+  d1 ≡-D d2 = ∀ x → gapply d1 x ≡ gapply d2 x
+\end{code}
+%</patch-equality>

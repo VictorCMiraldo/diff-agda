@@ -44,12 +44,12 @@ module Diffing.Examples.NatList where
   list : {n : ℕ} → U (suc n)
   list = μ (u1 ⊕ (wk vl) ⊗ vl)
 
-  NIL : {n : ℕ}{t : Tel (suc n)} → ElU list t
-  NIL = mu (inl void)
+  -- NIL : {n : ℕ}{t : Tel (suc n)} → ElU list t
+  pattern NIL = mu (inl void)
 
-  CONS : {n : ℕ}{a : U n}{t : Tel n} 
-       → ElU a t → ElU list (tcons a t) → ElU list (tcons a t)
-  CONS a as = mu (inr ((pop (top a)) , (top as)))
+  -- CONS : {n : ℕ}{a : U n}{t : Tel n} 
+  --     → ElU a t → ElU list (tcons a t) → ElU list (tcons a t)
+  pattern CONS a as = mu (inr ((pop (top a)) , (top as)))
 
   -- Lists of nats
   nat-list : {n : ℕ} → U n
@@ -60,11 +60,96 @@ module Diffing.Examples.NatList where
   to-nat-list (x ∷ xs) with to-nat-list xs
   ...| (red (mu res)) = red (CONS (to-nat x) (mu res))
 
+  from-nat-list : ElU nat-list tnil → List ℕ
+  from-nat-list (red NIL) = []
+  from-nat-list (red (CONS x xs)) = to-ℕ x ∷ from-nat-list (red xs)
+
   l1 : ElU nat-list tnil
   l1 = to-nat-list (1 ∷ 2 ∷ [])
 
   l2 : ElU nat-list tnil
   l2 = to-nat-list (1 ∷ 6 ∷ [])
 
+  l3 : ElU nat-list tnil
+  l3 = to-nat-list (2 ∷ 4 ∷ 1 ∷ [])
+
   d12 : D tnil nat-list
   d12 = gdiff l1 l2
+
+  d13 : D tnil nat-list
+  d13 = gdiff l1 l3
+
+  open import Diffing.Utils.Monads
+  open Monad {{...}}
+
+  res1 : Maybe (List ℕ)
+  res1 = d12 / d13 >>= λ d → gapply d l3 >>= return ∘ from-nat-list
+
+  res2 : Maybe (List ℕ)
+  res2 = d13 / d12 >>= λ d → gapply d l2 >>= return ∘ from-nat-list
+
+  -- booleans
+  bool : {n : ℕ} → U n
+  bool = u1 ⊕ u1
+
+  pattern TRUE = inl void
+  pattern FALSE = inr void
+
+  -- List of Bools
+  bool-list2 : {n : ℕ} → U n
+  bool-list2 = β list (β list bool)
+
+  b1 : ElU bool-list2 tnil
+  b1 = red (CONS (red (CONS TRUE (CONS FALSE NIL))) 
+           (CONS (red (CONS FALSE NIL)) 
+           NIL))
+
+  b2 : ElU bool-list2 tnil
+  b2 = red (CONS (red (CONS TRUE (CONS FALSE NIL))) 
+           (CONS (red (CONS FALSE NIL)) 
+           (CONS (red NIL) 
+           NIL)))
+
+  b3 : ElU bool-list2 tnil
+  b3 = red (CONS (red (CONS TRUE (CONS TRUE NIL)))
+           (CONS (red (CONS FALSE (CONS TRUE NIL))) 
+           NIL))
+
+  patch1 : D tnil bool-list2
+  patch1 = D-β (D-mu-ins
+     (inr
+      (pop
+       (top
+        (red
+         (mu
+          (inr
+           (pop (top (inl void)) ,
+            top (mu (inr (pop (top (inl void)) , top (mu (inl void))))))))))
+       , top void)) (D-mu-del
+         (inr
+          (pop
+           (top
+            (red
+             (mu
+              (inr
+               (pop (top (inl void)) ,
+                top (mu (inr (pop (top (inr void)) , top (mu (inl void))))))))))
+           , top void)) D-mu-end))
+
+  
+  
+  patch2 : D tnil bool-list2
+  patch2 = D-β
+    (D-mu-down
+     (D-β
+      (D-inr
+       (D-pair
+        (D-pop
+         (D-top
+          (D-β
+           (D-mu-cpy (inr (pop (top (inl void)) , top void))
+            (D-mu-down
+             (D-β
+              (D-inr (D-pair (D-pop (D-top (D-set void void))) (D-top D-void))))
+             (D-mu-cpy (inl void) D-mu-end))))))
+        (D-top D-void)))) D-mu-end)
