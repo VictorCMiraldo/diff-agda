@@ -136,3 +136,9 @@ module Diffing.DiffCorrect where
                      | hdA≡hdB
                      | μ-close-resp-arity {l = bs} rB
                      = refl
+
+
+
+  align-correct : {n : ℕ}{t : Tel n}{ty : U n}{eO eA eB : ElU ty t}
+                → (gdiff eO eA) a⇓ (gdiff eO eB)
+  align-correct = {!!}

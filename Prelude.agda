@@ -97,6 +97,10 @@ module Prelude where
   ...| true = x ∷ takeWhile f xs
   ...| _    = takeWhile f xs
 
+  IsJust : ∀{a}{A : Set a} → Maybe A → Set
+  IsJust (just _) = Unit
+  IsJust _        = ⊥
+
 
   -- Some minor boilerplate to solve equality problem...
   record Eq (A : Set) : Set where

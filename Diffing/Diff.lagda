@@ -23,8 +23,10 @@ module Diffing.Diff where
              → D t a → D t (a ⊕ b)
       D-inr  : {n : ℕ}{t : Tel n}{a b : U n} 
              → D t b → D t (a ⊕ b)
-      D-set  : {n : ℕ}{t : Tel n}{a b : U n} 
-             → ElU a t → ElU b t → D t (a ⊕ b)
+      D-setl  : {n : ℕ}{t : Tel n}{a b : U n} 
+              → ElU a t → ElU b t → D t (a ⊕ b)
+      D-setr  : {n : ℕ}{t : Tel n}{a b : U n} 
+              → ElU b t → ElU a t → D t (a ⊕ b)
       D-pair : {n : ℕ}{t : Tel n}{a b : U n} 
              → D t a → D t b → D t (a ⊗ b)
       D-mu : {n : ℕ}{t : Tel n}{a : U (suc n)}
@@ -35,8 +37,8 @@ module Diffing.Diff where
             → D t a → D (tcons a t) vl
       D-pop : {n : ℕ}{t : Tel n}{a b : U n}
             → D t b → D (tcons a t) (wk b)
-      _∘ᴰ_  : {n : ℕ}{t : Tel n}{a : U n}
-            → D t a → D t a → D t a
+      -- _∘ᴰ_  : {n : ℕ}{t : Tel n}{a : U n}
+      --      → D t a → D t a → D t a
       D-id  : {n : ℕ}{t : Tel n}{a : U n}
             → D t a
 
@@ -85,12 +87,13 @@ module Diffing.Diff where
     cost  D-void        = 1
     cost (D-inl d)      = cost d
     cost (D-inr d)      = cost d
-    cost (D-set _ _)    = 1
+    cost (D-setl _ _)   = 1
+    cost (D-setr _ _)   = 1
     cost (D-pair da db) = cost da + cost db
     cost (D-β d)   = cost d
     cost (D-top d) = cost d
     cost (D-pop d) = cost d
-    cost (x ∘ᴰ y)  = cost x + cost y
+    -- cost (x ∘ᴰ y)  = cost x + cost y
     cost D-id      = 0
     cost (D-mu l)  = sum-cost l
       where
@@ -126,15 +129,14 @@ module Diffing.Diff where
 \end{code}
 %</lubmu-def>
 
+        Diffing
+  =======================
+
 \begin{code}
   infixr 20 _⊔_
   infixr 20 _⊔μ_
-\end{code}
-
-\begin{code}
   mutual
 \end{code}
-
 %<*gdiff-def>
 \begin{code}
     {-# TERMINATING #-}
@@ -152,8 +154,8 @@ module Diffing.Diff where
     -- Coproducts are not very hard either
     gdiff {ty = ty ⊕ tv} (inl ay) (inl by) = D-inl (gdiff ay by)
     gdiff {ty = ty ⊕ tv} (inr av) (inr bv) = D-inr (gdiff av bv)
-    gdiff {ty = ty ⊕ tv} (inl ay) (inr bv) = D-set ay bv
-    gdiff {ty = ty ⊕ tv} (inr av) (inl by) = D-set by av
+    gdiff {ty = ty ⊕ tv} (inl ay) (inr bv) = D-setl ay bv
+    gdiff {ty = ty ⊕ tv} (inr av) (inl by) = D-setr av by
 
     -- Now we get to the interesting bit.
     -- Note that we need to use lists to handle
@@ -186,13 +188,15 @@ module Diffing.Diff where
 \end{code}
 %</gdiffL-def>
 
+       Application
+  =========================
+
 \begin{code}
   open import Diffing.Utils.Monads
   open Monad {{...}}
 
   mutual
 \end{code}
-
 %<*gapply-def>
 \begin{code}
     gapply : {n : ℕ}{t : Tel n}{ty : U n}
@@ -206,13 +210,15 @@ module Diffing.Diff where
     gapply (D-inr diff) (inl el) = nothing
     gapply (D-inr diff) (inr el) = inr <$>+1 gapply diff el
 
-    gapply (D-set x y) (inl el) with x ≟-U el
+    gapply (D-setl x y) (inl el) with x ≟-U el
     ...| yes _ = just (inr y)
     ...| no  _ = nothing
+    gapply (D-setl _ _) (inr _) = nothing
 
-    gapply (D-set x y) (inr el) with y ≟-U el
+    gapply (D-setr y x) (inr el) with y ≟-U el
     ...| yes _ = just (inl x)
     ...| no  _ = nothing
+    gapply (D-setr _ _) (inl _) = nothing
 
     gapply (D-pair da db) (a , b) with gapply da a
     ...| nothing = nothing
@@ -222,7 +228,7 @@ module Diffing.Diff where
     gapply (D-top diff) (top el) = top <$>+1 gapply diff el
     gapply (D-pop diff) (pop el) = pop <$>+1 gapply diff el
 
-    gapply (dx ∘ᴰ dy) el = gapply dy el >>= gapply dx
+    -- gapply (dx ∘ᴰ dy) el = gapply dy el >>= gapply dx
 
     gapply {ty = μ ty} (D-mu d) el = gapplyL d (el ∷ []) >>= safeHead
 \end{code}
@@ -274,6 +280,9 @@ module Diffing.Diff where
 \end{code}
 %</gapplyL-def>
 
+           Equality
+  ============================
+
   And finally, we define an extensional equality for patches.
 
 %<*patch-equality>
@@ -283,3 +292,122 @@ module Diffing.Diff where
   d1 ≡-D d2 = ∀ x → gapply d1 x ≡ gapply d2 x
 \end{code}
 %</patch-equality>
+
+  Plus, it is fairly usefull to have some sort of equality
+  over Maybe monad.
+
+%<*patchM-equality>
+\begin{code}
+  _≡-DM_ : {n : ℕ}{t : Tel n}{ty : U n}
+        → Maybe (D t ty) → Maybe (D t ty) → Set
+  nothing   ≡-DM nothing   = Unit
+  (just d1) ≡-DM (just d2) = d1 ≡-D d2
+  _         ≡-DM _         = ⊥
+\end{code}
+%</patchM-equality>
+
+  If we want to calculate with patches, we need some rewrite notion.
+  Unfortunately, we can't encode extensional proofs in Agda.
+  However, having a proof of (d1 ≡-D d2) is basically having a proof
+  that d1 and d2 are the same arrow in the category of versions.
+
+%<*patch-equality-lift>
+\begin{code}
+  postulate
+    ≡-D-lift : {n : ℕ}{t : Tel n}{ty : U n}{d1 d2 : D t ty}
+             → d1 ≡-D d2 → d1 ≡ d2
+\end{code}
+%</patch-equality-lift>
+
+  Now we can substitute over patches.
+
+%<*patch-subst>
+\begin{code}
+  substP : {n : ℕ}{t : Tel n}{ty : U n}
+         → (P : D t ty → Set){d1 d2 : D t ty} 
+         → d1 ≡-D d2
+         → P d1 → P d2
+  substP P {d1} {d2} d1≡d2 pd1 with (≡-D-lift {d1 = d1} {d2 = d2} d1≡d2) 
+  ...| prf = subst P prf pd1 
+\end{code}
+%</patch-subst>
+
+          Alignment
+  ============================
+
+  An important notion is the notion of alignment. Two patches
+  are said to be aligned if and only if they are defined for the same inputs.
+
+  For instance, Alice and Bob edit a file O, then their patches
+  are aligned as applying any of them to O is well-defined.
+
+  The main usefullness of alignment is to be able to perform induction
+  on two compatible patches at the same time. For instance,
+  for defining a residual patch, we require the two patches to be aligned, as
+  it makes no sense to define the residual of two patches that can't be applied
+  to the same object.
+
+\begin{code}
+  mutual
+    data _a⇓_ : {n : ℕ}{t : Tel n}{ty : U n}(x y : D t ty) → Set where
+      a-void : {n : ℕ}{t : Tel n} → _a⇓_ {t = t} D-void D-void
+      a-id-l : {n : ℕ}{t : Tel n}{ty : U n}{dx : D t ty} → D-id a⇓ dx
+      a-id-r : {n : ℕ}{t : Tel n}{ty : U n}{dx : D t ty} → dx   a⇓ D-id
+      a-β    : {n : ℕ}{t : Tel n}{a : U n}{ty : U (suc n)}{dx dy : D (tcons a t) ty}
+             → dx a⇓ dy → (D-β dx) a⇓ (D-β dy)
+      a-top  : {n : ℕ}{t : Tel n}{a : U n}{ty : U (suc n)}{dx dy : D (tcons a t) ty}
+             → dx a⇓ dy → (D-top dx) a⇓ (D-top dy)
+      a-pop  : {n : ℕ}{t : Tel n}{ty : U n}{dx dy : D t ty}
+             → dx a⇓ dy → (D-pop {a = ty} dx) a⇓ (D-pop dy)
+      a-pair : {n : ℕ}{t : Tel n}{ty tv : U n}{dx dy : D t ty}{dm dn : D t tv}
+             → dx a⇓ dy → dm a⇓ dn → (D-pair dx dm) a⇓ (D-pair dy dn)
+      a-inl  : {n : ℕ}{t : Tel n}{ty tv : U n}{dx dy : D t ty}
+             → dx a⇓ dy → (D-inl {b = tv} dx) a⇓ (D-inl dy)
+      a-inr  : {n : ℕ}{t : Tel n}{ty tv : U n}{dx dy : D t tv}
+             → dx a⇓ dy → (D-inr {a = ty} dx) a⇓ (D-inr dy)
+      a-setl : {n : ℕ}{t : Tel n}{ty tv : U n}{ea : ElU ty t}{r s : ElU tv t}
+             → (D-setl ea r) a⇓ (D-setl ea s)
+      a-setinl : {n : ℕ}{t : Tel n}{ty tv : U n}{ea : ElU ty t}{r : ElU tv t}
+                 {p : D t ty}
+               → (D-setl ea r) a⇓ (D-inl p)
+      a-insetl : {n : ℕ}{t : Tel n}{ty tv : U n}{ea : ElU ty t}{r : ElU tv t}
+                 {p : D t ty}
+               → (D-inl p) a⇓ (D-setl ea r)
+      a-setr   : {n : ℕ}{t : Tel n}{ty tv : U n}{ea : ElU tv t}{r s : ElU ty t}
+               → (D-setr ea r) a⇓ (D-setr ea s)
+      a-setinr : {n : ℕ}{t : Tel n}{ty tv : U n}{ea : ElU ty t}{r : ElU tv t}
+                 {p : D t ty}
+               → (D-setr ea r) a⇓ (D-inr p)
+      a-insetr : {n : ℕ}{t : Tel n}{ty tv : U n}{ea : ElU ty t}{r : ElU tv t}
+                 {p : D t ty}
+               → (D-inr p) a⇓ (D-setr ea r)
+      a-mu : {n : ℕ}{t : Tel n}{ty : U (suc n)}{da db : List (Dμ t ty)}
+           → da a⇓* db → (D-mu da) a⇓ (D-mu db)
+      
+
+    data _a⇓*_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+                (x y : List (Dμ t ty)) → Set where
+      a*-nil   : {n : ℕ}{t : Tel n}{ty : U (suc n)} → _a⇓*_ {t = t} {ty = ty} [] []
+      a*-ins-l : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 : List (Dμ t ty)}
+                 {el : ValU ty t}
+               → d1 a⇓* [] → (Dμ-ins el ∷ d1) a⇓* []
+      a*-ins-r : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 : List (Dμ t ty)}
+                 {el : ValU ty t}
+               → [] a⇓* d1 → [] a⇓* (Dμ-ins el ∷ d1)
+      a*-dwn   : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : List (Dμ t ty)}
+                 {dx dy : D t (β ty u1)}
+               → dx a⇓ dy → d1 a⇓* d2 → (Dμ-dwn dx ∷ d1) a⇓* (Dμ-dwn dy ∷ d2) 
+      a*-tail  : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d2 d1 : List (Dμ t ty)}
+                 {e1 e2 : Dμ t ty}
+               → d1 a⇓* d2 → (e1 ∷ d1) a⇓* (e2 ∷ d2)
+\end{code}
+
+  Now we can prove a few alignment properties.
+
+%<*align-sym>
+begin{code}
+  align-sym : {n : ℕ}{t : Tel n}{ty : U n}{d1 d2 : D t ty}
+            → d1 a⇓ d2 → d2 a⇓ d1
+  align-sym = ?
+end{code}
+%</align-sym>

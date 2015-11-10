@@ -71,15 +71,6 @@ module Diffing.Examples.NatList where
   d13 : D tnil nat-list
   d13 = gdiff l1 l3
 
-  open import Diffing.Utils.Monads
-  open Monad {{...}}
-
-  res1 : Maybe (List ℕ)
-  res1 = d12 / d13 >>= λ d → gapply d l3 >>= return ∘ from-nat-list
-
-  res2 : Maybe (List ℕ)
-  res2 = d13 / d12 >>= λ d → gapply d l2 >>= return ∘ from-nat-list
-
   -- booleans
   bool : {n : ℕ} → U n
   bool = u1 ⊕ u1
@@ -102,7 +93,21 @@ module Diffing.Examples.NatList where
            (CONS (red NIL) 
            NIL)))
 
+  b2' : ElU bool-list2 tnil
+  b2' = red (CONS (red (CONS TRUE NIL)) 
+           (CONS (red (CONS FALSE NIL)) 
+           (CONS (red NIL) 
+           NIL)))
+
   b3 : ElU bool-list2 tnil
   b3 = red (CONS (red (CONS TRUE (CONS TRUE NIL)))
            (CONS (red (CONS FALSE (CONS TRUE NIL))) 
            NIL))
+
+  db12 : D tnil bool-list2
+  db12 = gdiff b1 b2
+
+  db13 : D tnil bool-list2
+  db13 = gdiff b1 b3
+
+  
