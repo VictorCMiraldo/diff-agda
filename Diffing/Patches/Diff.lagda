@@ -4,7 +4,7 @@ open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 
-module Diffing.Diff where
+module Diffing.Patches.Diff where
 \end{code}
 
 %<*ValU>
