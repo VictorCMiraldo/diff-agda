@@ -2,6 +2,7 @@ open import Prelude
 open import Data.Nat using (_≤_; z≤n; s≤s)
 open import Data.Nat.Properties.Simple using (+-comm)
 open import Data.List using (drop)
+open import Data.List.Properties using (length-++)
 
 module Diffing.Utils.Propositions where
 
@@ -29,6 +30,12 @@ module Diffing.Utils.Propositions where
   length-++-stable {l = []} prf = prf
   length-++-stable {l = x ∷ l} {j} prf  
     = length-++-stable {l = l} {j} (suc-inj prf)
+
+  length-≤ : {A : Set}{j : List A}
+           → (l : List A)
+           → length l ≤ length (l ++ j)
+  length-≤ [] = z≤n
+  length-≤ (_ ∷ l) = s≤s (length-≤ l)
 
   drop[]≡[] : {A : Set}{n : ℕ} → drop {A = A} n [] ≡ []
   drop[]≡[] {n = zero} = refl

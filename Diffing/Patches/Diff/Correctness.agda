@@ -6,7 +6,7 @@ open import Diffing.Patches.Diff
 
 open import Relation.Binary.PropositionalEquality
 
-module Diffing.Patches.DiffCorrect where
+module Diffing.Patches.Diff.Correctness where
   
   open import Diffing.Utils.Monads
   open Monad {{...}}

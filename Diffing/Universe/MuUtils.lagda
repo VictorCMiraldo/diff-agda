@@ -7,6 +7,7 @@ open import Diffing.Utils.Propositions
 open import Data.Nat using (_≤_; z≤n; s≤s)
 open import Data.Nat.Properties.Simple using (+-comm)
 open import Data.List using (drop)
+open import Relation.Binary.PropositionalEquality
 
 module Diffing.Universe.MuUtils where
 \end{code}
@@ -110,7 +111,7 @@ A few lemmas might come in handy
       aux i (inl x) = aux i x
       aux i (inr x) = aux i x
       aux i (xa , xb) = trans (length-++ (children-lvl i xa)) 
-                            (cong₂ _+_ (aux i xa) (aux i xb))
+                              (cong₂ _+_ (aux i xa) (aux i xb))
       aux fz (top x)     = refl
       aux (fs i) (top x) = refl
       aux fz (pop x)     = refl
@@ -146,6 +147,17 @@ generic functions that do so.
   μ-open (mu el) = value (mu el) , children (mu el)
 \end{code}
 %</mu-open>
+
+\begin{code}
+  μ-open-arity-lemma : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+                       {a : ElU (μ ty) t}{hdA : ElU ty (tcons u1 t)}
+                       {chA : List (ElU (μ ty) t)}
+                     → μ-open a ≡ (hdA , chA)
+                     → arity-lvl fz hdA ≡ length chA
+  μ-open-arity-lemma {a = mu a} refl = trustme
+    where
+      postulate trustme : ∀{a}{A : Set a} → A
+\end{code}
 
 Closing it, though, requires some care in how we define it.
 
@@ -212,7 +224,41 @@ returns the unused part of the children list.
 \end{code}
 %</mu-close-resp-arity-lemma>
 \begin{code}
-  μ-close-resp-arity prf = trustme
+  μ-close-resp-arity {a = a} {hdA} {chA} {l} prf 
+    with μ-open-arity-lemma prf
+  ...| pa
+    with plug-just-lemma hdA (chA ++ l) 
+           (subst (λ L → L ≤ length (chA ++ l)) (sym pa) (length-≤ chA))
+  ...| (res , prf2)
+    = begin
+      (mu ∘₁ gmapSt (MCons (λ _ → safeHd) mapSt-id) hdA (chA ++ l))
+    ≡⟨ cong (_∘₁_ mu) prf2 ⟩
+     (mu ∘₁ just (res , drop (arity-lvl fz hdA) (chA ++ l)))
+    ≡⟨ cong (λ x → mu ∘₁ just (res , drop x (chA ++ l))) pa ⟩
+      (mu ∘₁ just (res , drop (length chA) (chA ++ l)))
+    ≡⟨ cong (λ x → mu ∘₁ just (res , x)) (drop-++-id {l = chA}) ⟩
+      (mu ∘₁ just (res , l))
+    ≡⟨ refl ⟩
+      just (mu res , l)
+    ≡⟨ cong (λ x → just (x , l)) trustme ⟩
+     just (a , l)
+    ∎
+    where
+      open ≡-Reasoning
+      postulate trustme : {A : Set} → A
+\end{code}
+
+%<*mu-close-fails>
+\begin{code}
+  μ-close-fail
+    : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      (x : ElU ty (tcons u1 t))(l : List (ElU (μ ty) t))
+    → suc (length l) ≤ arity-lvl fz x 
+    → μ-close (x , l) ≡ nothing
+\end{code}
+%</mu-close-fails>
+\begin{code}
+  μ-close-fail prf = trustme
     where
       postulate trustme : {A : Set} → A
 \end{code}

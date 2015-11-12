@@ -10,10 +10,8 @@ module Diffing.Patches.Diff.Properties where
 
 %<*DiscreteEq>
 \begin{code}
-  _≈-M_ : {A B : Set} → Maybe A → Maybe B → Set
-  (just _) ≈-M (just _) = Unit
-  nothing  ≈-M nothing  = Unit
-  _        ≈-M _        = ⊥
+  _⇔_ : Set → Set → Set
+  x ⇔ y = (x → y) × (y → x)
 \end{code}
 %</DiscreteEq>
 
@@ -22,7 +20,7 @@ module Diffing.Patches.Diff.Properties where
   Aligned : {n : ℕ}{t : Tel n}{ty : U n}
           → (d1 d2 : D t ty) → Set
   Aligned {n} {t} {ty} d1 d2 
-    = (x : ElU ty t) → (gapply d1 x) ≈-M (gapply d2 x)
+    = (x : ElU ty t) → (gapply d1 x ≡ nothing) ⇔ (gapply d2 x ≡ nothing)
 \end{code}
 %</Aligned>
 
@@ -31,7 +29,7 @@ module Diffing.Patches.Diff.Properties where
   AlignedL : {n : ℕ}{t : Tel n}{ty : U (suc n)}
            → (d1 d2 : List (Dμ t ty)) → Set
   AlignedL {n} {t} {ty} d1 d2 
-    = (x : List (ElU (μ ty) t)) → (gapplyL d1 x) ≈-M (gapplyL d2 x)
+    = (x : List (ElU (μ ty) t)) → (gapplyL d1 x ≡ nothing) ⇔ (gapplyL d2 x ≡ nothing)
 \end{code}
 %</AlignedL>
 
@@ -39,10 +37,16 @@ module Diffing.Patches.Diff.Properties where
 \begin{code}
   alignedL-nil-nil : {n : ℕ}{t : Tel n}{ty : U (suc n)}
                   → AlignedL {t = t} {ty = ty} [] []
-  alignedL-nil-nil x = unit
+  alignedL-nil-nil x = (λ z → z) , (λ z → z)
 
   alignedL-del-elim : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+                → {el : ValU ty t}
                 → {d1 d2 : List (Dμ t ty)}
-                → AlignedL d1 d2 → AlignedL d1 (Dμ-del _ ∷ d2) → ⊥
-  alignedL-del-elim a b with b []
+                → AlignedL d1 d2 → AlignedL d1 (Dμ-del el ∷ d2) → ⊥
+  alignedL-del-elim {d1 = []} a1 a2 with p2 (a2 []) refl
+  ...| ()
+  alignedL-del-elim {d1 = Dμ-ins x ∷ d1} a1 a2 with p2 (a2 []) refl
   ...| r = {!!}
+  alignedL-del-elim {d1 = Dμ-del x ∷ d1} a1 a2 = {!a2 !}
+  alignedL-del-elim {d1 = Dμ-cpy x ∷ d1} a1 a2 = {!!}
+  alignedL-del-elim {d1 = Dμ-dwn x ∷ d1} a1 a2 = {!a2 !}

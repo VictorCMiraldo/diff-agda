@@ -9,7 +9,7 @@ open import Diffing.Patches.Alignment
 module Diffing.Patches.Residual where
 \end{code}
 
-  
+
   Let p and q be patches for a given datatype.
   A residual (p / q) means applying p AFTER the changes by
   q have been made. It encodes a notion of propagation.
@@ -23,6 +23,7 @@ module Diffing.Patches.Residual where
 %<*C-def>
 \begin{code}
   data C : Set where
+      a : ? → C
 \end{code}
 %</C-def>
 
@@ -46,15 +47,15 @@ A simple applicative style application combinator.
 
 %<*residual-type>
 \begin{code}
-  _/_⊔_ : {n : ℕ}{t : Tel n}{ty : U n} 
+  _/_⊔_ : {n : ℕ}{t : Tel n}{ty : U n}
         → (a b : D t ty) → a a⇓ b → D t ty ⊎ C
 \end{code}
 %</residual-type>
 \begin{code}
   da / db ⊔ a = res da db a
-    where 
+    where
       mutual
-        res : {n : ℕ}{t : Tel n}{ty : U n} 
+        res : {n : ℕ}{t : Tel n}{ty : U n}
             → (a b : D t ty) → a a⇓ b → D t ty ⊎ C
         -- We shall hardocde the relation with identity and residuals.
         res da D-id _ = i1 da
@@ -65,9 +66,9 @@ A simple applicative style application combinator.
         -- Due to alignment, we only need to take care of
         -- half the cases for coproducts.
         -- The first cases are trivial.
-        res {ty = a ⊕ b} (D-inl da) (D-inl db) (a-inl al) 
+        res {ty = a ⊕ b} (D-inl da) (D-inl db) (a-inl al)
           = D-inl <C> res da db al
-        res {ty = a ⊕ b} (D-inr da) (D-inr db) (a-inr al) 
+        res {ty = a ⊕ b} (D-inr da) (D-inr db) (a-inr al)
           = D-inr <C> res da db al
 
         -- Setting things must agree to be "merged"
@@ -75,7 +76,7 @@ A simple applicative style application combinator.
           with y ≟-U z
         ...| yes _ = i1 (D-setl x y)
         ...| no _  = i2 {!!}
-        res {ty = a ⊕ b} (D-setr x y) (D-setr .x z) a-setr 
+        res {ty = a ⊕ b} (D-setr x y) (D-setr .x z) a-setr
           with y ≟-U z
         ...| yes _ = i1 (D-setr x y)
         ...| no _  = i2 {!!}
@@ -87,13 +88,13 @@ A simple applicative style application combinator.
         -- The obvious merging would be to try and apply the structural
         -- changes to the newly set value, however, this depends heavily
         -- on the file semantics.
-        res {ty = a ⊕ b} (D-setl x y) (D-inl db) a-setinl 
+        res {ty = a ⊕ b} (D-setl x y) (D-inl db) a-setinl
           = i2 {!!}
-        res {ty = a ⊕ b} (D-setr x y) (D-inr db) a-setinr 
+        res {ty = a ⊕ b} (D-setr x y) (D-inr db) a-setinr
           = i2 {!!}
-        res {ty = a ⊕ b} (D-inl da) (D-setl x y) a-insetl 
+        res {ty = a ⊕ b} (D-inl da) (D-setl x y) a-insetl
           = i2 {!!}
-        res {ty = a ⊕ b} (D-inr da) (D-setr x y) a-insetr 
+        res {ty = a ⊕ b} (D-inr da) (D-setr x y) a-insetr
           = i2 {!!}
 
         -- The rest of them are clearly out of alignment.
@@ -105,18 +106,18 @@ A simple applicative style application combinator.
         res {ty = a ⊕ b} (D-setl x y) (D-setr w z) ()
         res {ty = a ⊕ b} (D-setr x y) (D-inl db) ()
         res {ty = a ⊕ b} (D-setr x y) (D-setl w z) ()
-        
+
         -- Pairs are simple,
-        res {ty = a ⊗ b} (D-pair da1 da2) (D-pair db1 db2) (a-pair al1 al2) 
+        res {ty = a ⊗ b} (D-pair da1 da2) (D-pair db1 db2) (a-pair al1 al2)
           = D-pair <C> res da1 db1 al1 <C*> res da2 db2 al2
 
         -- Auxiliar constructors to handle type-variables
         -- are also trivial.
-        res {ty = β F x} (D-β da) (D-β db) (a-β a) 
+        res {ty = β F x} (D-β da) (D-β db) (a-β a)
           = D-β <C> res da db a
-        res {ty = vl} (D-top da) (D-top db) (a-top a) 
+        res {ty = vl} (D-top da) (D-top db) (a-top a)
           = D-top <C> res da db a
-        res {ty = wk ty} (D-pop da) (D-pop db) (a-pop a) 
+        res {ty = wk ty} (D-pop da) (D-pop db) (a-pop a)
           = D-pop <C> res da db a
 
         -- Fixed points require a helper function.
@@ -140,7 +141,7 @@ A simple applicative style application combinator.
         -- Copies must be consistent.
         res* (Dμ-cpy x ∷ dp) (Dμ-cpy y ∷ dq) a with x ≟-U y
         ...| yes _ = _∷_ (Dμ-cpy x) <C> res* dp dq {!!}
-        ...| no  p = i2 {!!} 
+        ...| no  p = i2 {!!}
 
         -- Erasing is a bit more tricky.
         res* (Dμ-del x ∷ dp) (Dμ-cpy y ∷ dq) a with x ≟-U y
@@ -155,7 +156,7 @@ A simple applicative style application combinator.
 
         res* (Dμ-dwn dx ∷ dp) (Dμ-cpy y ∷ dq) a with gapply dx (red y)
         ...| just  _ = _∷_ (Dμ-dwn dx) <C> res* dp dq {!!}
-        ...| nothing = i2 {!!} 
+        ...| nothing = i2 {!!}
         res* (Dμ-cpy x ∷ dp) (Dμ-dwn dy ∷ dq) a with gapply dy (red x)
         ...| just (red x2) = _∷_ (Dμ-cpy x2) <C> res* dp dq {!!}
         ...| nothing       = i2 {!!}

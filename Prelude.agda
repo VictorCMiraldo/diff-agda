@@ -20,26 +20,26 @@ module Prelude where
     using (⊥; ⊥-elim)
     public
 
-  open import Function 
-    using (_∘_; _$_; flip; id; const; _on_) 
+  open import Function
+    using (_∘_; _$_; flip; id; const; _on_)
     public
 
-  open import Data.Nat 
+  open import Data.Nat
     using (ℕ; suc; zero; _+_; _*_; _∸_)
-    renaming (_≟_ to _≟-ℕ_; _≤?_ to _≤?-ℕ_) 
+    renaming (_≟_ to _≟-ℕ_; _≤?_ to _≤?-ℕ_)
     public
-                                          
-  open import Data.Fin 
+
+  open import Data.Fin
     using (Fin; fromℕ; fromℕ≤; toℕ)
     renaming (zero to fz; suc to fs)
     public
 
-  open import Data.Fin.Properties 
+  open import Data.Fin.Properties
     using ()
-    renaming (_≟_ to _≟-Fin_) 
+    renaming (_≟_ to _≟-Fin_)
     public
 
-  open import Data.List 
+  open import Data.List
     using (List; _∷_; []; map; _++_; zip; filter;
            all; any; concat; foldr; reverse; length)
     public
@@ -69,7 +69,7 @@ module Prelude where
     using (_≡_; refl; sym; trans; cong; cong₂; subst)
     public
 
-  open import Data.Maybe 
+  open import Data.Maybe
     using (Maybe; just; nothing)
     renaming (maybe′ to maybe)
     public
@@ -97,10 +97,14 @@ module Prelude where
   ...| true = x ∷ takeWhile f xs
   ...| _    = takeWhile f xs
 
-  IsJust : ∀{a}{A : Set a} → Maybe A → Set
-  IsJust (just _) = Unit
-  IsJust _        = ⊥
+  data Is-Just {a}{A : Set a} : Maybe A → Set a where
+    indeed : (x : A) → Is-Just (just x)
 
+  from-Just : ∀{a}{A : Set a}{x : Maybe A} → Is-Just x → A
+  from-Just (indeed x) = x
+
+  Is-Just-≡ : ∀{a}{A : Set a}{x : Maybe A} → Is-Just x → Σ A (λ k → x ≡ just k)
+  Is-Just-≡ (indeed x) = x , refl
 
   -- Some minor boilerplate to solve equality problem...
   record Eq (A : Set) : Set where
@@ -143,11 +147,11 @@ module Prelude where
 
     eq-Maybe : ∀{A} ⦃ eqA : Eq A ⦄ → Eq (Maybe A)
     eq-Maybe = eq decide
-      where 
+      where
         just-inj : ∀{a}{A : Set a}{x y : A}
                  → _≡_ {a} {Maybe A} (just x) (just y) → x ≡ y
         just-inj refl = refl
-  
+
         decide : {A : Set} ⦃ eqA : Eq A ⦄
                → (x y : Maybe A) → Dec (x ≡ y)
         decide nothing nothing   = yes refl
@@ -172,7 +176,7 @@ module Prelude where
         decide []   []    = yes refl
         decide (a ∷ as) (b ∷ bs)
           with a ≟ b | decide as bs
-        ...| yes a≡b | yes as≡bs 
+        ...| yes a≡b | yes as≡bs
           rewrite a≡b = yes (cong (_∷_ b) as≡bs)
         ...| no  a≢b | yes as≡bs = no (a≢b ∘ p1 ∘ ∷-inj)
         ...| yes a≡b | no  as≢bs = no (as≢bs ∘ p2 ∘ ∷-inj)
