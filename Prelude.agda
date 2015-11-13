@@ -74,6 +74,13 @@ module Prelude where
     renaming (maybe′ to maybe)
     public
 
+  {- Some Propositional Logic -}
+  
+  _iff_ : Set → Set → Set
+  A iff B = (A → B) × (B → A)
+
+  {- Usefull Predicates -}
+
   So : Bool → Set
   So true  = Unit
   So false = ⊥
@@ -97,6 +104,8 @@ module Prelude where
   ...| true = x ∷ takeWhile f xs
   ...| _    = takeWhile f xs
 
+  {- Some Maybe functionality -}
+
   data Is-Just {a}{A : Set a} : Maybe A → Set a where
     indeed : (x : A) → Is-Just (just x)
 
@@ -105,6 +114,14 @@ module Prelude where
 
   Is-Just-≡ : ∀{a}{A : Set a}{x : Maybe A} → Is-Just x → Σ A (λ k → x ≡ just k)
   Is-Just-≡ (indeed x) = x , refl
+
+  ≡-Is-Just : ∀{a}{A : Set a}{x : Maybe A}{k : A} → x ≡ just k → Is-Just x
+  ≡-Is-Just {k = k} refl = indeed k
+
+  Is-Just-⊥ : ∀{a}{A : Set a}{x : A} 
+            → (Is-Just (just x) → Is-Just {A = A} nothing) → ⊥
+  Is-Just-⊥ {x = x} f with f (indeed x) 
+  ...| ()
 
   -- Some minor boilerplate to solve equality problem...
   record Eq (A : Set) : Set where

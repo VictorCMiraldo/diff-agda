@@ -39,14 +39,14 @@ module Diffing.Patches.Diff where
             → D t b → D (tcons a t) (wk b)
       -- _∘ᴰ_  : {n : ℕ}{t : Tel n}{a : U n}
       --      → D t a → D t a → D t a
-      D-id  : {n : ℕ}{t : Tel n}{a : U n}
-            → D t a
+      -- D-id  : {n : ℕ}{t : Tel n}{a : U n}
+      --      → D t a
 
     data Dμ : {n : ℕ} → Tel n → U (suc n) → Set where
       Dμ-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
       Dμ-del : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
       Dμ-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
-      Dμ-dwn : {n : ℕ}{t : Tel n}{a : U (suc n)} → D t (β a u1) → Dμ t a
+      Dμ-dwn : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → D t (β a u1) → Dμ t a
 \end{code}
 %</D-def>
 
@@ -93,8 +93,6 @@ module Diffing.Patches.Diff where
     cost (D-β d)   = cost d
     cost (D-top d) = cost d
     cost (D-pop d) = cost d
-    -- cost (x ∘ᴰ y)  = cost x + cost y
-    cost D-id      = 0
     cost (D-mu l)  = sum-cost l
       where
         sum-cost : {n : ℕ}{t : Tel n}{ty : U (suc n)} → List (Dμ t ty) → ℕ
@@ -105,7 +103,7 @@ module Diffing.Patches.Diff where
     costμ (Dμ-ins x) = sizeElU x + 1
     costμ (Dμ-del x) = sizeElU x + 1
     costμ (Dμ-cpy x) = sizeElU x
-    costμ (Dμ-dwn x) = cost x
+    costμ (Dμ-dwn _ x) = cost x
 \end{code}
 %</cost-def>
 
@@ -178,7 +176,7 @@ module Diffing.Patches.Diff where
     ...| no  _ = let
           d1 = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
           d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
-          d3 = Dμ-dwn (gdiff (red hdX) (red hdY)) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
+          d3 = Dμ-dwn hdX (gdiff (red hdX) (red hdY)) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
        in d1 ⊔μ d2 ⊔μ d3
     ...|  yes _ = let
           -- d1 = D-mu-ins hdY (gdiffL (x ∷ xs) (chY ++ ys))
@@ -201,7 +199,6 @@ module Diffing.Patches.Diff where
 \begin{code}
     gapply : {n : ℕ}{t : Tel n}{ty : U n}
            → D t ty → ElU ty t → Maybe (ElU ty t)
-    gapply D-id   el   = just el
     gapply D-void void = just void
 
     gapply (D-inl diff) (inl el) = inl <$>+1 gapply diff el
@@ -268,12 +265,13 @@ module Diffing.Patches.Diff where
 \begin{code}
     gapplyL : {n : ℕ}{t : Tel n}{ty : U (suc n)}
             → List (Dμ t ty) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
-    gapplyL [] l = just l
+    gapplyL [] [] = just []
+    gapplyL [] _  = nothing
     gapplyL (Dμ-ins x  ∷ d) l = gapplyL d l >>= gIns x
     gapplyL (Dμ-del x  ∷ d) l = gDel x l    >>= gapplyL d 
     gapplyL (Dμ-cpy x  ∷ d) l = gDel x l    >>= gapplyL d >>= gIns x
-    gapplyL (Dμ-dwn dx ∷ d) [] = nothing
-    gapplyL (Dμ-dwn dx ∷ d) (y ∷ l) with μ-open y
+    gapplyL (Dμ-dwn _ dx ∷ d) [] = nothing
+    gapplyL (Dμ-dwn x dx ∷ d) (y ∷ l) with μ-open y
     ...| hdY , chY with gapply dx (red hdY)
     ...| nothing       = nothing
     ...| just (red y') = gapplyL d (chY ++ l) >>= gIns y' 
@@ -292,19 +290,6 @@ module Diffing.Patches.Diff where
   d1 ≡-D d2 = ∀ x → gapply d1 x ≡ gapply d2 x
 \end{code}
 %</patch-equality>
-
-  Plus, it is fairly usefull to have some sort of equality
-  over Maybe monad.
-
-%<*patchM-equality>
-\begin{code}
-  _≡-DM_ : {n : ℕ}{t : Tel n}{ty : U n}
-        → Maybe (D t ty) → Maybe (D t ty) → Set
-  nothing   ≡-DM nothing   = Unit
-  (just d1) ≡-DM (just d2) = d1 ≡-D d2
-  _         ≡-DM _         = ⊥
-\end{code}
-%</patchM-equality>
 
   If we want to calculate with patches, we need some rewrite notion.
   Unfortunately, we can't encode extensional proofs in Agda.
@@ -331,3 +316,66 @@ module Diffing.Patches.Diff where
   ...| prf = subst P prf pd1 
 \end{code}
 %</patch-subst>
+
+   Normalization
+   =============
+
+%<*NF-def>
+\begin{code}
+  NF* : {n : ℕ}{t : Tel n}{ty : U (suc n)} → List (Dμ t ty) → Set
+  NF* [] = Unit
+  NF* (Dμ-ins _ ∷ ds) = NF* ds
+  NF* (Dμ-del _ ∷ ds) = NF* ds
+  NF* (_ ∷ _) = ⊥
+
+  NF : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → Set
+  NF (D-mu xs) = NF* xs
+  NF _         = Unit
+\end{code}
+%</NF-def>
+
+%<*normalize>
+\begin{code}
+  mutual
+    normalize : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → Σ (D t ty) NF
+    normalize D-void = D-void , unit
+    normalize (D-inl d) = D-inl d , unit
+    normalize (D-inr d) = D-inr d , unit
+    normalize (D-setl x x₁) = D-setl x x₁ , unit
+    normalize (D-setr x x₁) = D-setl x₁ x , unit
+    normalize (D-pair d d₁) = D-pair d d₁ , unit
+    normalize (D-β d) = D-β d , unit
+    normalize (D-top d) = D-top d , unit
+    normalize (D-pop d) = D-pop d , unit
+    normalize (D-mu xs) with normalize* xs
+    ...| ns , prf = D-mu ns , prf
+    
+
+    normalize* : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+                 → List (Dμ t ty) → Σ (List (Dμ t ty)) NF*
+    normalize* [] = [] , unit
+    normalize* (Dμ-ins x ∷ xs) with normalize* xs
+    ...| ns , prf = Dμ-ins x ∷ ns , prf
+    normalize* (Dμ-del x ∷ xs) with normalize* xs
+    ...| ns , prf = Dμ-del x ∷ ns , prf
+    normalize* (Dμ-dwn x dx ∷ xs) with gapply dx (red x)
+    ...| nothing = [] , unit
+    ...| just (red y) with normalize* xs
+    ...| ns , prf = Dμ-del x ∷ Dμ-ins y ∷ ns , prf
+    normalize* (Dμ-cpy x ∷ xs) with normalize* xs
+    ...| ns , prf = Dμ-del x ∷ ns ++ Dμ-ins x ∷ [] , append-ins ns prf
+      where
+        append-ins : {n : ℕ}{t : Tel n}{ty : U (suc n)}{x : ValU ty t}
+                   → (ds : List (Dμ t ty)) → NF* ds
+                   → NF* (ds ++ Dμ-ins x ∷ [])
+        append-ins [] nf = unit
+        append-ins (Dμ-ins x ∷ ds) nf = append-ins ds nf
+        append-ins (Dμ-del x ∷ ds) nf = append-ins ds nf
+        append-ins (Dμ-cpy _ ∷ ds) ()
+        append-ins (Dμ-dwn _ _ ∷ ds) ()
+\end{code}
+%</normalize>
+
+  Normalization is correct...
+
+  TODO: prove

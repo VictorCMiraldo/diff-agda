@@ -23,8 +23,6 @@ module Diffing.Patches.Diff.Defined where
     data Defined : {n : ℕ}{t : Tel n}{ty : U n} 
                  → D t ty → ElU ty t → Set
                  where
-      d-id   : {n : ℕ}{t : Tel n}{a : U n}{e : ElU a t} 
-             → Defined D-id e
       d-void : {n : ℕ}{t : Tel n} → Defined D-void (void {t = t})
       d-inl  : {n : ℕ}{t : Tel n}{a b : U n}{e : ElU a t}{d : D t a}
              → Defined d e → Defined (D-inl {b = b} d) (inl e)
@@ -75,6 +73,14 @@ module Diffing.Patches.Diff.Defined where
                {hdE : ElU ty (tcons u1 t)}
              → Defined* d (chE ++ es)
              → Defined* (Dμ-cpy hdE ∷ d) (e ∷ es)
+
+      d*-dwn : {n : ℕ}{t : Tel n}{ty : U (suc n)}{e : ElU (μ ty) t}
+               {es chE : List (ElU (μ ty) t)}{x : D t (β ty u1)}{d : List (Dμ t ty)}
+               {hdE : ElU ty (tcons u1 t)}
+             → μ-open e ≡ (hdE , chE)
+             → Defined x (red hdE)
+             → Defined* d (chE ++ es)
+             → Defined* (Dμ-dwn x ∷ d) (e ∷ es)
 \end{code}
 %</Defined-def>
 
@@ -116,7 +122,6 @@ module Diffing.Patches.Diff.Defined where
 \end{code}
 %</Defined-correct-type>
 \begin{code}
-    defined-correct D-id el prf = d-id
 
     defined-correct D-void void prf = d-void
 
@@ -201,6 +206,9 @@ module Diffing.Patches.Diff.Defined where
         ...| yes x≡e rewrite x≡e with just>>= (gapplyL d (chE ++ es)) (gIns hdE) prf
         ...| ja , jb = d*-cpy {chE = chE} (aux d (chE ++ es) (p2 (Is-Just-≡ ja)))
 
-        aux (Dμ-dwn x ∷ d) (e ∷ es) prf = {!!}
+        aux (Dμ-dwn x ∷ d) (e ∷ es) prf with μ-open e | inspect μ-open e
+        ...| hdE , chE | [ R ] with gapply x (red hdE) | inspect (gapply x) (red hdE)
+        aux (Dμ-dwn x ∷ d) (e ∷ es) () | hdE , chE | [ R ] | nothing | _
+        ...| just k | [ R2 ] = d*-dwn R (defined-correct x (red hdE) R2) (aux d (chE ++ es) {!prf!})
         
 \end{code}
