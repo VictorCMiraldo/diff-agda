@@ -1,7 +1,8 @@
 open import Prelude
 open import Diffing.Universe.Syntax
-open import Diffing.Diff
-open import Diffing.Residual
+open import Diffing.Universe.Equality
+open import Diffing.Patches.Diff
+-- open import Diffing.Patches.Residual
 -- open import Diffing.DiffCorrect
 
 module Diffing.Examples.NatList where
@@ -104,8 +105,19 @@ module Diffing.Examples.NatList where
            (CONS (red (CONS FALSE (CONS TRUE NIL))) 
            NIL))
 
+  _==_ : {n : ℕ}{t : Tel n}{ty : U n}
+       → (a b : Maybe (ElU ty t)) → Bool
+  nothing == nothing = true
+  just d  == just e with d ≟-U e
+  ...| yes _ = true
+  ...| no  _ = false
+  _ == _ = false
+
   db12 : D tnil bool-list2
   db12 = gdiff b1 b2
+
+  db12nf : D tnil bool-list2
+  db12nf = nf db12
 
   db13 : D tnil bool-list2
   db13 = gdiff b1 b3

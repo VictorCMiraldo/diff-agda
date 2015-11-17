@@ -17,38 +17,51 @@ module Diffing.Patches.Diff where
 %<*D-def>
 \begin{code}
   mutual
-    data D : {n : ℕ} → Tel n → U n → Set where
-      D-void : {n : ℕ}{t : Tel n} → D t u1
+    data D (A : Set) : {n : ℕ} → Tel n → U n → Set where
+      D-A    : {n : ℕ}{t : Tel n}{ty : U n} → A → D A t ty
+
+      D-void : {n : ℕ}{t : Tel n} → D A t u1
       D-inl  : {n : ℕ}{t : Tel n}{a b : U n} 
-             → D t a → D t (a ⊕ b)
+             → D A t a → D A t (a ⊕ b)
       D-inr  : {n : ℕ}{t : Tel n}{a b : U n} 
-             → D t b → D t (a ⊕ b)
+             → D A t b → D A t (a ⊕ b)
       D-setl  : {n : ℕ}{t : Tel n}{a b : U n} 
-              → ElU a t → ElU b t → D t (a ⊕ b)
+              → ElU a t → ElU b t → D A t (a ⊕ b)
       D-setr  : {n : ℕ}{t : Tel n}{a b : U n} 
-              → ElU b t → ElU a t → D t (a ⊕ b)
+              → ElU b t → ElU a t → D A t (a ⊕ b)
       D-pair : {n : ℕ}{t : Tel n}{a b : U n} 
-             → D t a → D t b → D t (a ⊗ b)
+             → D A t a → D A t b → D A t (a ⊗ b)
       D-mu : {n : ℕ}{t : Tel n}{a : U (suc n)}
-           → List (Dμ t a) → D t (μ a)
+           → List (Dμ A t a) → D A t (μ a)
       D-β : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n} 
-          → D (tcons x t) F → D t (β F x)
+          → D A (tcons x t) F → D A t (β F x)
       D-top : {n : ℕ}{t : Tel n}{a : U n}
-            → D t a → D (tcons a t) vl
+            → D A t a → D A (tcons a t) vl
       D-pop : {n : ℕ}{t : Tel n}{a b : U n}
-            → D t b → D (tcons a t) (wk b)
+            → D A t b → D A (tcons a t) (wk b)
       -- _∘ᴰ_  : {n : ℕ}{t : Tel n}{a : U n}
       --      → D t a → D t a → D t a
       -- D-id  : {n : ℕ}{t : Tel n}{a : U n}
       --      → D t a
 
-    data Dμ : {n : ℕ} → Tel n → U (suc n) → Set where
-      Dμ-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
-      Dμ-del : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
-      Dμ-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ t a
-      Dμ-dwn : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → D t (β a u1) → Dμ t a
+    data Dμ (A : Set) : {n : ℕ} → Tel n → U (suc n) → Set where
+      Dμ-A   : {n : ℕ}{t : Tel n}{a : U (suc n)} → A → Dμ A t a
+      Dμ-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
+      Dμ-del : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
+      Dμ-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
+      Dμ-dwn : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → D A t (β a u1) → Dμ A t a
 \end{code}
 %</D-def>
+
+%<*Patch-def>
+\begin{code}
+  Patch : {n : ℕ} → Tel n → U n → Set
+  Patch t ty = D ⊥ t ty
+       
+  Patchμ : {n : ℕ} → Tel n → U (suc n) → Set
+  Patchμ t ty = List (Dμ ⊥ t ty)
+\end{code}
+%</Patch-def>
 
   The cost function is trivial for the non-inductive types.
   The inductive types are a bit trickier, though.
@@ -83,7 +96,8 @@ module Diffing.Patches.Diff where
 \end{code}
 %<*cost-def>
 \begin{code}
-    cost : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → ℕ
+    cost : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → ℕ
+    cost (D-A ())
     cost  D-void        = 1
     cost (D-inl d)      = cost d
     cost (D-inr d)      = cost d
@@ -95,11 +109,12 @@ module Diffing.Patches.Diff where
     cost (D-pop d) = cost d
     cost (D-mu l)  = sum-cost l
       where
-        sum-cost : {n : ℕ}{t : Tel n}{ty : U (suc n)} → List (Dμ t ty) → ℕ
+        sum-cost : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Patchμ t ty → ℕ
         sum-cost [] = 0
         sum-cost (x ∷ l) = costμ x + sum-cost l
 
-    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ t ty → ℕ
+    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ ⊥ t ty → ℕ
+    costμ (Dμ-A ())
     costμ (Dμ-ins x) = sizeElU x + 1
     costμ (Dμ-del x) = sizeElU x + 1
     costμ (Dμ-cpy x) = sizeElU x
@@ -110,7 +125,7 @@ module Diffing.Patches.Diff where
 %<*lub-def>
 \begin{code}
   _⊔_ : {n : ℕ}{t : Tel n}{ty : U n}
-      → D t ty → D t ty → D t ty
+      → Patch t ty → Patch t ty → Patch t ty
   _⊔_ {ty = ty} da db with cost da ≤?-ℕ cost db
   ...| yes _ = da
   ...| no  _ = db
@@ -120,7 +135,7 @@ module Diffing.Patches.Diff where
 %<*lubmu-def>
 \begin{code}
   _⊔μ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-      → List (Dμ t ty) → List (Dμ t ty) → List (Dμ t ty)
+      → Patchμ t ty → Patchμ t ty → Patchμ t ty
   _⊔μ_ {ty = ty} da db with cost (D-mu da) ≤?-ℕ cost (D-mu db)
   ...| yes _ = da
   ...| no  _ = db
@@ -139,7 +154,7 @@ module Diffing.Patches.Diff where
 \begin{code}
     {-# TERMINATING #-}
     gdiff : {n : ℕ}{t : Tel n}{ty : U n} 
-          → ElU ty t → ElU ty t → D t ty
+          → ElU ty t → ElU ty t → Patch t ty
     gdiff {ty = vl} (top a) (top b)    = D-top (gdiff a b)
     gdiff {ty = wk u} (pop a) (pop b)  = D-pop (gdiff a b)
     gdiff {ty = β F x} (red a) (red b) = D-β (gdiff a b)
@@ -165,7 +180,7 @@ module Diffing.Patches.Diff where
 %<*gdiffL-def>
 \begin{code}
     gdiffL : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
-           → List (ElU (μ ty) t) → List (ElU (μ ty) t) → List (Dμ t ty)
+           → List (ElU (μ ty) t) → List (ElU (μ ty) t) → Patchμ t ty
     gdiffL [] [] = []
     gdiffL [] (y ∷ ys) with μ-open y
     ...| hdY , chY = Dμ-ins hdY ∷ (gdiffL [] (chY ++ ys)) 
@@ -198,7 +213,9 @@ module Diffing.Patches.Diff where
 %<*gapply-def>
 \begin{code}
     gapply : {n : ℕ}{t : Tel n}{ty : U n}
-           → D t ty → ElU ty t → Maybe (ElU ty t)
+           → Patch t ty → ElU ty t → Maybe (ElU ty t)
+    gapply (D-A ())
+
     gapply D-void void = just void
 
     gapply (D-inl diff) (inl el) = inl <$>+1 gapply diff el
@@ -234,8 +251,9 @@ module Diffing.Patches.Diff where
 %<*safeHead-def>
 \begin{code}
     safeHead : ∀{a}{A : Set a} → List A → Maybe A
-    safeHead []      = nothing
-    safeHead (x ∷ _) = just x
+    safeHead []       = nothing
+    safeHead (x ∷ []) = just x
+    safeHead _        = nothing
 \end{code}
 %</safeHead-def>
 
@@ -264,15 +282,18 @@ module Diffing.Patches.Diff where
 %<*gapplyL-def>
 \begin{code}
     gapplyL : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → List (Dμ t ty) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+            → Patchμ t ty → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
     gapplyL [] [] = just []
     gapplyL [] _  = nothing
+    gapplyL (Dμ-A () ∷ _)
     gapplyL (Dμ-ins x  ∷ d) l = gapplyL d l >>= gIns x
     gapplyL (Dμ-del x  ∷ d) l = gDel x l    >>= gapplyL d 
     gapplyL (Dμ-cpy x  ∷ d) l = gDel x l    >>= gapplyL d >>= gIns x
     gapplyL (Dμ-dwn _ dx ∷ d) [] = nothing
     gapplyL (Dμ-dwn x dx ∷ d) (y ∷ l) with μ-open y
-    ...| hdY , chY with gapply dx (red hdY)
+    ...| hdY , chY with x ≟-U hdY
+    ...| no  x≢y = nothing
+    ...| yes x≡y with gapply dx (red hdY)
     ...| nothing       = nothing
     ...| just (red y') = gapplyL d (chY ++ l) >>= gIns y' 
 \end{code}
@@ -286,7 +307,7 @@ module Diffing.Patches.Diff where
 %<*patch-equality>
 \begin{code}
   _≡-D_ : {n : ℕ}{t : Tel n}{ty : U n}
-        → D t ty → D t ty → Set
+        → Patch t ty → Patch t ty → Set
   d1 ≡-D d2 = ∀ x → gapply d1 x ≡ gapply d2 x
 \end{code}
 %</patch-equality>
@@ -298,9 +319,10 @@ module Diffing.Patches.Diff where
 
 %<*patch-equality-lift>
 \begin{code}
-  postulate
-    ≡-D-lift : {n : ℕ}{t : Tel n}{ty : U n}{d1 d2 : D t ty}
-             → d1 ≡-D d2 → d1 ≡ d2
+  private
+    postulate
+      ≡-D-lift : {n : ℕ}{t : Tel n}{ty : U n}{d1 d2 : Patch t ty}
+               → d1 ≡-D d2 → d1 ≡ d2
 \end{code}
 %</patch-equality-lift>
 
@@ -309,7 +331,7 @@ module Diffing.Patches.Diff where
 %<*patch-subst>
 \begin{code}
   substP : {n : ℕ}{t : Tel n}{ty : U n}
-         → (P : D t ty → Set){d1 d2 : D t ty} 
+         → (P : Patch t ty → Set){d1 d2 : Patch t ty} 
          → d1 ≡-D d2
          → P d1 → P d2
   substP P {d1} {d2} d1≡d2 pd1 with (≡-D-lift {d1 = d1} {d2 = d2} d1≡d2) 
@@ -317,43 +339,109 @@ module Diffing.Patches.Diff where
 \end{code}
 %</patch-subst>
 
+  We also make an equality notion for fix-point patches.
+  It is also extensional in respect to application, but now,
+  also in respect to safeHead. Since that, although gapplyL
+  uses a list of ElU (μ ty) t, we are only interested in the head
+  of that list, patch equality follows this notion.
+
+%<*patchL-equality>
+\begin{code}
+  _≡-Dμ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+         → (d1 d2 : Patchμ t ty) → Set
+  d1 ≡-Dμ d2 = ∀ x → (gapplyL d1 x >>= safeHead)
+                   ≡ (gapplyL d2 x >>= safeHead)
+\end{code}
+%</patchL-equality>
+
+  This postulate is fairly dangerous. It does introduce a decent amount of contradictions.
+  Yet, we need this to be able to prove some sort of behavioural equivalence of patches.
+  Or, at least, to make the proof easier. We justify this postulate as follows:
+
+    safeHead x ≡ safeHead y iff (x ≡ y ≡ [ z ] ∨ Disagree x y)
+
+  If x and y are the same singleton list, than they are indeed equal!
+  
+  If they disagree, however, it is more complicated. We define Disagree as follows:
+
+    Disagree x y ≜ safeHead x ≡ safeHead y ≡ nothing
+
+  It doesn't really matter what x and y are. Let's imagine a patch with a hole
+  P[]. Since gapply (D-mu x) e ≡ gapplyL x (e ∷ []) >>= safeHead ≡ nothing (and similarly for y)
+  we have that gapply P[x] ≡ gapply P[y] ≡ nothing. This means that although x and y are
+  propositionally different, in the context of patches they are both not defined for e,
+  therefore they are NOT arrows in the patch category of e.
+
+%<*patchL-equality-lift>
+\begin{code}
+  private
+    postulate
+      ≡-Dμ-lift : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
+                → d1 ≡-Dμ d2 → d1 ≡ d2
+\end{code}
+%</patchL-equality-lift>
+
    Normalization
    =============
 
 %<*NF-def>
 \begin{code}
-  NF* : {n : ℕ}{t : Tel n}{ty : U (suc n)} → List (Dμ t ty) → Set
+  NF* : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Patchμ t ty → Set
   NF* [] = Unit
   NF* (Dμ-ins _ ∷ ds) = NF* ds
   NF* (Dμ-del _ ∷ ds) = NF* ds
   NF* (_ ∷ _) = ⊥
 
-  NF : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → Set
+  NF : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → Set
   NF (D-mu xs) = NF* xs
-  NF _         = Unit
+  NF (D-β d)   = NF d
+  NF (D-inl d) = NF d
+  NF (D-inr d) = NF d
+  NF (D-top d) = NF d
+  NF (D-pop d) = NF d
+  NF (D-pair da db) = NF da × NF db
+  NF _ = Unit
 \end{code}
 %</NF-def>
 
-%<*normalize>
+  Note that after normalization our patch language becomes extremely
+  close to the LDEnd, LDIns, LDDel thing. It is the Dμ-dwn
+  constructor that pushes us to that next level where
+  we can track differences recursively.
+
 \begin{code}
   mutual
-    normalize : {n : ℕ}{t : Tel n}{ty : U n} → D t ty → Σ (D t ty) NF
+\end{code}
+%<*normalize-type>
+\begin{code}
+    normalize : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → Σ (Patch t ty) NF
+\end{code}
+%</normalize-type>
+\begin{code}
+    normalize (D-A ())
     normalize D-void = D-void , unit
-    normalize (D-inl d) = D-inl d , unit
-    normalize (D-inr d) = D-inr d , unit
-    normalize (D-setl x x₁) = D-setl x x₁ , unit
-    normalize (D-setr x x₁) = D-setl x₁ x , unit
-    normalize (D-pair d d₁) = D-pair d d₁ , unit
-    normalize (D-β d) = D-β d , unit
-    normalize (D-top d) = D-top d , unit
-    normalize (D-pop d) = D-pop d , unit
+    normalize (D-inl d) with normalize d
+    ...| nfd , prf = D-inl nfd , prf
+    normalize (D-inr d) with normalize d
+    ...| nfd , prf = D-inr nfd , prf
+    normalize (D-setl x y) = D-setl x y , unit
+    normalize (D-setr x y) = D-setr x y , unit
+    normalize (D-pair d e) with normalize d | normalize e
+    ...| nfd , prfd | nfe , prfe = (D-pair nfd nfe) , (prfd , prfe)
+    normalize (D-β d) with normalize d
+    ...| nfd , prf = (D-β nfd) , prf
+    normalize (D-top d) with normalize d
+    ...| nfd , prf = D-top nfd , prf
+    normalize (D-pop d) with normalize d
+    ...| nfd , prf = D-pop nfd , prf
     normalize (D-mu xs) with normalize* xs
     ...| ns , prf = D-mu ns , prf
     
 
     normalize* : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
-                 → List (Dμ t ty) → Σ (List (Dμ t ty)) NF*
+                 → Patchμ t ty → Σ (Patchμ t ty) NF*
     normalize* [] = [] , unit
+    normalize* (Dμ-A () ∷ _)
     normalize* (Dμ-ins x ∷ xs) with normalize* xs
     ...| ns , prf = Dμ-ins x ∷ ns , prf
     normalize* (Dμ-del x ∷ xs) with normalize* xs
@@ -363,19 +451,94 @@ module Diffing.Patches.Diff where
     ...| just (red y) with normalize* xs
     ...| ns , prf = Dμ-del x ∷ Dμ-ins y ∷ ns , prf
     normalize* (Dμ-cpy x ∷ xs) with normalize* xs
-    ...| ns , prf = Dμ-del x ∷ ns ++ Dμ-ins x ∷ [] , append-ins ns prf
-      where
-        append-ins : {n : ℕ}{t : Tel n}{ty : U (suc n)}{x : ValU ty t}
-                   → (ds : List (Dμ t ty)) → NF* ds
-                   → NF* (ds ++ Dμ-ins x ∷ [])
-        append-ins [] nf = unit
-        append-ins (Dμ-ins x ∷ ds) nf = append-ins ds nf
-        append-ins (Dμ-del x ∷ ds) nf = append-ins ds nf
-        append-ins (Dμ-cpy _ ∷ ds) ()
-        append-ins (Dμ-dwn _ _ ∷ ds) ()
+    ...| ns , prf = Dμ-del x ∷ Dμ-ins x ∷ ns , prf
 \end{code}
-%</normalize>
 
-  Normalization is correct...
+\begin{code}
+  nf : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → Patch t ty
+  nf p = p1 (normalize p)
 
-  TODO: prove
+  nf-prf : {n : ℕ}{t : Tel n}{ty : U n}(p : Patch t ty) → NF (nf p)
+  nf-prf p = p2 (normalize p)
+\end{code}
+
+  Normalization is correct, with respect to observational equality over patches
+  for fixed points.
+
+%<*nf-correct-type>
+\begin{code}
+  nf-correct : {n : ℕ}{t : Tel n}{ty : U n}(p : Patch t ty)
+             → p ≡-D nf p
+\end{code}
+%</nf-correct-type>
+\begin{code}
+  nf-correct (D-A ()) _
+  nf-correct D-void void       = refl
+  nf-correct (D-inl p) (inl el)
+    rewrite nf-correct p el = refl
+  nf-correct (D-inl p) (inr el) = refl
+  nf-correct (D-inr p) (inl el) = refl
+  nf-correct (D-inr p) (inr el)
+    rewrite nf-correct p el = refl
+  nf-correct (D-setl x x₁) el  = refl
+  nf-correct (D-setr x x₁) el  = refl
+  nf-correct (D-pair pa pb) (ela , elb)
+    rewrite sym (nf-correct pa ela) with gapply pa ela
+  ...| nothing = refl
+  ...| just a' rewrite nf-correct pb elb = refl
+  nf-correct (D-β p) (red el) 
+    rewrite nf-correct p el = refl
+  nf-correct (D-top p) (top el)
+    rewrite nf-correct p el = refl
+  nf-correct (D-pop p) (pop el)
+    rewrite nf-correct p el = refl
+  nf-correct (D-mu x) el 
+    = aux x (el ∷ [])
+    where
+      open import Relation.Binary.PropositionalEquality
+
+      aux : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+            (ps : Patchμ t ty)
+          → ps ≡-Dμ p1 (normalize* ps)
+      aux [] es = refl
+
+      aux (Dμ-A () ∷ _)
+
+      aux (Dμ-ins x ∷ ps) es with ≡-Dμ-lift {d1 = ps} {d2 = p1 (normalize* ps)} (aux ps)
+      ...| r = cong (λ P → gapplyL P es >>= gIns x >>= safeHead) r
+
+      aux (Dμ-del x ∷ ps) [] = refl
+      aux (Dμ-del x ∷ ps) (e ∷ es) with μ-open e
+      ...| hdE , chE with x ≟-U hdE
+      ...| no  x≢e = refl
+      ...| yes x≡e = aux ps (chE ++ es)
+
+      aux (Dμ-cpy x ∷ ps) [] = refl
+      aux (Dμ-cpy x ∷ ps) (e ∷ es) with μ-open e
+      ...| hdE , chE with x ≟-U hdE
+      ...| no  x≢e = refl
+      ...| yes x≡e = cong (λ P → gapplyL P (chE ++ es) >>= gIns x >>= safeHead) 
+                          (≡-Dμ-lift {d1 = ps} {d2 = p1 (normalize* ps)} (aux ps))
+
+      aux (Dμ-dwn x dx ∷ ps) [] 
+        with gapply dx (red x)
+      ...| nothing = refl
+      ...| just (red x') = refl
+      aux (Dμ-dwn x dx ∷ ps) (e ∷ es) 
+        with μ-open e | inspect μ-open e
+      ...| hdE , chE | [ R ] with x ≟-U hdE | inspect (_≟-U_ x) hdE
+      ...| no  x≢e | [ R2 ] with gapply dx (red x)
+      aux (Dμ-dwn x dx ∷ ps) (e ∷ es) | hdE , chE | [ R ] 
+          | no x≢e   | [ R2 ] | nothing = refl
+      aux (Dμ-dwn x dx ∷ ps) (e ∷ es) | hdE , chE | [ R ] 
+          | no x≢e   | [ R2 ] | just (red r) rewrite R | R2 = refl
+      aux (Dμ-dwn x dx ∷ ps) (e ∷ es) | .x  , chE | [ R ] 
+          | yes refl | [ R2 ] with gapply dx (red x)
+      aux (Dμ-dwn x dx ∷ ps) (e ∷ es) | .x  , chE | [ R ] 
+          | yes refl | [ R2 ] | nothing = refl
+      aux (Dμ-dwn x dx ∷ ps) (e ∷ es) | .x  , chE | [ R ] 
+          | yes refl | [ R2 ] | just (red r) 
+        rewrite R | R2 = cong (λ P → gapplyL P (chE ++ es) >>= gIns r >>= safeHead) 
+                          (≡-Dμ-lift {d1 = ps} {d2 = p1 (normalize* ps)} (aux ps))
+      
+\end{code}

@@ -11,7 +11,7 @@ module Diffing.Patches.Diff.Correctness where
   open import Diffing.Utils.Monads
   open Monad {{...}}
 
-  gapply-⊔ : {n : ℕ}{t : Tel n}{ty : U n}{a b : ElU ty t}{d1 d2 : D t ty}
+  gapply-⊔ : {n : ℕ}{t : Tel n}{ty : U n}{a b : ElU ty t}{d1 d2 : Patch t ty}
            → gapply d1 a ≡ just b
            → gapply d2 a ≡ just b
            → gapply (d1 ⊔ d2) a ≡ just b
@@ -20,7 +20,7 @@ module Diffing.Patches.Diff.Correctness where
   ...| no  prf = l2
 
   gapplyL-⊔ : {n : ℕ}{t : Tel n}{ty : U (suc n)}{a b : List (ElU (μ ty) t)}
-              {d1 d2 : List (Dμ t ty)}
+              {d1 d2 : Patchμ t ty}
             → gapplyL d1 a ≡ just b
             → gapplyL d2 a ≡ just b
             → gapplyL (d1 ⊔μ d2) a ≡ just b
@@ -86,7 +86,10 @@ module Diffing.Patches.Diff.Correctness where
                    ≡ just (b ∷ bs)
     correct-mu-down-L a b ra rb with μ-open a | μ-open b | inspect μ-open b
     correct-mu-down-L {hdA = hdA} {hdB} {chA} {chB} {as} {bs} a b refl refl
-      | .hdA , .chA | .hdB , .chB | [ rb' ] 
+      | .hdA , .chA | .hdB , .chB | [ rb' ]
+      with hdA ≟-U hdA
+    ...| no absurd = ⊥-elim (absurd refl)
+    ...| yes _ 
       rewrite correctness  hdA hdB
             | correctnessL (chA ++ as) (chB ++ bs)
             | μ-close-resp-arity {hdA = hdB} {chA = chB} {l = bs} rb'

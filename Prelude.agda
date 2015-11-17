@@ -123,6 +123,68 @@ module Prelude where
   Is-Just-⊥ {x = x} f with f (indeed x) 
   ...| ()
 
+  just-inj : ∀{a}{A : Set a}{x y : A}
+           → _≡_ {a} {Maybe A} (just x) (just y) → x ≡ y
+  just-inj refl = refl
+
+  {- Maybe is applicative! And here are some very usefull lemmas -}
+
+  _<M>_ : {A B : Set} → (A → B) → Maybe A → Maybe B
+  f <M> nothing  = nothing
+  f <M> just x   = just (f x)
+
+  <M>-elim : {A B : Set}{f : A → B}{x : Maybe A}{kb : B}
+           → f <M> x ≡ just kb
+           → Σ A (λ ka → kb ≡ f ka × x ≡ just ka)
+  <M>-elim {x = nothing} ()
+  <M>-elim {x = just y} refl = y , (refl , refl)
+
+  <M>-intro : {A B : Set}{f : A → B}{x : Maybe A}{k : A}
+            → x ≡ just k
+            → f <M> x ≡ just (f k)
+  <M>-intro refl = refl
+
+  _<M*>_ : {A B : Set} → Maybe (A → B) → Maybe A → Maybe B
+  _       <M*> nothing = nothing
+  nothing <M*> just _  = nothing
+  just f  <M*> just x  = just (f x)
+
+  <M*>-elim : {A B : Set}{f : Maybe (A → B)}{x : Maybe A}{kb : B}
+            → f <M*> x ≡ just kb
+            → Σ ((A → B) × A) (λ fa → f ≡ just (p1 fa) × kb ≡ (p1 fa) (p2 fa))
+  <M*>-elim {f = f} {x = nothing} ()
+  <M*>-elim {f = nothing} {x = just _} ()
+  <M*>-elim {f = just f}  {x = just x} {.(f x)} refl = (f , x) , (refl , refl)
+
+  <M*>-elim-full : {A B : Set}{f : Maybe (A → B)}{x : Maybe A}{kb : B}
+            → f <M*> x ≡ just kb
+            → Σ ((A → B) × A) 
+                (λ fa → f ≡ just (p1 fa) × kb ≡ (p1 fa) (p2 fa) × x ≡ just (p2 fa))
+  <M*>-elim-full {f = f} {x = nothing} ()
+  <M*>-elim-full {f = nothing} {x = just _} ()
+  <M*>-elim-full {f = just f}  {x = just x} {.(f x)} refl = (f , x) , (refl , (refl , refl))
+
+  <M*>-to-<M> : {A B : Set}{f : A → B}{x : Maybe A}{kb : B}
+              → just f <M*> x ≡ just kb
+              → f <M> x ≡ just kb
+  <M*>-to-<M> {x = nothing} ()
+  <M*>-to-<M> {x = just x} prf = prf
+
+  <M>-to-<M*> : {A B : Set}{f : A → B}{x : Maybe A}{kb : B}
+              → f <M> x ≡ just kb
+              → just f <M*> x ≡ just kb
+  <M>-to-<M*> {x = nothing} ()
+  <M>-to-<M*> {x = just x} prf = prf
+
+  infixl 20 _<M>_ _<M*>_
+
+  {- Function Extensionality comes in fairly handy regurlaly -}
+
+  postulate
+    fun-ext : ∀{a b}{A : Set a}{B : Set b}{f g : A → B}
+            → (∀ x → f x ≡ g x)
+            → f ≡ g
+
   -- Some minor boilerplate to solve equality problem...
   record Eq (A : Set) : Set where
     constructor eq
@@ -165,10 +227,6 @@ module Prelude where
     eq-Maybe : ∀{A} ⦃ eqA : Eq A ⦄ → Eq (Maybe A)
     eq-Maybe = eq decide
       where
-        just-inj : ∀{a}{A : Set a}{x y : A}
-                 → _≡_ {a} {Maybe A} (just x) (just y) → x ≡ y
-        just-inj refl = refl
-
         decide : {A : Set} ⦃ eqA : Eq A ⦄
                → (x y : Maybe A) → Dec (x ≡ y)
         decide nothing nothing   = yes refl
