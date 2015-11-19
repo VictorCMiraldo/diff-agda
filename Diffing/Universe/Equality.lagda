@@ -43,3 +43,12 @@ module Diffing.Universe.Equality where
   ...| no  p = no (p ∘ inj-red)
 \end{code}
 %</equality-def>
+
+\begin{code}
+  ≟-U-refl : {n : ℕ}{t : Tel n}{ty : U n}
+           → (x : ElU ty t)
+           → x ≟-U x ≡ yes refl
+  ≟-U-refl x with x ≟-U x
+  ...| no absurd = ⊥-elim (absurd refl)
+  ...| yes refl  = refl
+\end{code}

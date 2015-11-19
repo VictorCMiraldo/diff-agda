@@ -3,6 +3,7 @@ open import Data.Nat using (_≤_; z≤n; s≤s)
 open import Data.Nat.Properties.Simple using (+-comm)
 open import Data.List using (drop)
 open import Data.List.Properties using (length-++)
+open import Data.List.All
 
 module Diffing.Utils.Propositions where
 
@@ -23,6 +24,12 @@ module Diffing.Utils.Propositions where
     with list-split-lemma {n = n} {l = l} n≤l
   ...| (la , lb) , pla , plb 
      = ((x ∷ la) , lb) , ((cong suc pla) , (cong (_∷_ x) plb))
+
+  ++-[] : ∀{a}{A : Set a}{l j : List A}
+        → l ++ j ≡ []
+        → l ≡ [] × j ≡ []
+  ++-[] {l = []} prf = refl , prf
+  ++-[] {l = x ∷ l} ()
 
   length-++-stable : {A : Set}{l j : List A}{n : ℕ}
                    → length (l ++ j) ≡ length l + n
@@ -117,3 +124,10 @@ module Diffing.Utils.Propositions where
            → (x ++ y) ++ z ≡ x ++ (y ++ z)
   ++-assoc {x = []} = refl
   ++-assoc {x = x ∷ xs} = cong (_∷_ x) (++-assoc {x = xs})
+
+  All-++ : ∀{a b}{A : Set a}{P : A → Set b}
+         → {m n : List A}
+         → All P m → All P n
+         → All P (m ++ n)
+  All-++ [] an = an
+  All-++ (px ∷ am) an = px ∷ All-++ am an

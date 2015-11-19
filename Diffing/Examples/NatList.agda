@@ -2,7 +2,8 @@ open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Patches.Diff
--- open import Diffing.Patches.Residual
+open import Diffing.Patches.Residual
+open import Diffing.Patches.Conflicts
 -- open import Diffing.DiffCorrect
 
 module Diffing.Examples.NatList where
@@ -28,7 +29,7 @@ module Diffing.Examples.NatList where
   to-nat-0 : ℕ → ElU nat tnil
   to-nat-0 = to-nat
 
-  gapplyℕ : D tnil nat → ℕ → Maybe ℕ
+  gapplyℕ : Patch tnil nat → ℕ → Maybe ℕ
   gapplyℕ d n with gapply d (to-nat-0 n)
   ...| nothing = nothing
   ...| just x  = just (to-ℕ x)
@@ -66,10 +67,10 @@ module Diffing.Examples.NatList where
   l3 : ElU nat-list tnil
   l3 = to-nat-list (2 ∷ 4 ∷ 1 ∷ [])
 
-  d12 : D tnil nat-list
+  d12 : Patch tnil nat-list
   d12 = gdiff l1 l2
 
-  d13 : D tnil nat-list
+  d13 : Patch tnil nat-list
   d13 = gdiff l1 l3
 
   -- booleans
@@ -78,6 +79,40 @@ module Diffing.Examples.NatList where
 
   pattern TRUE = inl void
   pattern FALSE = inr void
+
+ -- quantum booleans
+
+  qool : {n : ℕ} → U n
+  qool = bool ⊕ u1
+
+  pattern QTRUE  = inl TRUE
+  pattern QFALSE = inl FALSE
+  pattern QBOTH  = inr void
+
+  Δ : {n : ℕ} → U (suc n)
+  Δ = vl ⊗ vl
+
+  m1 : ElU (β Δ qool) tnil
+  m1 = red ((top QTRUE) , (top QTRUE))
+
+  m2 : ElU (β Δ qool) tnil
+  m2 = red (top QFALSE , top QTRUE)
+
+  m3 : ElU (β Δ qool) tnil
+  m3 = red ((top QTRUE) , (top QFALSE))
+
+  m4 : ElU (β Δ qool) tnil
+  m4 = red ((top QBOTH) , (top QTRUE))
+
+  bp1 : Patch tnil (β Δ qool)
+  bp1 = gdiff m1 m2
+
+  bp2 : Patch tnil (β Δ qool)
+  bp2 = gdiff m1 m3
+
+  bp3 : Patch tnil (β Δ qool)
+  bp3 = gdiff m1 m4
+
 
   -- List of Bools
   bool-list2 : {n : ℕ} → U n
@@ -113,13 +148,13 @@ module Diffing.Examples.NatList where
   ...| no  _ = false
   _ == _ = false
 
-  db12 : D tnil bool-list2
+  db12 : Patch tnil bool-list2
   db12 = gdiff b1 b2
 
-  db12nf : D tnil bool-list2
+  db12nf : Patch tnil bool-list2
   db12nf = nf db12
 
-  db13 : D tnil bool-list2
+  db13 : Patch tnil bool-list2
   db13 = gdiff b1 b3
 
   

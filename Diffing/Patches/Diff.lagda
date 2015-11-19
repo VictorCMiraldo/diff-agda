@@ -17,8 +17,10 @@ module Diffing.Patches.Diff where
 %<*D-def>
 \begin{code}
   mutual
-    data D (A : Set) : {n : ℕ} → Tel n → U n → Set where
+    data D {a}(A : Set a) : {n : ℕ} → Tel n → U n → Set a where
       D-A    : {n : ℕ}{t : Tel n}{ty : U n} → A → D A t ty
+
+      D-id : {n : ℕ}{t : Tel n}{ty : U n} → D A t ty
 
       D-void : {n : ℕ}{t : Tel n} → D A t u1
       D-inl  : {n : ℕ}{t : Tel n}{a b : U n} 
@@ -44,7 +46,7 @@ module Diffing.Patches.Diff where
       -- D-id  : {n : ℕ}{t : Tel n}{a : U n}
       --      → D t a
 
-    data Dμ (A : Set) : {n : ℕ} → Tel n → U (suc n) → Set where
+    data Dμ {a}(A : Set a) : {n : ℕ} → Tel n → U (suc n) → Set a where
       Dμ-A   : {n : ℕ}{t : Tel n}{a : U (suc n)} → A → Dμ A t a
       Dμ-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
       Dμ-del : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
@@ -98,6 +100,7 @@ module Diffing.Patches.Diff where
 \begin{code}
     cost : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → ℕ
     cost (D-A ())
+    cost D-id           = 0
     cost  D-void        = 1
     cost (D-inl d)      = cost d
     cost (D-inr d)      = cost d
@@ -216,13 +219,15 @@ module Diffing.Patches.Diff where
            → Patch t ty → ElU ty t → Maybe (ElU ty t)
     gapply (D-A ())
 
+    gapply D-id x = just x
+
     gapply D-void void = just void
 
-    gapply (D-inl diff) (inl el) = inl <$>+1 gapply diff el
+    gapply (D-inl diff) (inl el) = inl <M> gapply diff el
     gapply (D-inl diff) (inr el) = nothing
 
     gapply (D-inr diff) (inl el) = nothing
-    gapply (D-inr diff) (inr el) = inr <$>+1 gapply diff el
+    gapply (D-inr diff) (inr el) = inr <M> gapply diff el
 
     gapply (D-setl x y) (inl el) with x ≟-U el
     ...| yes _ = just (inr y)
@@ -236,11 +241,11 @@ module Diffing.Patches.Diff where
 
     gapply (D-pair da db) (a , b) with gapply da a
     ...| nothing = nothing
-    ...| just ra = _,_ ra <$>+1 gapply db b
+    ...| just ra = _,_ ra <M> gapply db b
 
-    gapply (D-β diff) (red el) = red <$>+1 gapply diff el
-    gapply (D-top diff) (top el) = top <$>+1 gapply diff el
-    gapply (D-pop diff) (pop el) = pop <$>+1 gapply diff el
+    gapply (D-β diff) (red el) = red <M> gapply diff el
+    gapply (D-top diff) (top el) = top <M> gapply diff el
+    gapply (D-pop diff) (pop el) = pop <M> gapply diff el
 
     -- gapply (dx ∘ᴰ dy) el = gapply dy el >>= gapply dx
 
@@ -419,6 +424,7 @@ module Diffing.Patches.Diff where
 %</normalize-type>
 \begin{code}
     normalize (D-A ())
+    normalize D-id   = D-id , unit
     normalize D-void = D-void , unit
     normalize (D-inl d) with normalize d
     ...| nfd , prf = D-inl nfd , prf
@@ -473,6 +479,7 @@ module Diffing.Patches.Diff where
 %</nf-correct-type>
 \begin{code}
   nf-correct (D-A ()) _
+  nf-correct D-id x            = refl
   nf-correct D-void void       = refl
   nf-correct (D-inl p) (inl el)
     rewrite nf-correct p el = refl

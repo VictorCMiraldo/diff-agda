@@ -2,6 +2,7 @@
 open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Patches.Diff
+open import Diffing.Patches.Diff.Functor using (forget; forgetμ)
 
 module Diffing.Patches.Conflicts where
 \end{code}
@@ -33,11 +34,11 @@ module Diffing.Patches.Conflicts where
 \begin{code}
   data C : Set where
     UpdUpd : {n : ℕ}{t : Tel n}{a b : U n}
-           → ElU a t → ElU b t → C
-    DelUpd : {n : ℕ}{t : Tel n}{a b : U n}
-           → ElU a t → ElU b t → C
-    UpdDel : {n : ℕ}{t : Tel n}{a b : U n}
-           → ElU a t → ElU b t → C
+           → ElU (a ⊕ b) t → ElU (a ⊕ b) t → ElU (a ⊕ b) t → C
+    DelUpd : {n : ℕ}{t : Tel n}{a : U (suc n)}
+           → ValU a t → ValU a t → C
+    UpdDel : {n : ℕ}{t : Tel n}{a : U (suc n)}
+           → ValU a t → ValU a t → C
     GrowL  : {n : ℕ}{t : Tel n}{a : U (suc n)}
            → ValU a t → C
     GrowLR : {n : ℕ}{t : Tel n}{a : U (suc n)}
@@ -47,12 +48,42 @@ module Diffing.Patches.Conflicts where
 \end{code}
 %</C-def>
 
+%<*IsGrow>
+\begin{code}
+  IsGrow : C → Set
+  IsGrow (GrowL _)    = Unit
+  IsGrow (GrowR _)    = Unit
+  IsGrow (GrowLR _ _) = Unit
+  IsGrow _ = ⊥
+\end{code}
+%</IsGrow>
+
+%<*IsUpd>
+\begin{code}
+  IsUpd : C → Set
+  IsUpd (UpdUpd _ _ _) = Unit
+  IsUpd (UpdDel _ _)   = Unit
+  IsUpd (DelUpd _ _)   = Unit
+  IsUpd _ = ⊥
+\end{code}
+%</IsUpd>
+
+\begin{code}
+  C-where : C → Σ ℕ (λ n → Tel n × U n)
+  C-where (UpdUpd {n} {t} {a} {b} _ _ _) = n , (t , a ⊕ b)
+  C-where (DelUpd {n} {t} {ty} _ _) = n , (t , μ ty)
+  C-where (UpdDel {n} {t} {ty} _ _) = n , (t , μ ty)
+  C-where (GrowL {n} {t} {ty} _)    = n , (t , μ ty)
+  C-where (GrowLR {n} {t} {ty} _ _) = n , (t , μ ty)
+  C-where (GrowR {n} {t} {ty} _)    = n , (t , μ ty)
+\end{code}
+
   An important observation is that conflicts are symmetric:
 
 %<*C-sym>
 \begin{code}
   C-sym : C → C
-  C-sym (UpdUpd x y) = UpdUpd y x
+  C-sym (UpdUpd o x y) = UpdUpd o y x
   C-sym (DelUpd x y) = UpdDel y x
   C-sym (UpdDel x y) = DelUpd y x
   C-sym (GrowL x)    = GrowR x
@@ -73,7 +104,7 @@ module Diffing.Patches.Conflicts where
   C-sym-id-lemma = fun-ext ext
     where
       ext : (c : C) → C-sym (C-sym c) ≡ c
-      ext (UpdUpd x y) = refl
+      ext (UpdUpd o x y) = refl
       ext (DelUpd x y) = refl
       ext (UpdDel x y) = refl
       ext (GrowL x)    = refl
@@ -81,3 +112,22 @@ module Diffing.Patches.Conflicts where
       ext (GrowR x)    = refl
 \end{code}
 
+  Some easy wrappers over residuals
+
+%<*conflicts>
+\begin{code}
+  conflicts : {n : ℕ}{t : Tel n}{ty : U n}
+            → Maybe (D C t ty) → List C
+  conflicts nothing  = []
+  conflicts (just p) = forget p
+\end{code}
+%</conflicts>
+
+%<*conflictsμ>
+\begin{code}
+  conflictsμ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+            → Maybe (List (Dμ C t ty)) → List C
+  conflictsμ nothing  = []
+  conflictsμ (just p) = forgetμ p
+\end{code}
+%</conflictsμ>
