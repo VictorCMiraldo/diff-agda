@@ -10,10 +10,15 @@ Agda code is inside the *Diffing* folder; Directory structure is as follows:
     * **Diff/** , Properties and specifics of diffs.
         * **Correctness.agda** , correctness proof.
         * **Functor.agda** , functorial aspects.
+    * **Residual/**
+        * **Symmetry.lagda** , residuals are symmetric modulo some operation.
+        * **SymmetryConflict.lagda** , proves that this operation does NOT 
+                                       introduce any new conflicts.
+    * **Residual.lagda** , Defines the notion of a residual over patches.
     * **Diff.lagda** , The actual diff algorithm and correspondent apply function.
     * **Conflicts.lagda** , Definition of conflicts
-    * **Residual.lagda** , Defines the notion of a residual over patches.
-    * **Merging.lagda** , (WORK IN PROGRESS)
+    * **Merging.lagda** , Proves merging of disjoint patches is ok.
+    * **Overlap.lagda** , defines a notion of disjoint patches
 * **Universe/** , universe specific definitions.
     * **Syntax.lagad** , Defines the syntax of types and their elements.
     * **Equality.lagda** , gives us a notion of generic element equality.

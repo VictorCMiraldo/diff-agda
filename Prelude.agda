@@ -127,36 +127,58 @@ module Prelude where
            → _≡_ {a} {Maybe A} (just x) (just y) → x ≡ y
   just-inj refl = refl
 
+  Maybe-⊥ : ∀{a}{A : Set a}{x : A}
+          → _≡_ {a} {Maybe A} (just x) nothing
+          → ⊥
+  Maybe-⊥ ()
+
   {- Maybe is applicative! And here are some very usefull lemmas -}
 
-  _<M>_ : {A B : Set} → (A → B) → Maybe A → Maybe B
+  _<M>_ : ∀{a b}{A : Set a}{B : Set b} 
+        → (A → B) → Maybe A → Maybe B
   f <M> nothing  = nothing
   f <M> just x   = just (f x)
 
-  <M>-elim : {A B : Set}{f : A → B}{x : Maybe A}{kb : B}
+  <M>-elim : ∀{a b}{A : Set a}{B : Set b}
+              {f : A → B}{x : Maybe A}{kb : B}
            → f <M> x ≡ just kb
            → Σ A (λ ka → kb ≡ f ka × x ≡ just ka)
   <M>-elim {x = nothing} ()
   <M>-elim {x = just y} refl = y , (refl , refl)
 
-  <M>-intro : {A B : Set}{f : A → B}{x : Maybe A}{k : A}
+  <M>-Is-Just : ∀{a b}{A : Set a}{B : Set b}
+                {f : A → B}{x : Maybe A}
+              → Is-Just (f <M> x) → Is-Just x
+  <M>-Is-Just {x = nothing} ()
+  <M>-Is-Just {x = just x} _ = indeed x
+
+  <M>-intro : ∀{a b}{A : Set a}{B : Set b}
+              {f : A → B}{x : Maybe A}{k : A}
             → x ≡ just k
             → f <M> x ≡ just (f k)
   <M>-intro refl = refl
 
-  _<M*>_ : {A B : Set} → Maybe (A → B) → Maybe A → Maybe B
+  _<M*>_ : ∀{a b}{A : Set a}{B : Set b} 
+         → Maybe (A → B) → Maybe A → Maybe B
   _       <M*> nothing = nothing
   nothing <M*> just _  = nothing
   just f  <M*> just x  = just (f x)
 
-  <M*>-elim : {A B : Set}{f : Maybe (A → B)}{x : Maybe A}{kb : B}
+  <M*>-nothing : ∀{a b}{A : Set a}{B : Set b}{x : Maybe A}
+               → nothing {A = A → B} <M*> x ≡ nothing
+  <M*>-nothing {x = nothing} = refl
+  <M*>-nothing {x = just _ } = refl
+
+  <M*>-elim : ∀{a b}{A : Set a}{B : Set b}
+              {f : Maybe (A → B)}{x : Maybe A}{kb : B}
             → f <M*> x ≡ just kb
             → Σ ((A → B) × A) (λ fa → f ≡ just (p1 fa) × kb ≡ (p1 fa) (p2 fa))
   <M*>-elim {f = f} {x = nothing} ()
   <M*>-elim {f = nothing} {x = just _} ()
   <M*>-elim {f = just f}  {x = just x} {.(f x)} refl = (f , x) , (refl , refl)
 
-  <M*>-elim-full : {A B : Set}{f : Maybe (A → B)}{x : Maybe A}{kb : B}
+  <M*>-elim-full : ∀{a b}{A : Set a}{B : Set b}
+                    {f : Maybe (A → B)}{x : Maybe A}{kb : B}
             → f <M*> x ≡ just kb
             → Σ ((A → B) × A) 
                 (λ fa → f ≡ just (p1 fa) × kb ≡ (p1 fa) (p2 fa) × x ≡ just (p2 fa))
@@ -164,13 +186,15 @@ module Prelude where
   <M*>-elim-full {f = nothing} {x = just _} ()
   <M*>-elim-full {f = just f}  {x = just x} {.(f x)} refl = (f , x) , (refl , (refl , refl))
 
-  <M*>-to-<M> : {A B : Set}{f : A → B}{x : Maybe A}{kb : B}
+  <M*>-to-<M> : ∀{a b}{A : Set a}{B : Set b}
+                {f : A → B}{x : Maybe A}{kb : B}
               → just f <M*> x ≡ just kb
               → f <M> x ≡ just kb
   <M*>-to-<M> {x = nothing} ()
   <M*>-to-<M> {x = just x} prf = prf
 
-  <M>-to-<M*> : {A B : Set}{f : A → B}{x : Maybe A}{kb : B}
+  <M>-to-<M*> : ∀{a b}{A : Set a}{B : Set b}
+                {f : A → B}{x : Maybe A}{kb : B}
               → f <M> x ≡ just kb
               → just f <M*> x ≡ just kb
   <M>-to-<M*> {x = nothing} ()
