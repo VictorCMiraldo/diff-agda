@@ -254,10 +254,9 @@ module Diffing.Patches.Residual.Symmetry where
       ...| r , refl , q with aux* d1 d2 q
       ...| op , hip = (hd-tail (const (Dμ-dwn y (D-map C-sym (cast dy)))) op) 
            , trans (<M>-intro hip) 
-                   (cong (λ P → just (Dμ-dwn y P ∷ _)) 
-                     (sym (trans (D-map-join C-sym C-sym (D-map (λ ()) dy)) 
-                                 (trans (cong (λ P → D-map P (cast dy)) C-sym-id-lemma) 
-                                   (D-map-id (cast dy))))))
+               (cong just (cong (λ P → P ∷ Dμ-map C-sym (op r)) 
+                 (cong (Dμ-dwn y) (sym (trans (D-map-join C-sym C-sym (cast dy)) 
+                   (D-map-cast (λ {m} {t'} {ty'} z → C-sym (C-sym z)) dy))))))
 
       aux* (Dμ-dwn x dx ∷ d1) (Dμ-del y ∷ d2) prf with x ≟-U y | y ≟-U x
       aux* (Dμ-dwn x dx ∷ d1) (Dμ-del y ∷ d2) () | no ¬p | no _

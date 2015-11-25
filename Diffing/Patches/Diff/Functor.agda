@@ -17,8 +17,11 @@ module Diffing.Patches.Diff.Functor where
   -- D-map definition
   mutual
     {-# TERMINATING #-}
-    D-map : ∀{a b}{n : ℕ}{t : Tel n}{ty : U n}{A : Set a}{B : Set b} 
-          → (A → B) → D A t ty → D B t ty
+    D-map : ∀{a b}{n : ℕ}{t : Tel n}{ty : U n}
+             {A : {n : ℕ} → Tel n → U n → Set a}
+             {B : {n : ℕ} → Tel n → U n → Set b} 
+          → ({m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty') 
+          → D A t ty → D B t ty
     D-map f (D-A x) = D-A (f x)
     D-map f D-id   = D-id
     D-map f D-void = D-void
@@ -32,8 +35,11 @@ module Diffing.Patches.Diff.Functor where
     D-map f (D-top d) = D-top (D-map f d)
     D-map f (D-pop d) = D-pop (D-map f d)
 
-    Dμ-map : ∀{a b}{n : ℕ}{t : Tel n}{ty : U (suc n)}{A : Set a}{B : Set b} 
-           → (A → B) → List (Dμ A t ty) → List (Dμ B t ty)
+    Dμ-map : ∀{a b}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+             {A : {n : ℕ} → Tel n → U n → Set a}
+             {B : {n : ℕ} → Tel n → U n → Set b} 
+           → ({m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty')
+           → List (Dμ A t ty) → List (Dμ B t ty)
     Dμ-map f [] = []
     Dμ-map f (Dμ-A x   ∷ d) = Dμ-A (f x) ∷ Dμ-map f d
     Dμ-map f (Dμ-ins x ∷ d) = Dμ-ins x ∷ Dμ-map f d
@@ -47,8 +53,12 @@ module Diffing.Patches.Diff.Functor where
   --
   mutual
     D-map-join : ∀{a b c}{n : ℕ}{t : Tel n}{ty : U n}
-                 {A : Set a}{B : Set b}{C : Set c}
-                 (f : B → C)(g : A → B)(d : D A t ty)
+                 {A : {n : ℕ} → Tel n → U n → Set a}
+                 {B : {n : ℕ} → Tel n → U n → Set b}
+                 {C : {n : ℕ} → Tel n → U n → Set c}
+                 (f : {m : ℕ}{t' : Tel m}{ty' : U m} → B t' ty' → C t' ty')
+                 (g : {m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty')
+                 (d : D A t ty)
                → D-map f (D-map g d) ≡ D-map (f ∘ g) d
     D-map-join f g (D-A x) = refl
     D-map-join f g D-id   = refl
@@ -65,8 +75,12 @@ module Diffing.Patches.Diff.Functor where
     D-map-join f g (D-mu x) = cong D-mu (Dμ-map-join f g x)
 
     Dμ-map-join : ∀{a b c}{n : ℕ}{t : Tel n}{ty : U (suc n)}
-                  {A : Set a}{B : Set b}{C : Set c}
-                  (f : B → C)(g : A → B)(d : List (Dμ A t ty))
+                  {A : {n : ℕ} → Tel n → U n → Set a}
+                  {B : {n : ℕ} → Tel n → U n → Set b}
+                  {C : {n : ℕ} → Tel n → U n → Set c}
+                  (f : {m : ℕ}{t' : Tel m}{ty' : U m} → B t' ty' → C t' ty')
+                  (g : {m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty')
+                  (d : List (Dμ A t ty))
                → Dμ-map f (Dμ-map g d) ≡ Dμ-map (f ∘ g) d
     Dμ-map-join f g [] = refl
     Dμ-map-join f g (Dμ-A x ∷ d) = cong (_∷_ (Dμ-A (f (g x)))) (Dμ-map-join f g d)
@@ -80,7 +94,8 @@ module Diffing.Patches.Diff.Functor where
   -- And identities
   --
   mutual
-    D-map-id : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}{A : Set a}
+    D-map-id : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+               {A : {n : ℕ} → Tel n → U n → Set a}
                (d : D A t ty)
              → D-map id d ≡ d
     D-map-id (D-A x) = refl
@@ -96,7 +111,8 @@ module Diffing.Patches.Diff.Functor where
     D-map-id (D-pop d) = cong D-pop (D-map-id d)
     D-map-id (D-mu x) = cong D-mu (Dμ-map-id x)
 
-    Dμ-map-id : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}{A : Set a}
+    Dμ-map-id : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+                {A : {n : ℕ} → Tel n → U n → Set a}
                 (d : List (Dμ A t ty)) → Dμ-map id d ≡ d
     Dμ-map-id [] = refl
     Dμ-map-id (Dμ-A x ∷ d) = cong (_∷_ (Dμ-A x)) (Dμ-map-id d)
@@ -109,10 +125,12 @@ module Diffing.Patches.Diff.Functor where
   --
   -- Here we define a forgetful functor from D's to Lists.
   --
+
   mutual
-    forget : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}{A : Set a} 
-           → D A t ty → List A
-    forget (D-A x) = x ∷ []
+    forget : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+             {A : {n : ℕ} → Tel n → U n → Set a}
+           → D A t ty → List (Σ ℕ (λ n → Σ (Tel n × U n) (λ k → A (p1 k) (p2 k))))
+    forget (D-A {n} {t} {ty} x) = (n , (t , ty) , x) ∷ []
     forget D-id   = []
     forget D-void = []
     forget (D-inl d) = forget d
@@ -125,22 +143,28 @@ module Diffing.Patches.Diff.Functor where
     forget (D-pop d) = forget d
     forget (D-mu x) = forgetμ x
 
-    forgetμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}{A : Set a} 
-            → List (Dμ A t ty) → List A
+    forgetμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+              {A : {n : ℕ} → Tel n → U n → Set a}
+            → List (Dμ A t ty) → List (Σ ℕ (λ n → Σ (Tel n × U n) (λ k → A (p1 k) (p2 k))))
     forgetμ [] = []
-    forgetμ (Dμ-A a ∷ ds)      = a ∷ forgetμ ds
+    forgetμ (Dμ-A {n} {t} {a} x ∷ ds)      = (n , (t , μ a) , x) ∷ forgetμ ds
     forgetμ (Dμ-dwn _ dx ∷ ds) = forget dx ++ forgetμ ds
     forgetμ (_ ∷ ds)           = forgetμ ds
 
-
+  
+  {-
   {- forget is a natural transformation -}
   mutual
-    forget-natural : ∀{a b}{n : ℕ}{t : Tel n}{ty : U n}{A : Set a}{B : Set b}
-                   → (f : A → B)(d : D A t ty)
-                   → forget (D-map f d) ≡ map f (forget d)
+    forget-natural : ∀{a b}{n : ℕ}{t : Tel n}{ty : U n}
+                     {A : {n : ℕ} → Tel n → U n → Set a}
+                     {B : {n : ℕ} → Tel n → U n → Set b}
+                   → (f : {m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty')
+                   → (d : D A t ty)
+                   → forget (D-map f d) ≡ map {!!} (forget d)
     forget-natural = trustme
       where
         postulate trustme : ∀{a}{A : Set a} → A
+  -}
 
   -- forget is obviously natural, that is:
   --
@@ -151,11 +175,13 @@ module Diffing.Patches.Diff.Functor where
 
   {- Some usefull casting operations -}
 
-  cast : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}{A : Set a}
+  cast : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+         {A : {n : ℕ} → Tel n → U n → Set a}
        → Patch t ty → D A t ty
   cast = D-map (λ ())
 
-  castμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}{A : Set a}
+  castμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+          {A : {n : ℕ} → Tel n → U n → Set a}
         → Patchμ t ty → List (Dμ A t ty)
   castμ = Dμ-map (λ ())
 
@@ -165,7 +191,8 @@ module Diffing.Patches.Diff.Functor where
 
   open import Diffing.Utils.Propositions using (++-[])
   mutual
-    uncast : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}{A : Set a}
+    uncast : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+             {A : {n : ℕ} → Tel n → U n → Set a}
            → (d : D A t ty) → forget d ≡ []
            → Patch t ty
     uncast (D-A x) ()
@@ -183,7 +210,8 @@ module Diffing.Patches.Diff.Functor where
     uncast (D-top d) prf = D-top (uncast d prf)
     uncast (D-pop d) prf = D-pop (uncast d prf)
 
-    uncastμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}{A : Set a}
+    uncastμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+             {A : {n : ℕ} → Tel n → U n → Set a}
            → (d : List (Dμ A t ty)) → forgetμ d ≡ []
            → Patchμ t ty
     uncastμ [] prf = []
@@ -195,16 +223,23 @@ module Diffing.Patches.Diff.Functor where
     ...| p1 , p2 = Dμ-dwn x (uncast dx p1) ∷ uncastμ d p2
 
   {- Mapping over a "casted" value is doing nothing. -}
-  D-map-cast : ∀{a b}{n : ℕ}{t : Tel n}{ty : U n}
-                {A : Set a}{B : Set b}
-                (f : A → B)(d : Patch t ty)
-              → D-map f (cast d) ≡ cast d
+  D-map-cast : ∀{a b}{k : ℕ}{t : Tel k}{ty : U k}
+                {A : {n : ℕ} → Tel n → U n → Set a}
+                {B : {n : ℕ} → Tel n → U n → Set b}
+                (f : {m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty')
+                (d : Patch t ty)
+              → D-map (λ {m} {u} {uy} → f {m} {u} {uy}) (cast d) ≡ cast d
   D-map-cast f d 
     = trans (D-map-join f (λ ()) d) 
-            (cong (λ P → D-map P d) (fun-ext (λ ())))
+            (cong₂ D-map trustme refl)
+    where
+      postulate trustme : ∀{a}{A : Set a} → A
+      
+  
 
   {- Forgettting a cast'ed value is the empty list -}
-  forget-cast : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}{A : Set a}
+  forget-cast : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+                {A : {n : ℕ} → Tel n → U n → Set a}
                 (d : Patch t ty)
               → forget {A = A} (cast d) ≡ []
   forget-cast = trustme

@@ -17,8 +17,8 @@ module Diffing.Patches.Diff where
 %<*D-def>
 \begin{code}
   mutual
-    data D {a}(A : Set a) : {n : ℕ} → Tel n → U n → Set a where
-      D-A    : {n : ℕ}{t : Tel n}{ty : U n} → A → D A t ty
+    data D {a}(A : {n : ℕ} → Tel n → U n → Set a) : {n : ℕ} → Tel n → U n → Set a where
+      D-A    : {n : ℕ}{t : Tel n}{ty : U n} → A t ty → D A t ty
 
       D-id : {n : ℕ}{t : Tel n}{ty : U n} → D A t ty
 
@@ -46,8 +46,8 @@ module Diffing.Patches.Diff where
       -- D-id  : {n : ℕ}{t : Tel n}{a : U n}
       --      → D t a
 
-    data Dμ {a}(A : Set a) : {n : ℕ} → Tel n → U (suc n) → Set a where
-      Dμ-A   : {n : ℕ}{t : Tel n}{a : U (suc n)} → A → Dμ A t a
+    data Dμ {a}(A : {n : ℕ} → Tel n → U n → Set a) : {n : ℕ} → Tel n → U (suc n) → Set a where
+      Dμ-A   : {n : ℕ}{t : Tel n}{a : U (suc n)} → A t (μ a) → Dμ A t a
       Dμ-ins : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
       Dμ-del : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
       Dμ-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} → ValU a t → Dμ A t a
@@ -58,10 +58,10 @@ module Diffing.Patches.Diff where
 %<*Patch-def>
 \begin{code}
   Patch : {n : ℕ} → Tel n → U n → Set
-  Patch t ty = D ⊥ t ty
+  Patch t ty = D (const (const ⊥)) t ty
        
   Patchμ : {n : ℕ} → Tel n → U (suc n) → Set
-  Patchμ t ty = List (Dμ ⊥ t ty)
+  Patchμ t ty = List (Dμ (const (const ⊥)) t ty)
 \end{code}
 %</Patch-def>
 
@@ -116,7 +116,7 @@ module Diffing.Patches.Diff where
         sum-cost [] = 0
         sum-cost (x ∷ l) = costμ x + sum-cost l
 
-    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ ⊥ t ty → ℕ
+    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ (const (const ⊥)) t ty → ℕ
     costμ (Dμ-A ())
     costμ (Dμ-ins x) = sizeElU x + 1
     costμ (Dμ-del x) = sizeElU x + 1

@@ -48,9 +48,14 @@ module Diffing.Patches.Conflicts where
 \end{code}
 %</C-def>
 
+\begin{code}
+  C₀ : Set
+  C₀ = Σ ℕ (λ n → Σ (Tel n × U n) (λ k → C (p1 k) (p2 k)))
+\end{code}
+
 %<*IsGrow>
 \begin{code}
-  IsGrow : C → Set
+  IsGrow : {n : ℕ}{t : Tel n}{ty : U n} → C t ty → Set
   IsGrow (GrowL _)    = Unit
   IsGrow (GrowR _)    = Unit
   IsGrow (GrowLR _ _) = Unit
@@ -60,7 +65,7 @@ module Diffing.Patches.Conflicts where
 
 %<*IsUpd>
 \begin{code}
-  IsUpd : C → Set
+  IsUpd : {n : ℕ}{t : Tel n}{ty : U n} → C t ty → Set
   IsUpd (UpdUpd _ _ _) = Unit
   IsUpd (UpdDel _ _)   = Unit
   IsUpd (DelUpd _ _)   = Unit
@@ -68,21 +73,11 @@ module Diffing.Patches.Conflicts where
 \end{code}
 %</IsUpd>
 
-\begin{code}
-  C-where : C → Σ ℕ (λ n → Tel n × U n)
-  C-where (UpdUpd {n} {t} {a} {b} _ _ _) = n , (t , a ⊕ b)
-  C-where (DelUpd {n} {t} {ty} _ _) = n , (t , μ ty)
-  C-where (UpdDel {n} {t} {ty} _ _) = n , (t , μ ty)
-  C-where (GrowL {n} {t} {ty} _)    = n , (t , μ ty)
-  C-where (GrowLR {n} {t} {ty} _ _) = n , (t , μ ty)
-  C-where (GrowR {n} {t} {ty} _)    = n , (t , μ ty)
-\end{code}
-
   An important observation is that conflicts are symmetric:
 
 %<*C-sym>
 \begin{code}
-  C-sym : C → C
+  C-sym : {n : ℕ}{t : Tel n}{ty : U n} → C t ty → C t ty
   C-sym (UpdUpd o x y) = UpdUpd o y x
   C-sym (DelUpd x y) = UpdDel y x
   C-sym (UpdDel x y) = DelUpd y x
@@ -97,13 +92,15 @@ module Diffing.Patches.Conflicts where
 
 %<*C-sym-lemma-type>
 \begin{code}
-  C-sym-id-lemma : C-sym ∘ C-sym ≡ id {A = C}
+  C-sym-id-lemma : {n : ℕ}{t : Tel n}{ty : U n} 
+                 → C-sym ∘ C-sym ≡ id {A = C t ty}
 \end{code}
 %</C-sym-lemma-type>
 \begin{code}
   C-sym-id-lemma = fun-ext ext
     where
-      ext : (c : C) → C-sym (C-sym c) ≡ c
+      ext : {n : ℕ}{t : Tel n}{ty : U n}
+          → (c : C t ty) → C-sym (C-sym c) ≡ c
       ext (UpdUpd o x y) = refl
       ext (DelUpd x y) = refl
       ext (UpdDel x y) = refl
@@ -117,7 +114,7 @@ module Diffing.Patches.Conflicts where
 %<*conflicts>
 \begin{code}
   conflicts : {n : ℕ}{t : Tel n}{ty : U n}
-            → Maybe (D C t ty) → List C
+            → Maybe (D C t ty) → List C₀
   conflicts nothing  = []
   conflicts (just p) = forget p
 \end{code}
@@ -126,7 +123,7 @@ module Diffing.Patches.Conflicts where
 %<*conflictsμ>
 \begin{code}
   conflictsμ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → Maybe (List (Dμ C t ty)) → List C
+            → Maybe (List (Dμ C t ty)) → List C₀
   conflictsμ nothing  = []
   conflictsμ (just p) = forgetμ p
 \end{code}
