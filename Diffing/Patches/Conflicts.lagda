@@ -32,19 +32,19 @@ module Diffing.Patches.Conflicts where
 
 %<*C-def>
 \begin{code}
-  data C : Set where
+  data C : {n : ℕ} → Tel n → U n → Set where
     UpdUpd : {n : ℕ}{t : Tel n}{a b : U n}
-           → ElU (a ⊕ b) t → ElU (a ⊕ b) t → ElU (a ⊕ b) t → C
+           → ElU (a ⊕ b) t → ElU (a ⊕ b) t → ElU (a ⊕ b) t → C t (a ⊕ b)
     DelUpd : {n : ℕ}{t : Tel n}{a : U (suc n)}
-           → ValU a t → ValU a t → C
+           → ValU a t → ValU a t → C t (μ a)
     UpdDel : {n : ℕ}{t : Tel n}{a : U (suc n)}
-           → ValU a t → ValU a t → C
+           → ValU a t → ValU a t → C t (μ a)
     GrowL  : {n : ℕ}{t : Tel n}{a : U (suc n)}
-           → ValU a t → C
+           → ValU a t → C t (μ a)
     GrowLR : {n : ℕ}{t : Tel n}{a : U (suc n)}
-           → ValU a t → ValU a t → C
+           → ValU a t → ValU a t → C t (μ a)
     GrowR  : {n : ℕ}{t : Tel n}{a : U (suc n)}
-           → ValU a t → C
+           → ValU a t → C t (μ a)
 \end{code}
 %</C-def>
 
