@@ -26,7 +26,7 @@ module Diffing.Patches.Merging.Grow where
   merge-sufficient-1 : {n : ℕ}{t : Tel n}{ty : U n}
                     → (d1 d2 : Patch t ty)
                     → NoOverlap d1 d2
-                    → All (on-C₀-Set IsGrow) (conflicts (d1 / d2))
+                    → All (↓-map IsGrow) (conflicts (d1 / d2))
 \end{code}
 %</merge-sufficient-1-type>
 \begin{code}
@@ -44,7 +44,7 @@ module Diffing.Patches.Merging.Grow where
     with d1 / d2 | inspect (_/_ d1) d2
   ...| nothing | _ = []
   ...| just d12 | [ R ] rewrite sym R
-     = subst (All (on-C₀-Set IsGrow))
+     = subst (All (↓-map IsGrow))
              (subst (λ P → conflicts P ≡ forget d12) (sym R) refl)
              (merge-sufficient-1 d1 d2 prf)
   merge-sufficient-1 (D-inl d1) (D-inr d2) prf = []
@@ -56,7 +56,7 @@ module Diffing.Patches.Merging.Grow where
     with d1 / d2 | inspect (_/_ d1) d2
   ...| nothing | _ = []
   ...| just d12 | [ R ] rewrite sym R
-     = subst (All (on-C₀-Set IsGrow))
+     = subst (All (↓-map IsGrow))
              (subst (λ P → conflicts P ≡ forget d12) (sym R) refl)
              (merge-sufficient-1 d1 d2 prf)
   merge-sufficient-1 (D-inr d1) (D-setl x x₁) prf = []
@@ -91,42 +91,42 @@ module Diffing.Patches.Merging.Grow where
     with d1 / d2 | inspect (_/_ d1) d2
   ...| nothing | _ = []
   ...| just d12 | [ R ] rewrite sym R
-     = subst (All (on-C₀-Set IsGrow))
+     = subst (All (↓-map IsGrow))
              (subst (λ P → conflicts P ≡ forget d12) (sym R) refl)
              (merge-sufficient-1 d1 d2 prf)
   merge-sufficient-1 (D-top d1) (D-top d2) prf
     with d1 / d2 | inspect (_/_ d1) d2
   ...| nothing | _ = []
   ...| just d12 | [ R ] rewrite sym R
-     = subst (All (on-C₀-Set IsGrow))
+     = subst (All (↓-map IsGrow))
              (subst (λ P → conflicts P ≡ forget d12) (sym R) refl)
              (merge-sufficient-1 d1 d2 prf)
   merge-sufficient-1 (D-pop d1) (D-pop d2) prf
     with d1 / d2 | inspect (_/_ d1) d2
   ...| nothing | _ = []
   ...| just d12 | [ R ] rewrite sym R
-     = subst (All (on-C₀-Set IsGrow))
+     = subst (All (↓-map IsGrow))
              (subst (λ P → conflicts P ≡ forget d12) (sym R) refl)
              (merge-sufficient-1 d1 d2 prf)
   merge-sufficient-1 (D-mu d1) (D-mu d2) prf
     with res d1 d2 | inspect (res d1) d2
   ...| nothing | _ = []
   ...| just r12 | [ R12 ]
-    = subst (All (on-C₀-Set IsGrow))
+    = subst (All (↓-map IsGrow))
              (subst (λ P → conflictsμ P ≡ forgetμ r12) (sym R12) refl)
              (aux d1 d2 prf)
     where
       wrap : {n : ℕ}{t : Tel n}{ty : U (suc n)}
            → (d1 d2 : Patchμ t ty){k : List (Dμ C t ty)}
            → res d1 d2 ≡ just k
-           → All (on-C₀-Set IsGrow) (conflictsμ (res d1 d2))
-           → All (on-C₀-Set IsGrow) (forgetμ k)
+           → All (↓-map IsGrow) (conflictsμ (res d1 d2))
+           → All (↓-map IsGrow) (forgetμ k)
       wrap d1 d2 R a rewrite R = a
 
       aux : {n : ℕ}{t : Tel n}{ty : U (suc n)}
           → (d1 d2 : Patchμ t ty)
           → NoOverlapμ d1 d2
-          → All (on-C₀-Set IsGrow) (conflictsμ (res d1 d2))
+          → All (↓-map IsGrow) (conflictsμ (res d1 d2))
       aux [] [] prf₁ = []
       aux _ (Dμ-A () ∷ _) _
       aux (Dμ-A () ∷ _) _ _
@@ -135,7 +135,7 @@ module Diffing.Patches.Merging.Grow where
         with res [] d2 | inspect (res []) d2
       ...| nothing | _ = []
       ...| just r | [ R ]
-        = unit ∷ (subst (All (on-C₀-Set IsGrow))
+        = unit ∷ (subst (All (↓-map IsGrow))
           (subst (λ P → conflictsμ P ≡ forgetμ r) (sym R) refl)
           (aux [] d2 unit))
 

@@ -127,11 +127,46 @@ module Diffing.Patches.Diff.Functor where
   -- Here we define a forgetful functor from D's to Lists.
   --
 
+  {-
+    Idea for the future: Use type-indexed lists for forget
+  -}
+  {-
+  TypeI : Set
+  TypeI = Σ ℕ (λ n → Tel n × U n)
+
+  data TypedList {a}(A : {n : ℕ} → Tel n → U n → Set a)
+         : List TypeI → Set a where
+    []t  : TypedList A []
+    _∷t_ : {n : ℕ}{t : Tel n}{ty : U n}{l : List TypeI}
+         → A t ty → TypedList A l → TypedList A ((n , (t , ty)) ∷ l)
+
+  mutual
+    forgetᵢ : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+              {A : {n : ℕ} → Tel n → U n → Set a}
+            → D A t ty → Σ (List TypeI) (TypedList A)
+    forgetᵢ d = {!!}
+  -}
+
+  data ↓_ {a}(A : {n : ℕ} → Tel n → U n → Set a) : Set a where
+    unIdx : {n : ℕ}{t : Tel n}{ty : U n} → A t ty → ↓ A
+
+  ↓-map : ∀{a b}{B : Set b}{A : {n : ℕ} → Tel n → U n → Set a}
+          (f : {n : ℕ}{t : Tel n}{ty : U n} → A t ty → B)
+        → ↓ A → B
+  ↓-map f (unIdx a) = f a
+
+  ↓-map-↓ : ∀{a b}
+          {A : {n : ℕ} → Tel n → U n → Set a}
+          {B : {n : ℕ} → Tel n → U n → Set b}
+          (f : {n : ℕ}{t : Tel n}{ty : U n} → A t ty → B t ty)
+          → ↓ A → ↓ B
+  ↓-map-↓ f (unIdx a) = unIdx (f a)
+
   mutual
     forget : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
              {A : {n : ℕ} → Tel n → U n → Set a}
-           → D A t ty → List (Σ ℕ (λ n → Σ (Tel n × U n) (λ k → A (p1 k) (p2 k))))
-    forget (D-A {n} {t} {ty} x) = (n , (t , ty) , x) ∷ []
+           → D A t ty → List (↓ A)
+    forget (D-A {n} {t} {ty} x) = unIdx x ∷ []
     forget D-id   = []
     forget D-void = []
     forget (D-inl d) = forget d
@@ -146,9 +181,9 @@ module Diffing.Patches.Diff.Functor where
 
     forgetμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
               {A : {n : ℕ} → Tel n → U n → Set a}
-            → List (Dμ A t ty) → List (Σ ℕ (λ n → Σ (Tel n × U n) (λ k → A (p1 k) (p2 k))))
+            → List (Dμ A t ty) → List (↓ A)
     forgetμ [] = []
-    forgetμ (Dμ-A {n} {t} {a} x ∷ ds)      = (n , (t , μ a) , x) ∷ forgetμ ds
+    forgetμ (Dμ-A x ∷ ds)      = unIdx x ∷ forgetμ ds
     forgetμ (Dμ-dwn _ dx ∷ ds) = forget dx ++ forgetμ ds
     forgetμ (_ ∷ ds)           = forgetμ ds
 
@@ -251,6 +286,9 @@ module Diffing.Patches.Diff.Functor where
 
 
   {- Monadic Multiplication -}
+  {- Idea:
+     Represent D-id inside the parameter, as (1 + A)
+  -}
   mutual
     D-mult : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
              {A : {k : ℕ} → Tel k → U k → Set a}

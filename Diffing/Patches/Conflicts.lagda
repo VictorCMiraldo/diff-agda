@@ -2,7 +2,8 @@
 open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor using (forget; forgetμ)
+open import Diffing.Patches.Diff.Functor 
+  using (forget; forgetμ; ↓_; cast)
 
 module Diffing.Patches.Conflicts where
 \end{code}
@@ -48,20 +49,6 @@ module Diffing.Patches.Conflicts where
 \end{code}
 %</C-def>
 
-\begin{code}
-  C₀ : Set
-  C₀ = Σ ℕ (λ n → Σ (Tel n × U n) (λ k → C (p1 k) (p2 k)))
-
-  on-C₀ : ∀{a}{A : {m : ℕ} → Tel m → U m → Set a}
-        → ({n : ℕ}{t : Tel n}{ty : U n} → C t ty → A t ty) 
-        → C₀ → Σ ℕ (λ n → Σ (Tel n × U n) (λ k → A (p1 k) (p2 k)))
-  on-C₀ f (n , (t , ty) , x) = n , (t , ty) , f x
-
-  on-C₀-Set : ({n : ℕ}{t : Tel n}{ty : U n} → C t ty → Set) 
-            → C₀ → Set
-  on-C₀-Set f (n , (t , ty) , x) = f x
-\end{code}
-
 %<*IsGrow>
 \begin{code}
   IsGrow : {n : ℕ}{t : Tel n}{ty : U n} → C t ty → Set
@@ -69,6 +56,14 @@ module Diffing.Patches.Conflicts where
   IsGrow (GrowR _)    = Unit
   IsGrow (GrowLR _ _) = Unit
   IsGrow _ = ⊥
+
+  IsGrow? : {n : ℕ}{t : Tel n}{ty : U n}(c : C t ty) → Dec (IsGrow c)
+  IsGrow? (UpdUpd x x₁ x₂) = no id
+  IsGrow? (DelUpd x x₁) = no id
+  IsGrow? (UpdDel x x₁) = no id
+  IsGrow? (GrowL x) = yes unit
+  IsGrow? (GrowLR x x₁) = yes unit
+  IsGrow? (GrowR x) = yes unit
 \end{code}
 %</IsGrow>
 
@@ -79,6 +74,14 @@ module Diffing.Patches.Conflicts where
   IsUpd (UpdDel _ _)   = Unit
   IsUpd (DelUpd _ _)   = Unit
   IsUpd _ = ⊥
+
+  IsUpd? : {n : ℕ}{t : Tel n}{ty : U n}(c : C t ty) → Dec (IsUpd c)
+  IsUpd? (UpdUpd x x₁ x₂) = yes unit
+  IsUpd? (DelUpd x x₁) = yes unit
+  IsUpd? (UpdDel x x₁) = yes unit
+  IsUpd? (GrowL x) = no (λ z → z)
+  IsUpd? (GrowLR x x₁) = no (λ z → z)
+  IsUpd? (GrowR x) = no (λ z → z)
 \end{code}
 %</IsUpd>
 
@@ -123,7 +126,7 @@ module Diffing.Patches.Conflicts where
 %<*conflicts>
 \begin{code}
   conflicts : {n : ℕ}{t : Tel n}{ty : U n}
-            → Maybe (D C t ty) → List C₀
+            → Maybe (D C t ty) → List (↓ C)
   conflicts nothing  = []
   conflicts (just p) = forget p
 \end{code}
@@ -132,8 +135,65 @@ module Diffing.Patches.Conflicts where
 %<*conflictsμ>
 \begin{code}
   conflictsμ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → Maybe (List (Dμ C t ty)) → List C₀
+            → Maybe (List (Dμ C t ty)) → List (↓ C)
   conflictsμ nothing  = []
   conflictsμ (just p) = forgetμ p
 \end{code}
 %</conflictsμ>
+
+  And an indexed type for possible solved conflicts.
+
+%<*Fewer>
+\begin{code}
+  Fewer : ∀{a}(A : {n : ℕ} → Tel n → U n → Set a)
+         → {n : ℕ} → Tel n → U n → Set a
+  Fewer A t ty = D ⊥ₚ t ty ⊎ A t ty
+\end{code}
+%</Fewer>
+
+  Now, we can "absorb" a fewer.
+
+%<*partial-merge>
+\begin{code}
+  partial-merge : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+                  {A : {n : ℕ} → Tel n → U n → Set a}
+                → D (Fewer A) t ty → D A t ty
+  partial-merge = aux
+    where
+      mutual
+        aux : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+               {A : {n : ℕ} → Tel n → U n → Set a}
+            → D (Fewer A) t ty → D A t ty
+        aux (D-A (i1 x)) = cast x
+        aux (D-A (i2 y)) = D-A y
+        aux D-id = D-id
+        aux D-void = D-void
+        aux (D-inl d) = D-inl (aux d)
+        aux (D-inr d) = D-inr (aux d)
+        aux (D-setl x x₁) = D-setl x x₁
+        aux (D-setr x x₁) = D-setr x x₁
+        aux (D-pair d d₁) = D-pair (aux d) (aux d₁)
+        aux (D-mu x) = D-mu (aux* x)
+        aux (D-β d) = D-β (aux d)
+        aux (D-top d) = D-top (aux d)
+        aux (D-pop d) = D-pop (aux d)
+
+        aux* : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+               {A : {n : ℕ} → Tel n → U n → Set a}
+             → List (Dμ (Fewer A) t ty) → List (Dμ A t ty)
+        aux* [] = []
+        {- TODO: D-id giving the same problem here..
+        aux* (Dμ-A (i1 (D-A x)) ∷ ls) = {!!}
+        aux* (Dμ-A (i1 D-id) ∷ ls) = {!!}
+        aux* (Dμ-A (i1 (D-mu x)) ∷ ls) = {!!}
+        aux* (Dμ-A (i2 y) ∷ ls) = {!!}
+        aux* (Dμ-ins x ∷ ls) = {!!}
+        aux* (Dμ-del x ∷ ls) = {!!}
+        aux* (Dμ-cpy x ∷ ls) = {!!}
+        aux* (Dμ-dwn x x₁ ∷ ls) = {!!}
+        -}
+        aux* _ = trustme
+          where postulate trustme : ∀{a}{A : Set a} → A
+    
+\end{code}
+%</partial-merge>

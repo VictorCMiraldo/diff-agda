@@ -1,6 +1,15 @@
 Generic Diffing Formalization in Agda
 =====================================
 
+ISSUE 4: changelog
+------------------
+  1. Conflicts are now indexed by a datatype. This allows a usefull
+     monadic-like multiplication operation (D (D 0) t ty) -> D 0 t ty
+     where 0 represents (const (const Void)).
+  2. Obviously, this introduces even more theoretical questions...
+  
+  
+
 This repository contains the Agda formalization
 of our diff algorithm.
 
@@ -10,14 +19,17 @@ Agda code is inside the *Diffing* folder; Directory structure is as follows:
     * **Diff/** , Properties and specifics of diffs.
         * **Correctness.agda** , correctness proof.
         * **Functor.agda** , functorial aspects.
+    * **Diff.lagda** , The actual diff algorithm and correspondent apply function.
     * **Residual/**
         * **Symmetry.lagda** , residuals are symmetric modulo some operation.
         * **SymmetryConflict.lagda** , proves that this operation does NOT 
                                        introduce any new conflicts.
     * **Residual.lagda** , Defines the notion of a residual over patches.
-    * **Diff.lagda** , The actual diff algorithm and correspondent apply function.
+    * **Conflicts/** , Conflict solvers
+        * **Grow.lagda** ,  Solving some grow conflicts automatically.
     * **Conflicts.lagda** , Definition of conflicts
-    * **Merging.lagda** , Proves merging of disjoint patches is ok.
+    * **Merging/** , Merging specific properties.
+        * **Grow.lagda** , Proves merging of disjoint patches is ok.
     * **Overlap.lagda** , defines a notion of disjoint patches
 * **Universe/** , universe specific definitions.
     * **Syntax.lagad** , Defines the syntax of types and their elements.
