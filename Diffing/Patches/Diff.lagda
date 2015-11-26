@@ -57,11 +57,14 @@ module Diffing.Patches.Diff where
 
 %<*Patch-def>
 \begin{code}
+  ⊥ₚ : {n : ℕ} → Tel n → U n → Set
+  ⊥ₚ {_} _ _ = ⊥
+
   Patch : {n : ℕ} → Tel n → U n → Set
-  Patch t ty = D (const (const ⊥)) t ty
+  Patch t ty = D ⊥ₚ t ty
        
   Patchμ : {n : ℕ} → Tel n → U (suc n) → Set
-  Patchμ t ty = List (Dμ (const (const ⊥)) t ty)
+  Patchμ t ty = List (Dμ ⊥ₚ t ty)
 \end{code}
 %</Patch-def>
 

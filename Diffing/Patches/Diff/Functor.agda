@@ -3,6 +3,7 @@ open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 open import Diffing.Patches.Diff
+open import Function using (_∋_)
 
 module Diffing.Patches.Diff.Functor where
 
@@ -178,12 +179,12 @@ module Diffing.Patches.Diff.Functor where
   cast : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
          {A : {n : ℕ} → Tel n → U n → Set a}
        → Patch t ty → D A t ty
-  cast = D-map (λ ())
+  cast {A = A} = D-map (({m : ℕ}{t : Tel m}{ty : U m} → ⊥ → A t ty) ∋ (λ ()))
 
   castμ : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
           {A : {n : ℕ} → Tel n → U n → Set a}
         → Patchμ t ty → List (Dμ A t ty)
-  castμ = Dμ-map (λ ())
+  castμ {A = A} = Dμ-map (({m : ℕ}{t : Tel m}{ty : U m} → ⊥ → A t ty) ∋ (λ ()))
 
   {- We can always "uncast" a (D A) to a Patch as long 
      as it doesn't have any (D-A _) inside.
@@ -228,10 +229,12 @@ module Diffing.Patches.Diff.Functor where
                 {B : {n : ℕ} → Tel n → U n → Set b}
                 (f : {m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty')
                 (d : Patch t ty)
-              → D-map (λ {m} {u} {uy} → f {m} {u} {uy}) (cast d) ≡ cast d
-  D-map-cast f d 
+              → D-map (λ {k} {t} {ty} x → f {k} {t} {ty} x) (cast d) ≡ cast d
+  D-map-cast {A = A} {B = B} f d 
     = trans (D-map-join f (λ ()) d) 
-            (cong₂ D-map trustme refl)
+            (cong₂ D-map 
+              (cong id trustme)
+            refl)
     where
       postulate trustme : ∀{a}{A : Set a} → A
       
@@ -245,3 +248,35 @@ module Diffing.Patches.Diff.Functor where
   forget-cast = trustme
       where
         postulate trustme : ∀{a}{A : Set a} → A
+
+
+  {- Monadic Multiplication -}
+  mutual
+    D-mult : ∀{a}{n : ℕ}{t : Tel n}{ty : U n}
+             {A : {k : ℕ} → Tel k → U k → Set a}
+           → D (D A) t ty → D A t ty
+    D-mult (D-A d) = d
+    D-mult D-id = D-id
+    D-mult D-void = D-id
+    D-mult (D-inl d) = D-inl (D-mult d)
+    D-mult (D-inr d) = D-inr (D-mult d)
+    D-mult (D-setl x x₁) = D-setl x x₁
+    D-mult (D-setr x x₁) = D-setr x x₁
+    D-mult (D-pair d d₁) = D-pair (D-mult d) (D-mult d₁)
+    D-mult (D-mu x) = D-mu (Dμ-mult x)
+    D-mult (D-β d) = D-β (D-mult d)
+    D-mult (D-top d) = D-top (D-mult d)
+    D-mult (D-pop d) = D-pop (D-mult d)
+
+    Dμ-mult : ∀{a}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+             {A : {k : ℕ} → Tel k → U k → Set a}
+           → List (Dμ (D A) t ty) → List (Dμ A t ty)
+    Dμ-mult [] = []
+    Dμ-mult (Dμ-A (D-A x) ∷ l) = Dμ-A x ∷ Dμ-mult l
+    -- TODO: I think a D-id inside a Dμ-A should become a Dμ-Id
+    Dμ-mult (Dμ-A D-id ∷ l) = Dμ-mult l
+    Dμ-mult (Dμ-A (D-mu x) ∷ l) = x ++ Dμ-mult l
+    Dμ-mult (Dμ-ins x ∷ l) = Dμ-ins x ∷ Dμ-mult l
+    Dμ-mult (Dμ-del x ∷ l) = Dμ-del x ∷ Dμ-mult l
+    Dμ-mult (Dμ-cpy x ∷ l) = Dμ-cpy x ∷ Dμ-mult l
+    Dμ-mult (Dμ-dwn x x₁ ∷ l) = Dμ-dwn x (D-mult x₁) ∷ Dμ-mult l

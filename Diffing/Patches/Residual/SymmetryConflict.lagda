@@ -25,7 +25,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
   residual-sym-stable : {n : ℕ}{t : Tel n}{ty : U n}{k : D C t ty}
     → (d1 d2 : Patch t ty) 
     → d1 / d2 ≡ just k
-    → forget <M> (d2 / d1) ≡ just (map C-sym (forget k)) 
+    → forget <M> (d2 / d1) ≡ just (map (on-C₀ C-sym) (forget k)) 
 \end{code}
 %</residual-sym-stable-type>
 \begin{code}
@@ -37,7 +37,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
         aux : {n : ℕ}{t : Tel n}{ty : U n}{k : D C t ty}
             → (d1 d2 : Patch t ty) 
             → d1 / d2 ≡ just k
-            → forget <M> (d2 / d1) ≡ just (map C-sym (forget k)) 
+            → forget <M> (d2 / d1) ≡ just (map (on-C₀ C-sym) (forget k)) 
         aux (D-A ()) _ _
         aux _ (D-A ()) _
 
@@ -48,8 +48,8 @@ module Diffing.Patches.Residual.SymmetryConflict where
         aux p D-id prf
           rewrite /-id p 
                = cong just 
-                 (subst (λ P → [] ≡ map C-sym (forget P)) (just-inj prf) 
-                   (subst (λ P → [] ≡ map C-sym P) (sym (forget-cast p)) refl)) 
+                 (subst (λ P → [] ≡ map (on-C₀ C-sym) (forget P)) (just-inj prf) 
+                   (subst (λ P → [] ≡ map (on-C₀ C-sym) P) (sym (forget-cast p)) refl)) 
 
         aux D-void D-void refl = refl
 
@@ -115,7 +115,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| s3 , r3 , q3 rewrite q3 with <M>-elim (aux d2 d4 q1)
         ...| s4 , r4 , q4 rewrite q4 | r2 | s1 
            = cong just (trans (cong₂ _++_ (sym r3) (sym r4))
-                          (sym (map-++-commute C-sym (forget s2) (forget a))))
+                          (sym (map-++-commute (on-C₀ C-sym) (forget s2) (forget a))))
 
         aux (D-β d1) (D-β d2) prf with <M>-elim prf
         ...| r1 , refl , q1 with <M>-elim (aux d1 d2 q1)
@@ -137,7 +137,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
         aux* : {n : ℕ}{t : Tel n}{ty : U (suc n)}{k : List (Dμ C t ty)}
              → (d1 d2 : Patchμ t ty) 
              → res d1 d2 ≡ just k
-             → forgetμ <M> (res d2 d1) ≡ just (map C-sym (forgetμ k))
+             → forgetμ <M> (res d2 d1) ≡ just (map (on-C₀ C-sym) (forgetμ k))
         aux* [] [] prf rewrite sym (just-inj prf) = refl
 
         aux* (Dμ-A () ∷ _) _ _
@@ -269,7 +269,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| hip with <M>-elim hip
         ...| r4 , s4 , q4 rewrite q4 | s2 | s1 with <M>-elim res
         ...| r5 , s5 , q5 rewrite q5 
-           = cong just (sym (trans (map-++-commute C-sym (forget r3) (forgetμ a)) 
+           = cong just (sym (trans (map-++-commute (on-C₀ C-sym) (forget r3) (forgetμ a)) 
                        (cong₂ _++_ s4 s5)))
 \end{code}
 
@@ -284,7 +284,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
 \begin{code}
   conflicts-sym : {n : ℕ}{t : Tel n}{ty : U n}
                 → (d1 d2 : Patch t ty)
-                → map C-sym (conflicts (d1 / d2)) ≡ conflicts (d2 / d1)
+                → map (on-C₀ C-sym) (conflicts (d1 / d2)) ≡ conflicts (d2 / d1)
 \end{code}
 %</conflicts-sym-type>
 \begin{code}

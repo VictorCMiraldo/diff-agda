@@ -8,7 +8,8 @@ open import Diffing.Patches.Diff.Functor
 open import Diffing.Patches.Overlap
 open import Diffing.Patches.Residual
 open import Diffing.Patches.Conflicts
-open import Diffing.Patches.Merging.Grow
 
-module Diffing.Patches.Merging where
+module Diffing.Patches.Conflicts.Grow where
 \end{code}
+
+  As we mentioned before, grow conflicts can be made simpler.

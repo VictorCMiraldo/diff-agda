@@ -51,6 +51,15 @@ module Diffing.Patches.Conflicts where
 \begin{code}
   C₀ : Set
   C₀ = Σ ℕ (λ n → Σ (Tel n × U n) (λ k → C (p1 k) (p2 k)))
+
+  on-C₀ : ∀{a}{A : {m : ℕ} → Tel m → U m → Set a}
+        → ({n : ℕ}{t : Tel n}{ty : U n} → C t ty → A t ty) 
+        → C₀ → Σ ℕ (λ n → Σ (Tel n × U n) (λ k → A (p1 k) (p2 k)))
+  on-C₀ f (n , (t , ty) , x) = n , (t , ty) , f x
+
+  on-C₀-Set : ({n : ℕ}{t : Tel n}{ty : U n} → C t ty → Set) 
+            → C₀ → Set
+  on-C₀-Set f (n , (t , ty) , x) = f x
 \end{code}
 
 %<*IsGrow>
