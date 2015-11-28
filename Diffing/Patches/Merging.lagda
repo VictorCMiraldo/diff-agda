@@ -12,3 +12,4 @@ open import Diffing.Patches.Merging.Grow
 
 module Diffing.Patches.Merging where
 \end{code}
+
