@@ -169,14 +169,24 @@ Closing it, though, requires some care in how we define it.
 
 %<*plug-type>
 \begin{code}
-  plug : {n : ℕ}{t : Tel n}{a : U n}{b : U (suc n)}
-       → ElU b (tcons u1 t) 
-       → List (ElU a t)
-       → Maybe (ElU b (tcons a t) × List (ElU a t))
+  plug : {n m : ℕ}{a : U m}{t : Tel (suc n)}{b : U (suc n)}
+       → (m≤n : LEQ (suc m) (suc n))
+       → ElU b t
+       → List (ElU a (tel-drop (LEQ-dec m≤n) t))
+       → Maybe (ElU b (tel-subst m≤n a t) × List (ElU a (tel-drop (LEQ-dec m≤n) t)))
 \end{code}
-%</plug-type
+%</plug-type>
 \begin{code}
-  plug el l = gmapSt (MCons (λ _ → safeHd) mapSt-id) el l
+  plug m≤n el l = gmapSt (mapF m≤n) el l
+    where
+      mapF : {n m : ℕ}{a : U m}{t : Tel n}
+          → (m≤n : LEQ (suc m) n)
+          → MapSt (List (ElU a (tel-drop (LEQ-dec m≤n) t)))
+                  t (tel-subst m≤n a t)
+      mapF {m = m} {t = tcons t ts} LEQ-refl 
+        = MCons (λ _ → safeHd) mapSt-id
+      mapF {m = m} {t = tcons t ts} (LEQ-step prf) 
+        = MExt (mapF prf)
 \end{code}
 
 %<*mu-close>
@@ -184,7 +194,7 @@ Closing it, though, requires some care in how we define it.
   μ-close : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
           → Openμ t ty → Maybe (ElU (μ ty) t × List (ElU (μ ty) t))
   μ-close (hd , ch) 
-    = mu ∘₁ plug hd ch
+    = mu ∘₁ plug LEQ-refl hd ch
 \end{code}
 %</mu-close>
 
@@ -193,18 +203,33 @@ Now, let us start proving a few lemmas over μ-close.
 %<*plug-just-lemma-type>
 \begin{code}
   plug-just-lemma 
-    : {n : ℕ}{t : Tel n}{b : U (suc n)}{a : U n}
-    → (el : ElU b (tcons u1 t))
-    → (l : List (ElU a t))
-    → arity-lvl fz el ≤ length l
-    → Σ (ElU b (tcons a t))
-        (λ ba → plug el l ≡ just (ba , drop (arity-lvl fz el) l))
+    : {n m : ℕ}{a : U m}{t : Tel (suc n)}{b : U (suc n)}
+    → (m≤n : LEQ (suc m) (suc n))
+    → (el : ElU b t)
+    → (l : List (ElU a (tel-drop (LEQ-dec m≤n) t)))
+    → arity-lvl (Δ-Fin (LEQ-unstep m≤n)) el ≤ length l
+    → Σ (ElU b (tel-subst m≤n a t))
+        (λ ba → plug m≤n el l ≡ just (ba , drop (arity-lvl (Δ-Fin (LEQ-unstep m≤n)) el) l))
 \end{code}
 %</plug-just-lemma-type>
 \begin{code}
-  plug-just-lemma el l prf = trustme
-    where
-      postulate trustme : {A : Set} → A
+  plug-just-lemma prf void l ar 
+    = void , refl
+  plug-just-lemma prf (inl el) l ar
+    with plug-just-lemma prf el l ar
+  ...| el' , res = inl el' , ∘₁-intro inl res
+  plug-just-lemma prf (inr el) l ar = {!!}
+  plug-just-lemma prf (el , el₁) l ar = {!!}
+  plug-just-lemma LEQ-refl (top el) [] ()
+  plug-just-lemma (LEQ-step prf) (top el) [] ar 
+    = {!!}
+  plug-just-lemma prf (top el) (x ∷ l) ar 
+    = {!!}
+  plug-just-lemma prf (pop el) l ar = {!!}
+  plug-just-lemma prf (mu el) l ar 
+    with plug-just-lemma (LEQ-step prf) el l {!!}
+  ...| el' , res = mu el' , ∘₁-intro mu {!res!}
+  plug-just-lemma prf (red el) l ar = {!!}
 \end{code}
 
 Now we need some lemmas stating that μ-open and
@@ -225,6 +250,7 @@ returns the unused part of the children list.
 %</mu-close-resp-arity-lemma>
 \begin{code}
   μ-close-resp-arity {a = a} {hdA} {chA} {l} prf 
+  {-
     with μ-open-arity-lemma prf
   ...| pa
     with plug-just-lemma hdA (chA ++ l) 
@@ -243,6 +269,7 @@ returns the unused part of the children list.
     ≡⟨ cong (λ x → just (x , l)) trustme ⟩
      just (a , l)
     ∎
+    -} = trustme
     where
       open ≡-Reasoning
       postulate trustme : {A : Set} → A

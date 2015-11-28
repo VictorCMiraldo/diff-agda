@@ -74,6 +74,10 @@ while traversing a term.
   _∘₁_ : {A B C : Set} → (A → C) → Maybe (A × B) → Maybe (C × B)
   _ ∘₁ nothing      = nothing
   f ∘₁ just (x , y) = just (f x , y)
+
+  ∘₁-intro : {A B C : Set}(f : A → C){x : Maybe (A × B)}{y : A}{z : B}
+           → x ≡ just (y , z) → (f ∘₁ x) ≡ just (f y , z)
+  ∘₁-intro f refl = refl
 \end{code}
 
 %<*gmapSt>
@@ -95,6 +99,24 @@ while traversing a term.
   ...| just (ela' , s1) = (_,_ ela') ∘₁ gmapSt m elb s1
 \end{code}
 %</gmapSt>
+
+%<*MapSt-def>
+\begin{code}
+  data MapStSet (S : Set) : {n : ℕ} → Tel n → Set1 where
+    Empty : MapStSet S tnil
+    MCons : {n : ℕ}{a : U n}{as : Tel n}
+          → (ElU a as → S → Set) → MapStSet S as
+          → MapStSet S (tcons a as)
+    MExt  : {n : ℕ}{a : U n}{as : Tel n}
+          → MapStSet S as → MapStSet S (tcons a as)
+\end{code}
+%</MapSt-def>
+
+%<*gmapStInd>
+\begin{code}
+
+\end{code}
+%</gmapStInd>
 
 
 For the situations a simple accumulator doesn't

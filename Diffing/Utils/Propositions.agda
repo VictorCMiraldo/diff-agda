@@ -108,6 +108,33 @@ module Diffing.Utils.Propositions where
   LEQ-≤ {suc n} LEQ-refl = s≤s (LEQ-≤ {n} LEQ-refl)
   LEQ-≤ (LEQ-step leq) = nat-≤-step (LEQ-≤ leq)
 
+  LEQ-absurd : {m : ℕ} → LEQ (suc m) m → ⊥
+  LEQ-absurd {zero} ()
+  LEQ-absurd {suc m} prf with LEQ-≤ prf
+  LEQ-absurd {suc m} prf | s≤s r = LEQ-absurd (≤-LEQ r)
+
+  LEQ-proof-irrel : {m n : ℕ}(p1 p2 : LEQ m n) → p1 ≡ p2
+  LEQ-proof-irrel {zero} LEQ-refl LEQ-refl = refl
+  LEQ-proof-irrel {zero} (LEQ-step p1) (LEQ-step p2) = cong LEQ-step (LEQ-proof-irrel p1 p2)
+  LEQ-proof-irrel {suc m} {zero} () p2
+  LEQ-proof-irrel {suc m} {suc .m} LEQ-refl LEQ-refl = refl
+  LEQ-proof-irrel {suc m} {suc .m} LEQ-refl (LEQ-step p2) 
+    = ⊥-elim (LEQ-absurd p2)
+  LEQ-proof-irrel {suc m} {suc .m} (LEQ-step p1) LEQ-refl 
+    = ⊥-elim (LEQ-absurd p1)
+  LEQ-proof-irrel {suc m} {suc n} (LEQ-step p1) (LEQ-step p2) = cong LEQ-step (LEQ-proof-irrel p1 p2)
+
+  LEQ-dec : {m n : ℕ} → LEQ (suc m) n → LEQ m n
+  LEQ-dec LEQ-refl = LEQ-step LEQ-refl
+  LEQ-dec (LEQ-step prf) = LEQ-step (LEQ-dec prf)
+
+  LEQ-unstep : {m n : ℕ} → LEQ (suc m) (suc n) → LEQ m n
+  LEQ-unstep LEQ-refl = LEQ-refl
+  LEQ-unstep (LEQ-step prf) = LEQ-dec prf
+  
+  LEQ-≤-iso : {n m : ℕ} → (k : LEQ m n) → ≤-LEQ (LEQ-≤ k) ≡ k
+  LEQ-≤-iso prf = LEQ-proof-irrel (≤-LEQ (LEQ-≤ prf)) prf
+
   Δ : {m n : ℕ} → LEQ m n → ℕ 
   Δ LEQ-refl     = 0
   Δ (LEQ-step p) = suc (Δ p)
@@ -116,7 +143,7 @@ module Diffing.Utils.Propositions where
   Δ-correct LEQ-refl     = refl
   Δ-correct (LEQ-step p) = cong suc (Δ-correct p)
 
-  Δ-Fin : {m n : ℕ} → (p : LEQ m n) → Fin (suc (Δ p))
+  Δ-Fin : {m n : ℕ} → (p : LEQ m n) → Fin (suc n)
   Δ-Fin LEQ-refl = fz
   Δ-Fin (LEQ-step p) = fs (Δ-Fin p)
 
