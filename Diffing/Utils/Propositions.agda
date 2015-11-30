@@ -147,6 +147,11 @@ module Diffing.Utils.Propositions where
   Δ-Fin LEQ-refl = fz
   Δ-Fin (LEQ-step p) = fs (Δ-Fin p)
 
+  Δ-Fin-dec : {m n : ℕ}(prf : LEQ (suc m) (suc n))
+            → Δ-Fin (LEQ-dec prf) ≡ fs (Δ-Fin (LEQ-unstep prf))
+  Δ-Fin-dec LEQ-refl = refl
+  Δ-Fin-dec (LEQ-step prf) = refl
+
   ++-assoc : {A : Set}{x y z : List A}
            → (x ++ y) ++ z ≡ x ++ (y ++ z)
   ++-assoc {x = []} = refl

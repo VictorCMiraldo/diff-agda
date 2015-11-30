@@ -37,6 +37,20 @@ module Diffing.Utils.Monads where
   f <$> x = ?
   -}
 
+  -------------------------------------
+  -- Laws for reasoning over Monads  --
+  -------------------------------------
+
+  record Lawfull (M : Set → Set){{m : Monad M}} : Set1  where
+    field
+      left-id  : {A B : Set}{x : A}{f : A → M B}
+               → (return x >>= f) ≡ f x
+      right-id : {A B : Set}{m : M A}
+               → (m >>= return) ≡ m
+      assoc    : {A B C : Set}{m : M A}{f : A → M B}{g : B → M C}
+               → ((m >>= f) >>= g) ≡ (m >>= (λ x → f x >>= g))
+
+
   -----------------
   -- Maybe Monad --
   -----------------
@@ -80,6 +94,17 @@ module Diffing.Utils.Monads where
                        in ST.run (f (p1 y)) (p2 y)
                 }
       }
+
+  ST-join-p2 : {S A B : Set}{f : ST S A}{g : ST S B}(s₀ : S) 
+             → p2 (ST.run f (p2 (ST.run g s₀))) ≡ p2 (ST.run (g >> f) s₀)
+  ST-join-p2 {g = g} s
+    with ST.run g s
+  ...| r = refl
+
+  {-
+  ST-dist-p2 : {S₁ S₂ A : Set}{f : S₁ → S₂}
+             → f (p2 (ST.run m s₀)) ≡ p2 (ST.run ? ?)
+  -}
 
   ------------------
   -- StateT Maybe --

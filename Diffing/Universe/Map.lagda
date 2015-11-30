@@ -1,6 +1,6 @@
 \begin{code}
 open import Prelude
-open import Level renaming (zero to lz)
+open import Level renaming (zero to lz; suc to ls)
 open import Diffing.Universe.Syntax
 
 module Diffing.Universe.Map where
@@ -47,80 +47,7 @@ This definition is entirely from McBride.
 \end{code}
 %</gmap>
 
-Sometimes we want to have access to a bit more information
-while traversing a term.
-
-%<*MapSt-def>
-\begin{code}
-  data MapSt (S : Set) : {n : ℕ} → Tel n → Tel n → Set where
-    Empty : MapSt S tnil tnil
-    MCons : {n : ℕ}{a b : U n}{as bs : Tel n}
-          → (ElU a as → S → Maybe ((ElU b bs) × S)) → MapSt S as bs
-          → MapSt S (tcons a as) (tcons b bs)
-    MExt  : {n : ℕ}{a : U n}{as bs : Tel n}
-          → MapSt S as bs → MapSt S (tcons a as) (tcons a bs)
-\end{code}
-%</MapSt-def>
-
-%<*mapSt-id>
-\begin{code}
-  mapSt-id : {S : Set}{n : ℕ}{t : Tel n} → MapSt S t t
-  mapSt-id {t = tnil}      = Empty
-  mapSt-id {t = tcons x t} = MExt mapSt-id
-\end{code}
-%</mapSt-id>
-
-\begin{code}
-  _∘₁_ : {A B C : Set} → (A → C) → Maybe (A × B) → Maybe (C × B)
-  _ ∘₁ nothing      = nothing
-  f ∘₁ just (x , y) = just (f x , y)
-
-  ∘₁-intro : {A B C : Set}(f : A → C){x : Maybe (A × B)}{y : A}{z : B}
-           → x ≡ just (y , z) → (f ∘₁ x) ≡ just (f y , z)
-  ∘₁-intro f refl = refl
-\end{code}
-
-%<*gmapSt>
-\begin{code}
-  gmapSt : {S : Set}{n : ℕ}{t : U n}{as bs : Tel n} 
-         → MapSt S as bs → ElU t as → S → Maybe (ElU t bs × S)
-  gmapSt m void s               = just (void , s)
-  gmapSt m (inl el) s           = inl ∘₁ gmapSt m el s
-  gmapSt m (inr el) s           = inr ∘₁ gmapSt m el s
-  gmapSt (MCons f m) (top el) s = top ∘₁ f el s
-  gmapSt (MExt m) (top el) s    = top ∘₁ gmapSt m el s 
-  gmapSt (MCons x m) (pop el) s = pop ∘₁ gmapSt m el s
-  gmapSt (MExt m) (pop el) s    = pop ∘₁ gmapSt m el s
-  gmapSt m (mu el) s            = mu ∘₁ gmapSt (MExt m) el s
-  gmapSt m (red el) s           = red ∘₁ gmapSt (MExt m) el s
-  gmapSt m (ela , elb) s 
-    with gmapSt m ela s
-  ...| nothing          = nothing
-  ...| just (ela' , s1) = (_,_ ela') ∘₁ gmapSt m elb s1
-\end{code}
-%</gmapSt>
-
-%<*MapSt-def>
-\begin{code}
-  data MapStSet (S : Set) : {n : ℕ} → Tel n → Set1 where
-    Empty : MapStSet S tnil
-    MCons : {n : ℕ}{a : U n}{as : Tel n}
-          → (ElU a as → S → Set) → MapStSet S as
-          → MapStSet S (tcons a as)
-    MExt  : {n : ℕ}{a : U n}{as : Tel n}
-          → MapStSet S as → MapStSet S (tcons a as)
-\end{code}
-%</MapSt-def>
-
-%<*gmapStInd>
-\begin{code}
-
-\end{code}
-%</gmapStInd>
-
-
-For the situations a simple accumulator doesn't
-work, we give a monadic extension of gmap.
+  A monadic variant of map, so we can have more functionality.
 
 %<*MapM-def>
 \begin{code}
@@ -163,3 +90,37 @@ work, we give a monadic extension of gmap.
   gmapM m (red el) = gmapM (MExt m) el >>= return ∘ red
 \end{code}
 %</gmapM>
+
+%<*gmapM-id>
+\begin{code}
+  open Lawfull {{...}}
+
+  gmapM-id : {M : Set → Set}{{ m : Monad M }}{{ laws : Lawfull M }}
+           → {n : ℕ}{t : Tel n}{ty : U n}
+           → (el : ElU ty t)
+           → gmapM {M} {{m}} mapM-id el ≡ return el
+  gmapM-id void = refl
+  gmapM-id {M} {{m}} (inl el) 
+    rewrite gmapM-id {M} {{m}} el
+      = left-id
+  gmapM-id {M} {{m}} (inr el) 
+    rewrite gmapM-id {M} {{m}} el
+      = left-id
+  gmapM-id {M} {{m}} {{laws}} (ela , elb) 
+    rewrite gmapM-id {M} {{m}} ela
+          | gmapM-id {M} {{m}} elb
+      = trans left-id left-id
+  gmapM-id {M} {{m}} (top el) 
+    rewrite gmapM-id {M} {{m}} el
+      = left-id
+  gmapM-id {M} {{m}} (pop el) 
+    rewrite gmapM-id {M} {{m}} el
+      = left-id
+  gmapM-id {M} {{m}} (mu el) 
+    rewrite gmapM-id {M} {{m}} el
+      = left-id
+  gmapM-id {M} {{m}} (red el) 
+    rewrite gmapM-id {M} {{m}} el
+      = left-id
+\end{code}
+%</gmapM-id>
