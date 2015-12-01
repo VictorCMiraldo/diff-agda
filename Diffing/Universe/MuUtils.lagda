@@ -123,7 +123,15 @@ returns the unused part of the children list.
 \end{code}
 %</mu-close-resp-arity-lemma>
 \begin{code}
-  μ-close-resp-arity {a = a} {hdA} {chA} {l} prf 
+  μ-close-resp-arity {a = a} {l = l} refl = lemma a l
+    where 
+      lemma : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+            → (a : ElU (μ ty) t)(l : List (ElU (μ ty) t))
+            → μ-close (p1 (μ-open a) , p2 (μ-open a) ++ l) ≡ just (a , l)
+      lemma a l = trustme
+        where
+          postulate trustme : {A : Set} → A
+\end{code} 
   {-
     with μ-open-arity-lemma prf
   ...| pa
@@ -147,4 +155,4 @@ returns the unused part of the children list.
     where
       open ≡-Reasoning
       postulate trustme : {A : Set} → A
-\end{code}
+end{code}

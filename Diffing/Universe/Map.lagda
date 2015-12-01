@@ -124,3 +124,100 @@ This definition is entirely from McBride.
       = left-id
 \end{code}
 %</gmapM-id>
+
+%<*mapM-compose>
+\begin{code}
+  mapM-∘ : {M : Set → Set}{{m : Monad M}}
+         → {n : ℕ}{as bs cs : Tel n}
+         → MapM M as bs → MapM M bs cs → MapM M as cs
+  mapM-∘ Empty Empty = Empty
+  mapM-∘ (MCons x ma) (MCons y mb) = MCons (λ a → x a >>= y) (mapM-∘ ma mb)
+  mapM-∘ (MCons x ma) (MExt mb)    = MCons (λ a → x a >>= gmapM mb) (mapM-∘ ma mb) 
+  mapM-∘ (MExt ma) (MCons x mb)    = MCons (λ a → gmapM ma a >>= x) (mapM-∘ ma mb)
+  mapM-∘ (MExt ma) (MExt mb)       = MExt (mapM-∘ ma mb)
+\end{code}
+%</mapM-compose>
+
+%<*gmapM-∘>
+begin{code}
+  open Lawfull {{...}}
+
+  gmapM-∘ : {M : Set → Set}{{ m : Monad M }}{{ laws : Lawfull M }}
+          → {n : ℕ}{as bs cs : Tel n}{ty : U n}
+          → (ab : MapM M as bs)(bc : MapM M bs cs)
+          → (el : ElU ty as)
+          → (gmapM ab el >>= gmapM bc) ≡ gmapM (mapM-∘ ab bc) el
+  gmapM-∘ ab Empty void = {!!}
+  gmapM-∘ ab (MCons x bc) void = {!!}
+  gmapM-∘ ab (MExt bc) void = {!!}
+  gmapM-∘ ab bc (inl el) = {!!}
+  gmapM-∘ ab bc (inr el) = {!!}
+  gmapM-∘ ab bc (el , el₁) = {!!}
+  gmapM-∘ ab bc (top el) = {!!}
+  gmapM-∘ ab bc (pop el) = {!!}
+  gmapM-∘ ab bc (mu el) = {!!}
+  gmapM-∘ ab bc (red el) = {!!}
+end{code}
+%</gmapM-id>
+
+
+We can define a "comsuming morphism" for the carrier of a monoid
+in a somewhat orderly fashion:
+
+begin{code}
+  open import Algebra
+  open Monoid {{...}}
+
+  data Fold : {n : ℕ} → Tel n → Set → Set1 where
+    Empty : {A : Set} → Fold tnil A
+    FCons : {A : Set}{n : ℕ}{t : Tel n}{a : U n}
+          → (A → A)
+          → (ElU a t → A → A)
+          → Fold t A
+          → Fold (tcons a t) A
+
+  fold-ext : {A : Set}{n : ℕ}{t : Tel n}{a : U n} → Fold t A → Fold (tcons a t) A
+  fold-ext f = FCons id (const id) f
+
+  fold-trivial : {A : Set}{n : ℕ}{t : Tel n} → Fold t A
+  fold-trivial {t = tnil}      = Empty
+  fold-trivial {t = tcons x t} = fold-ext fold-trivial
+
+  gfold : {n : ℕ}{t : Tel n}{a : U n}
+        → (m : Monoid lz lz) → Fold t (Monoid.Carrier m) 
+        → ElU a t → (Monoid.Carrier m)
+  gfold m f void = Monoid.ε m
+  gfold m f (inl el) = gfold m f el
+  gfold m f (inr el) = gfold m f el
+  gfold m f (el , el') = Monoid._∙_ m (gfold m f el) (gfold m f el')
+  gfold m (FCons p t f) (top el) = t el (gfold m f el)
+  gfold m (FCons p t f) (pop el) = p (gfold m f el)
+  gfold m f (mu el) = gfold m (fold-ext f) el
+  gfold m f (red el) = gfold m (fold-ext f) el
+
+  open import Data.Nat.Properties.Simple
+
+  arity : {n : ℕ}{t : Tel n}{a : U n}{b : U (suc n)}
+        → ElU b (tcons a t) → ℕ
+  arity el = gfold {!!} {!!} {!!}
+    where
+      m : Monoid _ _
+      m = record 
+          { Carrier = ℕ 
+          ; _≈_ = _≡_ 
+          ; _∙_ = _+_ 
+          ; ε = 0 
+          ; isMonoid = record { isSemigroup = {!!} ; identity = (λ x → {!refl!}) , {!!} } }
+
+  children : {n : ℕ}{t : Tel n}{a : U n}{b : U (suc n)}
+           → ElU b (tcons a t) → List (ElU a t)
+  children el = {!!}
+
+  open import Diffing.Utils.Propositions using (++-length)
+
+  el : ElU (μ (vl ⊕ ((wk vl ⊗ wk vl) ⊕ wk vl))) (tcons u1 tnil)
+  el = mu (inl (top (mu (inr (inr (pop (top void)))))))
+
+  a2 : ElU (vl ⊗ vl) (tcons u1 tnil)
+  a2 = top void , top void 
+end{code}

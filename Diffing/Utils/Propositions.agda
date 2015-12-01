@@ -31,6 +31,13 @@ module Diffing.Utils.Propositions where
   ++-[] {l = []} prf = refl , prf
   ++-[] {l = x ∷ l} ()
 
+  ++-length : ∀{a}{A : Set a}{l1 l2 : List A}{n1 n2 : ℕ}
+            → length l1 ≡ n1
+            → length l2 ≡ n2
+            → length (l1 ++ l2) ≡ n1 + n2
+  ++-length {l1 = l1} {l2 = l2} p1 p2 
+    rewrite length-++ l1 {ys = l2} = cong₂ _+_ p1 p2
+
   length-++-stable : {A : Set}{l j : List A}{n : ℕ}
                    → length (l ++ j) ≡ length l + n
                    → length j ≡ n

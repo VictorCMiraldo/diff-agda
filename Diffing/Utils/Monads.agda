@@ -101,9 +101,60 @@ module Diffing.Utils.Monads where
     with ST.run g s
   ...| r = refl
 
+  ---------------------
+  -- Decorated State --
+  ---------------------
+  
   {-
-  ST-dist-p2 : {S₁ S₂ A : Set}{f : S₁ → S₂}
-             → f (p2 (ST.run m s₀)) ≡ p2 (ST.run ? ?)
+  -- Hoare states, as defined by Swierstra.
+  module HoareState (S : Set) where
+    Pre : Set1
+    Pre = S → Set
+
+    Post : Set → Set1
+    Post A = S → A → S → Set
+
+    HS : Pre → (A : Set) → Post A → Set
+    HS pre A post 
+      = (i : Σ S pre) → Σ (A × S) (λ as → post (p1 i) (p1 as) (p2 as))
+
+    returnHS : {A : Set}(a : A) → HS (λ _ → Unit) A (λ i y f → i ≡ f × y ≡ a)
+    returnHS a (s , ps) = (a , s) , refl , refl
+
+    bindHS : {A B : Set}{P₁ : Pre}{Q₁ : Post A}{P₂ : A → Pre}{Q₂ : A → Post B}
+           → HS P₁ A Q₁ → ((x : A) → HS (P₂ x) B (Q₂ x)) 
+           → HS (λ s₁ → P₁ s₁ × ((x : A)(s₂ : S) → Q₁ s₁ x s₂ → P₂ x s₂))
+                B
+                (λ s₁ y s₃ → Σ A (λ x → Σ S (λ s₂ → Q₁ s₁ x s₂ × Q₂ x s₂ y s₃)))
+    bindHS hsA hsAB (s , ps) with hsA (s , p1 ps)
+    ...| ((a , s₁) , r) with hsAB a (s₁ , p2 ps a s₁ r)
+    ...| ((b , s₂) , r') = (b , s₂) , (a , (s₁ , (r , r')))
+
+    getHS : HS (λ _ → Unit) S (λ s₀ r s₁ → s₀ ≡ r × r ≡ s₁)
+    getHS (s , ps) = (s , s) , (refl , refl)
+
+    putHS : (s : S) → HS (λ _ → Unit) Unit (λ s₀ r s₁ → s₁ ≡ s)
+    putHS s _ = (unit , s) , refl
+
+  record HST (s a : Set) : Set where
+    open HoareState s
+    field
+      run : {P : Pre}{Q : Post a} → HS P a Q 
+
+  record Monad1 {a}(M : Set a → Set (ls a)) : Set (ls (ls a)) where
+    infixl 1 _>>=1_
+    field
+      return1 : {A : Set a} → A → M A
+      _>>=1_  : {A B : Set a} → M A → (A → M B) → M B
+
+  instance
+    monad-hst : ∀{s} → Monad1 (HST s)
+    monad-hst {s} = record 
+      { return1 = λ x → record { run = {!returnHS x!} } 
+      ; _>>=1_ = {!!} 
+      }
+      where 
+        open HoareState s
   -}
 
   ------------------
