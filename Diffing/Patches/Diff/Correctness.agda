@@ -59,8 +59,8 @@ module Diffing.Patches.Diff.Correctness where
     correctness {ty = wk ty} (pop a) (pop b) 
       rewrite (correctness a b) = refl
 
-    correctness {ty = μ ty} da db
-      rewrite correctnessL (da ∷ []) (db ∷ []) = refl
+    correctness {ty = μ ty} (mu da) (mu db)
+      rewrite correctnessL (mu da ∷ []) (mu db ∷ []) = refl
 
 
     correct-mu-ins-L : {n : ℕ}{t : Tel n}{ty : U (suc n)}
