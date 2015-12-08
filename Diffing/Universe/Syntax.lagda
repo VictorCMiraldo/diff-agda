@@ -1,10 +1,7 @@
 \begin{code}
 open import Prelude
 open import Level renaming (zero to lz; suc to ls)
-open import Data.Nat using (_≤_; s≤s; z≤n)
-open import Diffing.Utils.Propositions
-  using (LEQ; LEQ-refl; LEQ-step; ≤-LEQ; LEQ-≤)
-
+open import Data.Nat.Properties.Simple using (+-comm)
 
 module Diffing.Universe.Syntax where
 \end{code}
@@ -19,6 +16,7 @@ as these allow an easier syntatical handling of terms of U.
 %<*U-def>
 \begin{code}
   data U : ℕ → Set where
+    u0  : {n : ℕ} → U n
     u1  : {n : ℕ} → U n
     _⊕_ : {n : ℕ} → U n → U n → U n
     _⊗_ : {n : ℕ} → U n → U n → U n
@@ -36,9 +34,11 @@ as these allow an easier syntatical handling of terms of U.
 
 %<*wk-star>
 \begin{code}
-  wk* : {n m : ℕ} → LEQ m n → U m → U n
-  wk* LEQ-refl a       = a
-  wk* (LEQ-step prf) a = wk (wk* prf a)
+  {-# TERMINATING #-}
+  wk* : {n : ℕ}(m : ℕ) → U n → U (n + m)
+  wk* {n} m a rewrite +-comm n m with m
+  ...| zero  = a
+  ...| suc k = wk (subst U (+-comm n k) (wk* k a))
 \end{code}
 %</wk-star>
 
@@ -59,28 +59,16 @@ as these allow an easier syntatical handling of terms of U.
 \end{code}
 %</tel-lkup>
 
-We can always substitute something in a telescope,
-as long as we use the correct number of variables.
-
-%<*tel-subst>
+%<*tel-forget>
 \begin{code}
-  tel-subst : {n m : ℕ} → LEQ (suc m) n → U m → Tel n → Tel n
-  tel-subst prf a tnil                   = tnil
-  tel-subst LEQ-refl       a (tcons x t) = tcons a t
-  tel-subst (LEQ-step prf) a (tcons x t) = tcons x (tel-subst prf a t)        
+  tel-forget : {n : ℕ} → Fin n → Tel n → Tel n
+  tel-forget {zero} () tnil
+  tel-forget {suc n} fz (tcons x t)     = tcons u1 t
+  tel-forget {suc n} (fs i) (tcons x t) = tcons x (tel-forget i t)
 \end{code}
-%</tel-subst>
+%</tel-forget>
 
-A telescope restriction is also important, as we might want
-to use just a subtelescope of t.
-
-%<*tel-drop>
-\begin{code}
-  tel-drop : {n m : ℕ} → LEQ m n → Tel n → Tel m
-  tel-drop LEQ-refl t               = t
-  tel-drop (LEQ-step p) (tcons _ t) = tel-drop p t
-\end{code}
-%</tel-drop>
+Now, we define a 'free-monad' like datatype for elements.
 
 %<*ElU-def>
 \begin{code}
@@ -144,6 +132,7 @@ And some general purpose functions
 %<*countU>
 \begin{code}
   countU : {n : ℕ} → Fin n → U n → ℕ
+  countU i u0 = 0
   countU i u1 = 0
   countU i (a ⊕ b) = countU i a + countU i b
   countU i (a ⊗ b) = countU i a + countU i b
@@ -159,6 +148,7 @@ And some general purpose functions
 %<*sizeU>
 \begin{code}
   sizeU : {n : ℕ} → U n → ℕ
+  sizeU u0 = 0
   sizeU u1 = 1
   sizeU (a ⊕ b) = sizeU a + sizeU b
   sizeU (a ⊗ b) = sizeU a * sizeU b

@@ -1,49 +1,17 @@
 \begin{code}
 open import Prelude
 open import Diffing.Universe.Syntax
-open import Diffing.Universe.Map
-open import Diffing.Utils.Propositions
-
-open import Data.Nat using (_≤_; z≤n; s≤s)
-open import Data.Nat.Properties.Simple using (+-comm)
-open import Data.List using (drop)
-open import Relation.Binary.PropositionalEquality
+open import Diffing.Universe.Ops
+open import Diffing.Utils.Vector
+  using (toList; vec; length-toList; vmap; vec-toList)
 
 module Diffing.Universe.MuUtils where
 \end{code}
 
 This module defines some generic utility functions
-targeted at operations over fixed points, yet
-their more general counterparts is also exported. 
-
-And it's fixed point variant counts the number
-of variables indexed by zero in the opened functor.
-
-\begin{code}
-
-  open import Diffing.Utils.Monads
-  open Monad {{...}}
-
-  arity : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
-        → ElU a (tcons b t) → ℕ
-  arity el = p2 (ST.run (gmapM (MCons incState mapM-id) el) 0)
-    where
-      incState : {n : ℕ}{t : Tel n}{ty : U n}
-               → ElU ty t → ST ℕ (ElU ty t)
-      incState x = get >>= (λ s → put s >> return x)
-\end{code}
-%</arity>
-
-A few lemmas might come in handy
-
-\begin{code}
-  open import Data.List.Properties
-    using (length-map; length-++)
-\end{code}
-
-Now we define utilities for opening and closing fixed points.
-This can be seen as a dependent-type variant of algebras,
-in the categorical sense.
+targeted at operations over fixed points. They arise
+as specific instances of the operations defined in
+Diffing.Universe.Ops.
 
 %<*Openmu-def>
 \begin{code}
@@ -55,54 +23,60 @@ in the categorical sense.
 Opening a fixed point is pretty simple, we already have the 
 generic functions that do so.
 
-Instead of defining open using value and children,
-let's do it the other way around, and define children.
-
-Actually, we could do it generically, indeed:
-  open : ElU ty (tcons a t) → ElU (tcons u1 t) × List (ElU a t)
-This actually gives us a way to deconstruct a meta-tree (in the form of a term) into an
-actual agda rose-tree. Even easier would be
-to do: 
-  open : ElU ty (tcons a t) → Σ (ElU ty (tcons u1 t)) (Vec (ElU a t) ∘ arity)
-
-the closing then would only need the maybe when transforming
-the input list into a vector.
-
 %<*mu-open>
 \begin{code}
   μ-open : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
          → ElU (μ ty) t → Openμ t ty
-  μ-open (mu el) = ST.run (gmapM (MCons (λ x → append-st x >> return void) mapM-id) el) []
-    where
-      append-st : {A : Set} → A → ST (List A) Unit
-      append-st a = get >>= λ l → put (a ∷ l)
+  μ-open (mu el) with unplug el
+  ...| hd , ch = hd , toList ch
 \end{code}
 %</mu-open>
+
+\begin{code}
+  μ-open-arity-lemma 
+    : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+    → (el : ElU (μ ty) t)
+    → length (p2 (μ-open el)) ≡ arity (p1 (μ-open el))
+  μ-open-arity-lemma {n} {t} {ty} (mu el) 
+    with unplug el
+  ...| hd , ch 
+     = length-toList (vmap unpop (vec (children-lvl fz el) _))
+\end{code}
 
 Closing it, though, requires some care in how we define it.
 
 \begin{code}
-  safeHd : {A : Set} → List A → Maybe (A × List A)
-  safeHd [] = nothing
-  safeHd (x ∷ xs) = just (x , xs)
+  open import Data.Nat
+    using (_≤_; s≤s; z≤n)
+
+  list-split : {m : ℕ}{A : Set}(l : List A)
+             → m ≤ length l
+             → Σ (List A × List A) (λ ls → length (p1 ls) ≡ m)
+  list-split [] z≤n = ([] , []) , refl
+  list-split (x ∷ l) z≤n = ([] , x ∷ l) , refl
+  list-split (x ∷ l) (s≤s p) with list-split l p
+  ...| (la , lb) , prf = (x ∷ la , lb) , (cong suc prf)
+
+  list-split-lemma 
+    : {m : ℕ}{A : Set}(l1 l2 : List A){p : m ≤ length (l1 ++ l2)}
+    → (q : length l1 ≡ m)
+    → list-split (l1 ++ l2) p ≡ ((l1 , l2) , q)
+  list-split-lemma [] [] {z≤n} refl = refl
+  list-split-lemma [] (x ∷ l2) {z≤n} refl = refl
+  list-split-lemma (x ∷ l1) l2 {s≤s p} refl
+    with list-split-lemma l1 l2 {p} refl
+  ...| hip rewrite hip = refl
 \end{code}
 
 %<*mu-close>
 \begin{code}
   μ-close : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
           → Openμ t ty → Maybe (ElU (μ ty) t × List (ElU (μ ty) t))
-  μ-close (hd , ch) = close (STM.run (gmapM (MCons (λ _ → getm >>= plug) mapM-id) hd) ch)
-    where
-      close : {n : ℕ}{t : Tel n}{ty : U (suc n)}{B : Set}
-            → Maybe (ElU ty (tcons (μ ty) t) × B) 
-            → Maybe (ElU (μ ty) t × B)
-      close nothing = nothing
-      close (just (el , xs)) = just (mu el , xs)
-
-      plug : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
-           → List (ElU (μ ty) t) → STM (List (ElU (μ ty) t)) (ElU (μ ty) t)
-      plug [] = failSTM
-      plug (x ∷ xs) = putm xs >> return x    
+  μ-close (hd , ch) with arity hd ≤?-ℕ length ch
+  ...| no  _ = nothing
+  ...| yes p with list-split ch p
+  ...| (chA , rest) , prf 
+     = just (mu (plug hd (vec chA prf)) , rest)
 \end{code}
 %</mu-close>
 
@@ -112,6 +86,14 @@ of defining them would be using vectors indexed by the
 terms arity. But that's too much of a hassle, and
 for applying patches it's nice if closing a μ term
 returns the unused part of the children list.
+
+\begin{code}
+  length-lemma 
+    : {n : ℕ}{A : Set}(l1 l2 : List A)
+    → length l1 ≡ n → n ≤ length (l1 ++ l2)
+  length-lemma [] l2 refl = z≤n
+  length-lemma (x ∷ l1) l2 refl = s≤s (length-lemma l1 l2 refl)
+\end{code}
 
 %<*mu-close-resp-arity-lemma>
 \begin{code}
@@ -123,36 +105,23 @@ returns the unused part of the children list.
 \end{code}
 %</mu-close-resp-arity-lemma>
 \begin{code}
-  μ-close-resp-arity {a = a} {l = l} refl = lemma a l
-    where 
-      lemma : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → (a : ElU (μ ty) t)(l : List (ElU (μ ty) t))
-            → μ-close (p1 (μ-open a) , p2 (μ-open a) ++ l) ≡ just (a , l)
-      lemma a l = trustme
-        where
-          postulate trustme : {A : Set} → A
+  μ-close-resp-arity {a = mu a} {l = l} refl
+    with arity-lvl fz (p1 (μ-open (mu a))) ≤?-ℕ length (p2 (μ-open (mu a)) ++ l)
+  ...| no ¬q = ⊥-elim (¬q (length-lemma (p2 (μ-open (mu a))) l (μ-open-arity-lemma (mu a))))
+  ...| yes q 
+    rewrite list-split-lemma 
+       (toList (vmap unpop (vec (children-lvl fz a) 
+               (trans (ch-ar-lemma-lvl fz a) (forget-arity-lemma fz a))))) l
+       {p = q}
+       (length-toList (vmap unpop (vec (children-lvl fz a) 
+               (trans (ch-ar-lemma-lvl fz a) (forget-arity-lemma fz a)))))
+     = cong (λ P → just (mu P , l)) 
+       (subst (λ P → plug-lvl fz (forget fz a) (vmap pop P) ≡ a) 
+         (sym (vec-toList (vmap unpop (vec (children-lvl fz a)
+              (trans (ch-ar-lemma-lvl fz a) (forget-arity-lemma fz a)))))) 
+         (subst (λ P → plug-lvl fz (forget fz a) P ≡ a) 
+           (sym (vmap-lemma (vec (children-lvl fz a)
+                            (trans (ch-ar-lemma-lvl fz a) (forget-arity-lemma fz a))) 
+                            (λ { (pop x) → refl }))) 
+           (sym (plug-lvl-correct fz a))))
 \end{code} 
-  {-
-    with μ-open-arity-lemma prf
-  ...| pa
-    with plug-just-lemma hdA (chA ++ l) 
-           (subst (λ L → L ≤ length (chA ++ l)) (sym pa) (length-≤ chA))
-  ...| (res , prf2)
-    = begin
-      (mu ∘₁ gmapSt (MCons (λ _ → safeHd) mapSt-id) hdA (chA ++ l))
-    ≡⟨ cong (_∘₁_ mu) prf2 ⟩
-     (mu ∘₁ just (res , drop (arity-lvl fz hdA) (chA ++ l)))
-    ≡⟨ cong (λ x → mu ∘₁ just (res , drop x (chA ++ l))) pa ⟩
-      (mu ∘₁ just (res , drop (length chA) (chA ++ l)))
-    ≡⟨ cong (λ x → mu ∘₁ just (res , x)) (drop-++-id {l = chA}) ⟩
-      (mu ∘₁ just (res , l))
-    ≡⟨ refl ⟩
-      just (mu res , l)
-    ≡⟨ cong (λ x → just (x , l)) trustme ⟩
-     just (a , l)
-    ∎
-    -} = trustme
-    where
-      open ≡-Reasoning
-      postulate trustme : {A : Set} → A
-end{code}
