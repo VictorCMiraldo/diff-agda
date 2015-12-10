@@ -3,12 +3,12 @@ open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor
-open import Diffing.Patches.Conflicts
-open import Diffing.Patches.Residual
+open import Diffing.Patches1.Diff
+open import Diffing.Patches1.Diff.Functor
+open import Diffing.Patches1.Conflicts
+open import Diffing.Patches1.Residual
 
-module Diffing.Patches.Residual.Symmetry where
+module Diffing.Patches1.Residual.Symmetry where
 \end{code}
 
   An interesting observation, though, is that if (p / q) ≡ just k,

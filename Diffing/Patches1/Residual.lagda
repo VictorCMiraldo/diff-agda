@@ -3,11 +3,11 @@ open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor using (cast)
-open import Diffing.Patches.Conflicts
+open import Diffing.Patches1.Diff
+open import Diffing.Patches1.Diff.Functor using (cast)
+open import Diffing.Patches1.Conflicts
 
-module Diffing.Patches.Residual where
+module Diffing.Patches1.Residual where
 \end{code}
 
   Residuals are the heart of a merge. the patch (p / q),

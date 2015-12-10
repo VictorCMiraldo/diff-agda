@@ -1,9 +1,9 @@
 open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Residual
-open import Diffing.Patches.Conflicts
+open import Diffing.Patches1.Diff
+open import Diffing.Patches1.Residual
+open import Diffing.Patches1.Conflicts
 -- open import Diffing.DiffCorrect
 
 module Diffing.Examples.NatList where

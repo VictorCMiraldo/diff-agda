@@ -2,10 +2,10 @@ open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
-open import Diffing.Patches.Diff
+open import Diffing.Patches1.Diff
 open import Function using (_∋_)
 
-module Diffing.Patches.Diff.Functor where
+module Diffing.Patches1.Diff.Functor where
 
   {-
     This module defines some functorial functionality for

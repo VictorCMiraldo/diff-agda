@@ -2,9 +2,9 @@
 open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
-open import Diffing.Patches.Diff
+open import Diffing.Patches1.Diff
 
-module Diffing.Patches.Overlap where
+module Diffing.Patches1.Overlap where
 \end{code}
 
   One important characteristic of any merging algorithm

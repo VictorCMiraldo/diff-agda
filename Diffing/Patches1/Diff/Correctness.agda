@@ -2,11 +2,11 @@ open import Prelude
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
-open import Diffing.Patches.Diff
+open import Diffing.Patches1.Diff
 
 open import Relation.Binary.PropositionalEquality
 
-module Diffing.Patches.Diff.Correctness where
+module Diffing.Patches1.Diff.Correctness where
   
   open import Diffing.Utils.Monads
   open Monad {{...}}
