@@ -32,6 +32,8 @@ generic functions that do so.
 \end{code}
 %</mu-open>
 
+It is trivially true that opening a fixpoint preserves it arity.
+
 \begin{code}
   μ-open-arity-lemma 
     : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
