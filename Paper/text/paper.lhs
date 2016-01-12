@@ -113,6 +113,10 @@
     child { node [csv] {#3} edge from parent node [right] {#5} } ;
 \end{tikzpicture}}
 
+%%%%%%
+
+\newcommand{\sheltt}[1]{\texttt{\small #1}}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Title, etc...
@@ -154,16 +158,18 @@ Haskell
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Introduction}
-  The majority of version control systems handle patches in a non-structured way. They see
-  a file as a list of lines that can be inserted, deleted or modified, with no regard to
-  the semantics of that specific file. The immediate consequence of such design decision
-  is that we, humans, have to solve a large number of conflicts that arise from, in fact,
-  non conflicting edits. Implementing a tool that knows the semantics of any file we happen 
-  to need, however, is no simple task, specially given the plethora of file formats we see nowadays. 
+  The majority of version control systems handle patches in a non-structured
+way. They see a file as a list of lines that can be inserted, deleted or
+modified, with no regard to the semantics of that specific file. The immediate
+consequence of such design decision is that we, humans, have to solve a large
+number of conflicts that arise from, in fact, non conflicting edits.
+Implementing a tool that knows the semantics of any file we happen to need,
+however, is no simple task, specially given the plethora of file formats we see
+nowadays. 
   
-  This can be seen from a simple example. Lets imagine Alice and Bob are iterating
-  over a cake's recipe. They decide to use a version control system and an online
-  repository to keep track of their modifications.
+  This can be seen from a simple example. Lets imagine Alice and Bob are
+iterating over a cake's recipe. They decide to use a version control system and
+an online repository to keep track of their modifications.
   
 \begin{figure}[h]
 \begin{center}
@@ -177,7 +183,7 @@ flour & 1   & cp   \\
 eggs  & 2   & units
 \end{tabular}}{\begin{tabular}{lll}
 items & qty & unit \\
-flour & 1   & cp \\
+cakeflour & 1   & cp \\
 eggs  & 2   & units \\
 sugar & 1   & tsp
 \end{tabular}}{Alice}{Bob}
@@ -185,39 +191,74 @@ sugar & 1   & tsp
 \caption{Sample CSV files}
 \label{fig:csvfiles}
 \end{figure}
+
+  Lets say that both Bob and Alice are happy with their independent changes and
+want to make a final recipe. The standard way to track differences between files
+is the \sheltt{diff3} \mcite{diff3} unis tool. Running \sheltt{diff3 Alice.csv
+O.csv Bob.csv} would result in the output presented in figure
+\ref{fig:diff3output}. Every tag \sheltt{====} marks a difference. Three
+locations follows, formatted as \sheltt{file:line type}. The change type can be
+a \emph{Change}, \emph{Append} or \emph{Delete}. The first one, says that file 1
+(\sheltt{Alice.csv}) has a change in line 2 (\sheltt{1:2c}) which is
+\sheltt{flour, 2 , cp}; and files 2 and 3 have different changes in the same
+line. The tag \sheltt{====3} indicates that there is a difference in file 3
+only. Files 1 and 2 should append what changed in file 3 (line 4). 
+
+\begin{figure}[h]
+\begin{verbatim}
+====
+1:2c
+  flour, 2  , cp  
+2:2c
+  flour, 1  , cp  
+3:2c
+  cakeflour, 1  , cp  
+====3
+1:3a
+2:3a
+3:4c
+  sugar, 1  , tsp
+\end{verbatim}
+\caption{Output from \sheltt{diff3}}
+\label{fig:diff3output}
+\end{figure}
+
+  If we try to merge the changes, \sheltt{diff3} will flag a conflict and
+therefore require human interaction to solve it, as we can see by the presence
+of the \sheltt{====} indicator in its output. However, Alice's and Bob's edits,
+in figure \ref{fig:csvfiles} do \emph{not} conflict, if we take into account the
+semantics of CSV files. Although there is an overlapping edit at line 1, the
+fundamental editing unit is the cell, not the line.
+
+  We propose a structural diff that is not only generic but also able to track
+changes in a way that the user has the freedom to decide which is the
+fundamental editing unit. Our work is built on top of \mcite{loh2009}, but we
+extend it in order to handle merging of patches. We also propose extensions to
+this algorithm capable of detecting purely structural operations such as
+swapping and cloning. 
+    
+  The paper begins by exploring the problem, generically, in the Agda
+\mcite{agda} language. Once we have a provably correct algorithm, the details of
+a Haskell implementation of generic diff'ing are sketched. To open ground for
+future work, we present a few extensions to our initial algorithm that could be
+able to detect semantical operations such as \emph{cloning} and \emph{swapping}. 
   
-  Alice's and Bob's edits, in figure \ref{fig:csvfiles} do \emph{not} conflict, evidently. However,
-  The majority of version control systems use diff3 as their default merging tool.
-  The diff3 \mcite{diff3} algorithm will flag their edits as `emph{conflicting}, 
-  requiring human interaction to bring back the repository state into a stable one. 
-  
-  \begin{TODO}
-    \item fill me up
-    \item I think we should mention the parsing problem somewhere here.
-  \end{TODO}
-  
-  Through functional programming techniques and generic programming, we are
-  able to construct a generic diff algorithm that provably performs better at identifying 
-  actual conflicts that require, indeed, human interaction.
-  
-  We begin by exploring the problem, generically, in the Agda \mcite{agda} language.
-  Once we have a provably correct algorithm, the details of a Haskell
-  implementation of generic diff'ing are sketched. To open ground for future work,
-  we present a few extensions to our initial algorithm that could be able to 
-  detect semantical operations such as \emph{cloning} and \emph{swapping}. 
-  
-  Our contributions are summarized in:
-  \begin{itemize}
-    \item A formal model of our generic patch theory, in Agda.
-    \item A prototype library, implementing our algorithms in Haskell, 
-          providing functions such as:
-    \item \begin{TODO} \item what else? \end{TODO}
-  \end{itemize}
+\subsection*{Contributions}
+
+\subsection*{Background}
+
+\begin{TODO}
+  \item Should we have this section? It cold be nice
+        to at least mention the edit distance problem and that
+        in the untyped scenario, the best running time is of $O(n^3)$.
+        Types should allow us to bring this time lower.
+\end{TODO}
   
 \section{Structural Diffing}
 
-  The word \emph{structural} can be confusing, there are multiple layers of
-  structure in 
+  Alice and Bob were both editing a CSV file which represents data
+  that is isomorphic to |[[Atom String]]|, where |Atom a| is a simple
+  tag that indicates that |a|s should be treated as atomic. 
   
   \begin{TODO}
     \item Give some context: Tree-edit distance; 
@@ -231,6 +272,23 @@ sugar & 1   & tsp
           How does our diffing relate?
           Does this imply maximum sharing?
   \end{RESEARCH}
+  
+\subsection{Context Free Datatypes}
+  
+  \begin{TODO}
+    \item Explain the universe we're using.
+    \item Explain the intuition behing our $D$ datatype.
+    \item Mention that it is correct.
+  \end{TODO}
+  
+  \Agda{Diffing/Universe/Syntax}{U-def}
+  
+\begin{TODO}
+    \item Explain the patching problem.
+    \item We want a type-safe approach.
+    \item Argue that the types resulting from our parser
+          are in a sub-language of what we treated next.
+  \end{TODO} 
 
   Having a regular, yet extensible, way to parse different files gives us a stepping
   stone to start discussing how to track differences in the results of those parsers.
@@ -287,25 +345,21 @@ eggs       ,2   ,units
   presented in figure \ref{fig:line-based-ES}. That edit script has a few problems:
   (A) it is deleting and inserting almost identical lines and (B) it is unaware
   of the CSV file semantics, making it harder to identify actual conflicts.
-  
 
-  \begin{TODO}
-    \item Explain the patching problem.
-    \item We want a type-safe approach.
-    \item Argue that the types resulting from our parser
-          are in a sub-language of what we treated next.
-  \end{TODO}  
-  
+\section{Sharing of Recursive Subterms}
 
-\section{Context Free Datatypes}
+  \begin{itemize}
+    \item If we want to be able to share recursive subexpressions
+          we need a mutually recursive approach.
+  \end{itemize}
   
-  \begin{TODO}
-    \item Explain the universe we're using.
-    \item Explain the intuition behing our $D$ datatype.
-    \item Mention that it is correct.
-  \end{TODO}
-  
-  \Agda{Diffing/Universe/Syntax}{U-def}
+\section{Remarks on Type Safety}
+
+  \begin{itemize}
+    \item At which level of our design space we would like type-safety?
+    \item Maybe after introducing the matrix idea it is clear that
+          type-safety might be desirable only on the diff level, not on the patch level.
+  \end{itemize}
   
 \section{Related Work}
   \begin{itemize}
