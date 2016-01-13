@@ -21,7 +21,10 @@ CODE_AGDA_MODULES=Diffing/Universe/Syntax\
                   Diffing/Universe/Equality\
                   Diffing/Universe/Map\
                   Diffing/Universe/MuUtils\
-                  Diffing/Diff
+                  Diffing/Patches/Diff\
+                  Diffing/Patches/Residual\
+                  Diffing/Patches/Residual/Symmetry\
+                  Diffing/Patches/Residual/SymmetryConflict
                   
 COMPILER=pdflatex -etex
 

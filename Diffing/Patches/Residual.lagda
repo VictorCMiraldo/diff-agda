@@ -37,10 +37,12 @@ module Diffing.Patches.Residual where
   Note that upon having (dx / dy) ≡ just k, it is not always the case
   that they merge peacefully. k might contain conflicts inside!
 
-%<*residual-type>
 \begin{code}
   mutual
     {-# TERMINATING #-}
+\end{code}
+%<*residual-type>
+\begin{code}
     _/_ : {n : ℕ}{t : Tel n}{ty : U n} 
         → Patch t ty → Patch t ty → Maybe (D C t ty)
 \end{code}

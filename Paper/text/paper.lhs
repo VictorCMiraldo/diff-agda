@@ -2,6 +2,7 @@
 \usepackage[english]{babel}
 \usepackage{savesym}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{wrapfig}
 \usepackage{hyperref}
 \usepackage{catchfilebetweentags}
@@ -117,6 +118,10 @@
 
 \newcommand{\sheltt}[1]{\texttt{\small #1}}
 
+%%%%%%
+%% Definitions and lemmas
+
+\newtheorem{definition}{Definition}[section]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Title, etc...
@@ -261,8 +266,18 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   tag that indicates that |a|s should be treated as atomic. 
   
   \begin{TODO}
+    \item What do we mean by structural?
     \item Give some context: Tree-edit distance; 
+    \item We seek to obtain a system with something close to residuals.
   \end{TODO}
+  
+  \begin{displaymath}
+    \xymatrix{
+         & A_0 \ar[dl]_{p} \ar[dr]^{q} & \\
+         A_1 \ar[dr]_{q / p} & & A_2 \ar[dl]^{p / q} \\
+         & A_3 &      
+      }
+  \end{displaymath}
   
   \begin{RESEARCH}
     \item Check out the antidiagonal with more attention: 
@@ -283,82 +298,101 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   
   \Agda{Diffing/Universe/Syntax}{U-def}
   
-\begin{TODO}
+  \begin{TODO}
     \item Explain the patching problem.
     \item We want a type-safe approach.
     \item Argue that the types resulting from our parser
           are in a sub-language of what we treated next.
-  \end{TODO} 
-
-  Having a regular, yet extensible, way to parse different files gives us a stepping
-  stone to start discussing how to track differences in the results of those parsers.
-  There has been plenty of research on this topic (\warnme{CITE STUFF!}), however,
-  most of the time data is converted to an untyped intermediate representation.
-  We would like to stay type-safe. \warnme{WHY?}  
-  Our research shows that the type |D a| that expresses the differences between
-  two elements of type |a| can be determined by induction on |a|'s structure.
-  
-  \begin{TODO} 
     \item introduce \emph{edit-script}, \emph{diffing} and \emph{patching} or \emph{apply}
   \end{TODO}
   
-  For example, let us see the differences between the original CSV and Alice's edits: 
-  
-  \begin{figure}[h]
-  \begin{center}
-  \begin{minipage}[t]{.3\textwidth}
-  \begin{verbatim}
-items      ,qty ,unit
-wheat-flour,2   ,cp
-eggs       ,2   ,units
-  \end{verbatim}
-  \begin{center}Alice\end{center}
-  \end{minipage}
-  \vline
-  \begin{minipage}[t]{.3\textwidth}
-    \begin{verbatim}
-items      ,qty ,unit
-wheat-flour,1   ,cp
-eggs       ,2   ,units
-  \end{verbatim}
-  \begin{center}Original\end{center}
-  \end{minipage}
-  \end{center}
-  \caption{Alice's edits}
-  \label{fig:aliceedit}
-  \end{figure}
-  
-  \begin{wrapfigure}{r}{.4\textwidth}
-  \begin{code}
-    Cpy "items,qty,unit" 
-      (Del "weat-flour,1,cp" 
-        (Ins "wheat-flour,2,cp" 
-          (Cpy "eggs,2,unis"
-            End)))
-  \end{code}
-  \caption{Line-based edit-script for figure \ref{fig:aliceedit}}
-  \label{fig:line-based-ES}
-  \end{wrapfigure}
-  
-  As we can see, Alice edited the second line of the file. A line-based edit script,
-  which is something that transform a file into another, would look like the one
-  presented in figure \ref{fig:line-based-ES}. That edit script has a few problems:
-  (A) it is deleting and inserting almost identical lines and (B) it is unaware
-  of the CSV file semantics, making it harder to identify actual conflicts.
+\subsection{Patches over a Context Free Type}
 
-\section{Sharing of Recursive Subterms}
+  \begin{TODO}
+    \item Explain that a patch is something which we can apply.
+    \item Loh's approach is too generic, as the diff function
+          should have type $a \rightarrow a \rightarrow D\; a$.
+  \end{TODO}
+
+  In order to simplify the presentation, we are gonna explicitely name variables
+  and write our types in a more mathematical fashion, other than the Agda encoding.
+  As we discussed earlier, a patch is an object that track differences in a given type.
+  Different types will allow for different types of changes.
+  
+  \begin{definition}[Simple Patch]
+  We define a (simple) patch $D\; ty$ by induction on $ty$ as:
+    \begin{eqnarray*}
+      D\; 0 & = & 0 \\
+      D\; 1 & = & 1 \\
+      D\; (x \times y) & = & D\; x \times D\; y \\
+      D\; (x + y) & = & (D\; x + D\; y) + 2\times(x \times y) \\
+      D\; (\mu X . F\; X) & = & \mu X . (1 \\
+                          & + & D\;(F\;1) \times X \\
+                          & + & 2\times(F\;1) \times X \\
+                          & ) & 
+    \end{eqnarray*}
+  \end{definition}
+  
+  Let's see the coproduct case in more detail. There are four different
+  possibilities for the changes seen in a coproduct, just like there
+  are four different combinations of constructors for two objects of type |Either a b|.
+  The first and second options, namelly $D\; x$ and $D\; y$ track differences
+  of a |Left a| into a |Left a'| and a |Right b| into a |Right b'|, respectively.
+  The other possibilities are representing a |Left a| becoming a |Right b| or vice-versa.
+  The other branches are straight-forward.
+  
+\paragraph*{Fixed Points}
+
+  \begin{TODO}
+    \item Very close to Vassena's and Andres approach;
+    \item Explicit grow conflicts
+  \end{TODO}
+
+\subsection{Sharing of Recursive Subterms}
 
   \begin{itemize}
     \item If we want to be able to share recursive subexpressions
           we need a mutually recursive approach.
   \end{itemize}
   
-\section{Remarks on Type Safety}
+\subsection{Remarks on Type Safety}
 
   \begin{itemize}
     \item At which level of our design space we would like type-safety?
     \item Maybe after introducing the matrix idea it is clear that
           type-safety might be desirable only on the diff level, not on the patch level.
+  \end{itemize}
+  
+\section{What About True Conflicts?}
+
+  In order to track down conflicts we parametrize $D$ over an abstract indexed family.
+  This reveals a \emph{free monad}-like structure and allows for in-place conflict
+  resolution and tracking.
+  
+  The actual type we use in Agda looks like
+  
+  \begin{figure*}
+  \Agda{Diffing/Patches/Diff}{D-def}
+  \caption{Complete Definition of $D$} 
+  \label{fig:ddef}
+  \end{figure*}
+  
+  Note that the first constructor of $D$ just asks for a suitably indexed $A$.
+  With this in mind, we can start to define our residual operation.
+  
+  \Agda{Diffing/Patches/Residual}{residual-type}
+  
+  \Agda{Diffing/Patches/Residual/Symmetry}{residual-symmetry-type}
+  \Agda{Diffing/Patches/Residual/SymmetryConflict}{residual-sym-stable-type}
+  
+
+
+\section{Sketching a Control Version System}
+
+  \begin{itemize}
+    \item Different views over the same datatype will give different diffs.
+    \item |newtype| annotations can provide a gread bunch of control over the algorithm.
+    \item Directories are just rosetrees...
   \end{itemize}
   
 \section{Related Work}
