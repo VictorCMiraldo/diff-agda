@@ -271,14 +271,6 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
     \item We seek to obtain a system with something close to residuals.
   \end{TODO}
   
-  \begin{displaymath}
-    \xymatrix{
-         & A_0 \ar[dl]_{p} \ar[dr]^{q} & \\
-         A_1 \ar[dr]_{q / p} & & A_2 \ar[dl]^{p / q} \\
-         & A_3 &      
-      }
-  \end{displaymath}
-  
   \begin{RESEARCH}
     \item Check out the antidiagonal with more attention: 
           \url{ http://blog.sigfpe.com/2007/09/type-of-distinct-pairs.html }
@@ -315,9 +307,9 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   \end{TODO}
 
   In order to simplify the presentation, we are gonna explicitely name variables
-  and write our types in a more mathematical fashion, other than the Agda encoding.
-  As we discussed earlier, a patch is an object that track differences in a given type.
-  Different types will allow for different types of changes.
+and write our types in a more mathematical fashion, other than the Agda
+encoding. As we discussed earlier, a patch is an object that track differences
+in a given type. Different types will allow for different types of changes.
   
   \begin{definition}[Simple Patch]
   We define a (simple) patch $D\; ty$ by induction on $ty$ as:
@@ -334,18 +326,26 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   \end{definition}
   
   Let's see the coproduct case in more detail. There are four different
-  possibilities for the changes seen in a coproduct, just like there
-  are four different combinations of constructors for two objects of type |Either a b|.
-  The first and second options, namelly $D\; x$ and $D\; y$ track differences
-  of a |Left a| into a |Left a'| and a |Right b| into a |Right b'|, respectively.
-  The other possibilities are representing a |Left a| becoming a |Right b| or vice-versa.
-  The other branches are straight-forward.
+possibilities for the changes seen in a coproduct, just like there are four
+different combinations of constructors for two objects of type |Either a b|. The
+first and second options, namelly $D\; x$ and $D\; y$ track differences of a
+|Left a| into a |Left a'| and a |Right b| into a |Right b'|, respectively. The
+other possibilities are representing a |Left a| becoming a |Right b| or
+vice-versa. The other branches are straight-forward.
+  
+  \begin{definition}[Defined]
+    We say that a patch $p_a$ is defined for an input $a$ iff there
+    exists an object $a'$ such that:
+    
+    \[ \text{apply }p_a\;a \equiv \text{Just }a' \]
+  \end{definition}
   
 \paragraph*{Fixed Points}
 
   \begin{TODO}
     \item Very close to Vassena's and Andres approach;
-    \item Explicit grow conflicts
+    \item Explicit grow conflicts.
+    \item Maybe we should also consider deletes as shrink conflicts?
   \end{TODO}
 
 \subsection{Sharing of Recursive Subterms}
@@ -363,13 +363,59 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
           type-safety might be desirable only on the diff level, not on the patch level.
   \end{itemize}
   
-\section{What About True Conflicts?}
+\section{Residuals}
 
-  In order to track down conflicts we parametrize $D$ over an abstract indexed family.
-  This reveals a \emph{free monad}-like structure and allows for in-place conflict
-  resolution and tracking.
+  Let's say Bob and Alice perform edits in a given object, which
+  are captured by patches $p$ and $q$, shown in figure \ref{fig:residual}.
+  The natural question to ask is \emph{how do we join these changes}.
   
-  The actual type we use in Agda looks like
+  \begin{figure}[h]
+  \begin{displaymath}
+    \xymatrix{
+         & A_0 \ar[dl]_{p} \ar[dr]^{q} & \\
+         A_1 \ar[dr]_{q / p} & & A_2 \ar[dl]^{p / q} \\
+         & A_3 &      
+      }
+  \end{displaymath}
+  \caption{Residual Square}
+  \label{fig:residual}
+  \end{figure}
+  
+  The residual $p / q$ of two patches $p$ and $q$ only makes sense if
+  both $p$ and $q$ are aligned, that is, are defined for the same input.
+  It captures the notion of incorporating the changes made by $p$ in
+  an object that has already been modified by $q$.
+  
+  \begin{TODO}
+    \item Pijul has this notion of handling a merge as a pushout,
+          but it uses the free co-completion of a rather simple category.
+          This doesn't give enough information for structured
+          conflict solving.
+    \item BACK THIS UP!
+  \end{TODO}
+  
+  In an ideal world, we would expect the residual function
+  to have type |D a -> D a -> Maybe (D a)|, where the partiality
+  comes from receiving two non-aligned patches.
+  
+  But what if Bob and Alice changes the same cell in their CSV file?
+  Then it is obvious that someone (human) have to chose which value to
+  use in the final, merged, version. 
+  
+  Here we see that this residual operation is where conflicts are introduced in
+our theory.
+  
+\subsection{Incorporating Conflicts}
+
+  In order to track down these conflicts we need a more expressive patch data
+structure. We chose to parametrize $D$ over an abstract type and add another
+dummy constructor to it, much like we would do in a free monad construction.
+The actual data structure we use is presented in figure \ref{fig:ddef}.
+
+  \begin{TODO}
+    \item Show where conflicts arise and the two types
+          of conflicts we identify.
+  \end{TODO}
   
   \begin{figure*}
   \Agda{Diffing/Patches/Diff}{D-def}
@@ -378,12 +424,23 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   \end{figure*}
   
   Note that the first constructor of $D$ just asks for a suitably indexed $A$.
-  With this in mind, we can start to define our residual operation.
+  With this in mind, we can now start to define our residual operation.
   
+  \begin{TODO}
+    \item Define $Patch = D\;\bot$
+  \end{TODO}
   \Agda{Diffing/Patches/Residual}{residual-type}
   
+  It is interesting to note that this residual operation is somewhat symmetric:
+  
   \Agda{Diffing/Patches/Residual/Symmetry}{residual-symmetry-type}
+  
   \Agda{Diffing/Patches/Residual/SymmetryConflict}{residual-sym-stable-type}
+  
+  This means that $p / q$ and $q / p$, although different, have the same conflicts
+(up to symmetry).
+  
+\subsection{Solving Conflicts}
   
 
 

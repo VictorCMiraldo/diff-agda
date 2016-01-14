@@ -295,7 +295,6 @@ module Diffing.Patches.Diff.Functor where
              {A : {k : ℕ} → Tel k → U k → Set a}
            → D (D A) t ty → D A t ty
     D-mult (D-A d) = d
-    -- D-mult D-id = D-id
     D-mult D-void = D-void
     D-mult (D-inl d) = D-inl (D-mult d)
     D-mult (D-inr d) = D-inr (D-mult d)
@@ -312,8 +311,6 @@ module Diffing.Patches.Diff.Functor where
            → List (Dμ (D A) t ty) → List (Dμ A t ty)
     Dμ-mult [] = []
     Dμ-mult (Dμ-A (D-A x) ∷ l) = Dμ-A x ∷ Dμ-mult l
-    -- TODO: I think a D-id inside a Dμ-A should become a Dμ-Id
-    -- Dμ-mult (Dμ-A D-id ∷ l) = Dμ-mult l
     Dμ-mult (Dμ-A (D-mu x) ∷ l) = x ++ Dμ-mult l
     Dμ-mult (Dμ-ins x ∷ l) = Dμ-ins x ∷ Dμ-mult l
     Dμ-mult (Dμ-del x ∷ l) = Dμ-del x ∷ Dμ-mult l

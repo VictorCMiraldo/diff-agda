@@ -4,7 +4,7 @@ open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor using (cast)
+open import Diffing.Patches.Diff.Functor using (cast; forget)
 open import Diffing.Patches.Conflicts
 
 module Diffing.Patches.Residual where
@@ -165,24 +165,12 @@ module Diffing.Patches.Residual where
     res _ []  = nothing
 \end{code}
 
-  lemma /-id is just to make our life easier, as Agda
-  does not recognize (d / D-id) ≡ just (cast d) through refl,
-  as it needs to match the head of d.
+The simple residuals are the ones defined and
+without conflicts!
 
-begin{code}
-  /-id : {n : ℕ}{t : Tel n}{ty : U n}(d : Patch t ty)
-          → (d / D-id) ≡ just (cast d)
-  /-id (D-A ())
-  /-id D-id = refl
-  /-id D-void = refl
-  /-id (D-inl d₁) = refl
-  /-id (D-inr d₁) = refl
-  /-id (D-setl x x₁) = refl
-  /-id (D-setr x x₁) = refl
-  /-id (D-pair d₁ d₂) = refl
-  /-id (D-mu x) = refl
-  /-id (D-β d₁) = refl
-  /-id (D-top d₁) = refl
-  /-id (D-pop d₁) = refl
-end{code}
-
+\begin{code}
+  /-simple : {n : ℕ}{t : Tel n}{ty : U n}
+           → Maybe (D C t ty) → Set
+  /-simple nothing  = ⊥
+  /-simple (just d) = forget d ≡ []
+\end{code}
