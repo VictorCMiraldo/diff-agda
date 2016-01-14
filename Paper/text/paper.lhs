@@ -441,6 +441,15 @@ The actual data structure we use is presented in figure \ref{fig:ddef}.
 (up to symmetry).
   
 \subsection{Solving Conflicts}
+
+  \begin{TODO}
+    \item This is highly dependent on the structure.
+    \begin{itemize}
+      \item some structures might allow permutations,
+            refactorings, etc... whereas others might not.
+    \end{itemize}
+    \item How do we go generic? Free-monads to the rescue!
+  \end{TODO}
   
 
 
