@@ -198,6 +198,34 @@ module Diffing.Patches.Diff where
 \end{code}
 %</gdiffL-def>
 
+The identity patch is the same as (gdiff x x) but
+much easier to compute, as no comparisons are needed.
+
+TODO: prove this!
+
+%<*gdiff-id-def>
+\begin{code}
+  mutual
+    gdiff-id : {n : ℕ}{t : Tel n}{ty : U n}
+             → (a : ElU ty t) → Patch t ty
+    gdiff-id void = D-void
+    gdiff-id (inl a) = D-inl (gdiff-id a)
+    gdiff-id (inr a) = D-inr (gdiff-id a)
+    gdiff-id (a1 , a2) = D-pair (gdiff-id a1) (gdiff-id a2)
+    gdiff-id (top a) = D-top (gdiff-id a)
+    gdiff-id (pop a) = D-pop (gdiff-id a)
+    gdiff-id (red a) = D-β (gdiff-id a)
+    gdiff-id (mu a) = D-mu (gdiffL-id (mu a ∷ []))
+  
+    {-# TERMINATING #-}
+    gdiffL-id : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+             → (as : List (ElU (μ ty) t)) → Patchμ t ty
+    gdiffL-id [] = []
+    gdiffL-id (x ∷ as) with μ-open x
+    ...| hdX , chX = Dμ-cpy hdX ∷ gdiffL-id (chX ++ as)
+\end{code}
+%</gdiff-id-def>
+
        Application
   =========================
 

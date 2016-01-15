@@ -137,14 +137,10 @@ module Diffing.Patches.Residual where
 
     res (Dμ-dwn x dx ∷ dp) (Dμ-cpy y ∷ dq) with x ≟-U y
     ...| no _ = nothing
-    ...| yes _ with gapply dx (red y)
-    ...| just  _ = _∷_ (Dμ-dwn x (cast dx)) <M> res dp dq
-    ...| nothing = nothing
+    ...| yes _ = _∷_ <M> (Dμ-dwn x <M> (dx / gdiff-id (red y))) <M*> res dp dq
     res (Dμ-cpy x ∷ dp) (Dμ-dwn y dy ∷ dq) with x ≟-U y
     ...| no _ = nothing
-    ...| yes _ with gapply dy (red x)
-    ...| just (red x2) = _∷_ (Dμ-cpy x2) <M> res dp dq
-    ...| nothing       = nothing
+    ...| yes _ =  _∷_ <M> (Dμ-dwn x <M> (gdiff-id (red x) / dy)) <M*> res dp dq
     res (Dμ-dwn x dx ∷ dp) (Dμ-dwn y dy ∷ dq) with x ≟-U y
     ...| no _ = nothing
     ...| yes _
