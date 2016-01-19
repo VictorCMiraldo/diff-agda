@@ -26,6 +26,12 @@
   \end{itemize}
 }
 
+\newcommand{\RESEARCHAnswer}[1]{%
+\begin{itemize} \color{red}
+  \item \textbf{ANS:} #1
+\end{itemize}
+}
+
 \newcommand{\warnme}[1]{{\color{red} \textbf{$[$} #1 \textbf{$]$}}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -286,12 +292,14 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   \end{TODO}
   
   \begin{RESEARCH}
-    \item Check out the antidiagonal with more attention: 
-          \url{ http://blog.sigfpe.com/2007/09/type-of-distinct-pairs.html }
     \item The LCS problem is closely related to diffing.
           We want to preserve the LCS of two structures!
           How does our diffing relate?
           Does this imply maximum sharing?
+          \RESEARCHAnswer{No! We don't strive for
+            maximum sharing. We strive for
+            flexibility and customization.
+            See refactoring}
   \end{RESEARCH}
   
 \subsection{Context Free Datatypes}
@@ -526,7 +534,11 @@ The actual data structure we use is presented in figure \ref{fig:ddef}.
     \item How do we go generic? Free-monads to the rescue!
   \end{TODO}
   
-
+\section{A Haskell Prototype}
+  
+  \begin{TODO}
+    \item throw \emph{hs-diff} in github before the deadline!
+  \end{TODO}
 
 \section{Sketching a Control Version System}
 
@@ -537,9 +549,17 @@ The actual data structure we use is presented in figure \ref{fig:ddef}.
   \end{itemize}
   
 \section{Related Work}
-  \begin{itemize}
-    \item People have done similar things... or not.
-  \end{itemize}
+  
+  \begin{RESEARCH}
+  \item Check out the antidiagonal with more attention: 
+          \url{ http://blog.sigfpe.com/2007/09/type-of-distinct-pairs.html }
+        \RESEARCHAnswer{Diffing and Antidiagonals are
+          fundamentally different. The antidiagonal for
+          a type $T$ is a type $X$ such that there
+          exists $X \rightarrow T^2$. That is, $X$ produces
+          two \textbf{distinct} $T$'s, whereas
+          a diff produces a $T$ given another $T$!}
+  \end{RESEARCH}
   
 \section{Conclusion}
   \begin{itemize}
