@@ -340,6 +340,8 @@ vice-versa. The other branches are straight-forward.
     \[ \text{apply }p_a\;a \equiv \text{Just }a' \]
   \end{definition}
   
+
+  
 \paragraph*{Fixed Points}
 
   \begin{TODO}
@@ -353,6 +355,7 @@ vice-versa. The other branches are straight-forward.
   \begin{itemize}
     \item If we want to be able to share recursive subexpressions
           we need a mutually recursive approach.
+    \item Or, this will be handled during conflict solving. See refactoring.
   \end{itemize}
   
 \subsection{Remarks on Type Safety}
@@ -363,7 +366,7 @@ vice-versa. The other branches are straight-forward.
           type-safety might be desirable only on the diff level, not on the patch level.
   \end{itemize}
   
-\section{Residuals}
+\section{Patch Propagation}
 
   Let's say Bob and Alice perform edits in a given object, which
   are captured by patches $p$ and $q$, shown in figure \ref{fig:residual}.
@@ -471,8 +474,10 @@ The actual data structure we use is presented in figure \ref{fig:ddef}.
     \item This is what we take out of it.
   \end{itemize}
   
-  %% WARNING: Do NOT change the next comment, it's a tag for sed.
+  %% WARNING: Do NOT change the next comment, it's a tag for sed to
+  %% glue the bibliography.
   
-  %%% THEBIBLIOGRAPHYGOESHERE %%%
+  %%%!BIBHOOK!%%%
+  
 
 \end{document}

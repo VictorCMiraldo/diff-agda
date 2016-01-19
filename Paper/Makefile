@@ -3,6 +3,7 @@ DIRGUARD=@mkdir -p $(@D)
 
 MAIN_NAME=paper
 REFERENCES_NAME=references
+REFHOOK_NAME=ref_hook
 LATEXMKOPTS=-pdf -f
 TEXT_PARTS_SRC_ROOT=text
 TEXT_PARTS_SRC_GENTEX=$(TEXT_PARTS_SRC_ROOT)
@@ -10,6 +11,7 @@ TEXT_PARTS_SRC_GENTEX=$(TEXT_PARTS_SRC_ROOT)
 MAINTEX=$(TEXT_PARTS_SRC_ROOT)/$(MAIN_NAME).tex
 MAINPDF=./$(MAIN_NAME).pdf
 REFERENCES=text/$(REFERENCES_NAME).bib
+REFHOOK=text/$(REFHOOK_NAME).tex
 TEXT_PARTS= 
 
 CODE_AGDA_SRC=../
@@ -48,8 +50,17 @@ $(CODE_AGDA_EXCERPTS)/%.tex: $(CODE_AGDA_SRC)/%.lagda
 	$(DIRGUARD); agda --allow-unsolved-metas -i $(CODE_AGDA_STDLIB) -i $(CODE_AGDA_SRC) \
 		--latex-dir=$(CODE_AGDA_EXCERPTS) --latex $<
 
-bib: $(REFERENCES)
-	bibtex $(MAIN_NAME).aux
+bib: $(REFERENCES) $(REFHOOK)
+	latexmk -pdf $(REFHOOK) && bibtex $(REFHOOK_NAME).aux
+	
+bibcommit: bib
+	./launchhook "%%%!BIBHOOK!%%%" $(MAINTEX) \
+	&& mv $(MAINTEX).hooked $(MAINTEX)
+	
+withbib: nosrctex all bib bibcommit force
+
+nosrctex:
+	rm -f text/paper.tex
 
 clean:
 	rm -f *.log
@@ -57,14 +68,13 @@ clean:
 	rm -f *.aux
 	rm -f *.toc
 	rm -f *.blg
+	rm -f *.bbl
+	rm -f *.out
+	rm -f *.fdb_latexmk
+	rm -f *.fls
 	
-cleanall: clean
-	rm -f thesis_default.pdf
-	rm -f thesis_um.pdf
+cleanall: clean nosrctex
+	rm -f paper.pdf
 
-veryclean: cleanall
-	cd code/agda/excerpts && \
-	rm -f *.tex
-
-.PHONY: clean veryclean all
+.PHONY: clean all
 
