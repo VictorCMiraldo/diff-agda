@@ -1,4 +1,4 @@
-\documentclass{sigplanconf}
+\documentclass[numbers]{sigplanconf}
 \usepackage[english]{babel}
 \usepackage{savesym}
 \usepackage{amsmath}
@@ -33,17 +33,25 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % empty env, maybe later we can add some style to it.
-\newenvironment{agdacode}{%
+\newenvironment{agdacode}[1][-2em]{%
 \vspace{.5em}
-\hspace{1em}
+\hspace{#1}
 \begin{minipage}[t]{.8\textwidth}
 }{%
 \end{minipage}
 \vspace{.5em}
 }
 
+% Default code, no additional formatting.
 \newcommand{\Agda}[2]{%
 \begin{agdacode}
+\ExecuteMetaData[excerpts/#1.tex]{#2}
+\end{agdacode}
+}
+
+% Allows us to specify how much \hskip we want through #3.
+\newcommand{\AgdaI}[3]{%
+\begin{agdacode}[#3]
 \ExecuteMetaData[excerpts/#1.tex]{#2}
 \end{agdacode}
 }
@@ -78,6 +86,7 @@
 \DeclareUnicodeCharacter {8348}{$_t$}
 \DeclareUnicodeCharacter {7522}{$_i$}
 \DeclareUnicodeCharacter {119924}{$\mathcal{M}$}
+\DeclareUnicodeCharacter {8346}{$_p$}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -237,10 +246,9 @@ fundamental editing unit is the cell, not the line.
 
   We propose a structural diff that is not only generic but also able to track
 changes in a way that the user has the freedom to decide which is the
-fundamental editing unit. Our work is built on top of \mcite{loh2009}, but we
-extend it in order to handle merging of patches. We also propose extensions to
+fundamental editing unit. Our work was inspired by \cite{Loh2009} and \cite{Vassena2015}. We did extensive changes in order to handle structural merging of patches. We also propose extensions to
 this algorithm capable of detecting purely structural operations such as
-swapping and cloning. 
+refactorings and cloning. 
     
   The paper begins by exploring the problem, generically, in the Agda
 \mcite{agda} language. Once we have a provably correct algorithm, the details of
@@ -249,6 +257,12 @@ future work, we present a few extensions to our initial algorithm that could be
 able to detect semantical operations such as \emph{cloning} and \emph{swapping}. 
   
 \subsection*{Contributions}
+
+\begin{TODO}
+  \item Study of a more algebraic patch theory.
+  \item Agda model.
+  \item Haskell Prototype.
+\end{TODO}
 
 \subsection*{Background}
 
@@ -288,6 +302,8 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
     \item Mention that it is correct.
   \end{TODO}
   
+  Took from \cite{Altenkirch2006}.
+  
   \Agda{Diffing/Universe/Syntax}{U-def}
   
   \begin{TODO}
@@ -312,6 +328,7 @@ encoding. As we discussed earlier, a patch is an object that track differences
 in a given type. Different types will allow for different types of changes.
   
   \begin{definition}[Simple Patch]
+  \label{def:simplepatch}
   We define a (simple) patch $D\; ty$ by induction on $ty$ as:
     \begin{eqnarray*}
       D\; 0 & = & 0 \\
@@ -323,6 +340,8 @@ in a given type. Different types will allow for different types of changes.
                           & + & 2\times(F\;1) \times X \\
                           & ) & 
     \end{eqnarray*}
+    Where 1 and 0 are the usual terminal and initial objects of a given
+    category.
   \end{definition}
   
   Let's see the coproduct case in more detail. There are four different
@@ -332,6 +351,29 @@ first and second options, namelly $D\; x$ and $D\; y$ track differences of a
 |Left a| into a |Left a'| and a |Right b| into a |Right b'|, respectively. The
 other possibilities are representing a |Left a| becoming a |Right b| or
 vice-versa. The other branches are straight-forward.
+
+%format BOTP = "\bot_p"
+%format BOT  = "\bot"
+\paragraph*{Producing Patches}
+
+  Definition \ref{def:simplepatch} provides us with some intuition on how one
+would define patches for a given datatype. The actual definition (figure
+\ref{fig:ddef}) is more complicated, though. The Diff type takes one parameter,
+used to give a free-monad \mcite{find a reference!} structure, and two indexes
+which indicate the type for which that diff is intented. We then define:
+  
+  \Agda{Diffing/Patches/Diff}{Patch-def}
+  
+  Where |BOTP = \ _ _ -> BOT|. 
+  
+  Our first goal is to produce patches, or to differentiate
+  between to objects of the same type. We can do that generically through
+  
+  \Agda{Diffing/Patches/Diff}{gdiff-def}
+  
+  \begin{TODO}
+    \item wrap it up?
+  \end{TODO}
   
   \begin{definition}[Defined]
     We say that a patch $p_a$ is defined for an input $a$ iff there
@@ -339,16 +381,46 @@ vice-versa. The other branches are straight-forward.
     
     \[ \text{apply }p_a\;a \equiv \text{Just }a' \]
   \end{definition}
-  
 
-  
 \paragraph*{Fixed Points}
 
-  \begin{TODO}
-    \item Very close to Vassena's and Andres approach;
-    \item Explicit grow conflicts.
-    \item Maybe we should also consider deletes as shrink conflicts?
-  \end{TODO}
+  The treatment for fixed points has to be made uniform, somehow, if we
+  want a generic algorithm by the end of the day. What makes fixed points different
+  than regular algebraic types is that they can grow or shrink arbitralily,
+  and our diff function has to take that into account.
+  
+  Recalling the fixed point clause of simple patches (def \ref{def:simplepatch}),
+  \begin{eqnarray*}
+    D\; (\mu X . F\; X) & = & \mu X . (1 \\
+                          & + & D\;(F\;1) \times X \\
+                          & + & 2\times(F\;1) \times X \\
+                          & ) & 
+  \end{eqnarray*}
+  it is straight forward to see that the $D\; (\mu X . F\; X)$ is isomorphic to
+a list with three recursive constructors and a non-recursive one. Following the
+edit operations studied by L\"{o}h\cite{loh2009}, we have an \emph{insert}, a
+\emph{delete} and a \emph{end} edit operations. The big difference is that
+instead of copying, we have a constructor that track changes inside a
+constructor of $\mu X . F \; X$, we call this a \emph{down} edit operation.
+
+  We heavily rely on the facth that $\mu X . F\; X \approx F\;1 \times [\mu X . F\; X]$,
+  that is, any inhabitant of a fixed-point type can be seen as a non-recursive head
+  and a list of recursive children, or, expressed in our generic setting:
+  
+  \Agda{Diffing/Universe/MuUtils}{Openmu-def}
+  
+  \Agda{Diffing/Universe/MuUtils}{mu-open-type}
+  
+  \Agda{Diffing/Universe/MuUtils}{mu-close-type}
+  
+  Although we could have used vectors of a fixed length and made this a total
+  isomorphism, we would have more problems than benefits. This will be discussed
+  in section \ref{subsec:typesafety}. Nonetheless, an important soundness result
+  has been proven:
+  
+  \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
+  
+\subsection{The Cost Function}
 
 \subsection{Sharing of Recursive Subterms}
 
@@ -359,11 +431,11 @@ vice-versa. The other branches are straight-forward.
   \end{itemize}
   
 \subsection{Remarks on Type Safety}
+\label{subsec:typesafety}
 
   \begin{itemize}
-    \item At which level of our design space we would like type-safety?
-    \item Maybe after introducing the matrix idea it is clear that
-          type-safety might be desirable only on the diff level, not on the patch level.
+    \item only the interface to the user can be type-safe,
+          otherwise we don't have our free-monad multiplication.
   \end{itemize}
   
 \section{Patch Propagation}

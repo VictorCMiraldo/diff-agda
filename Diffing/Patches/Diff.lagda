@@ -50,18 +50,24 @@ module Diffing.Patches.Diff where
 \end{code}
 %</D-def>
 
-%<*Patch-def>
 \begin{code}
   ⊥ₚ : {n : ℕ} → Tel n → U n → Set
   ⊥ₚ {_} _ _ = ⊥
+\end{code}
 
+%<*Patch-def>
+\begin{code}
   Patch : {n : ℕ} → Tel n → U n → Set
   Patch t ty = D ⊥ₚ t ty
-       
+\end{code}
+%</Patch-def>
+
+%<*Patchmu-def>
+\begin{code}
   Patchμ : {n : ℕ} → Tel n → U (suc n) → Set
   Patchμ t ty = List (Dμ ⊥ₚ t ty)
 \end{code}
-%</Patch-def>
+%</Patchmu-def>
 
   The cost function is trivial for the non-inductive types.
   The inductive types are a bit trickier, though.
@@ -146,30 +152,28 @@ module Diffing.Patches.Diff where
   infixr 20 _⊔_
   infixr 20 _⊔μ_
   mutual
+    {-# TERMINATING #-}
 \end{code}
 %<*gdiff-def>
 \begin{code}
-    {-# TERMINATING #-}
     gdiff : {n : ℕ}{t : Tel n}{ty : U n} 
           → ElU ty t → ElU ty t → Patch t ty
     gdiff {ty = vl} (top a) (top b)    = D-top (gdiff a b)
+    
     gdiff {ty = wk u} (pop a) (pop b)  = D-pop (gdiff a b)
+    
     gdiff {ty = β F x} (red a) (red b) = D-β (gdiff a b)
 
-    -- Units and products are trivial.
     gdiff {ty = u1} void void = D-void
+    
     gdiff {ty = ty ⊗ tv} (ay , av) (by , bv) 
       = D-pair (gdiff ay by) (gdiff av bv)
 
-    -- Coproducts are not very hard either
     gdiff {ty = ty ⊕ tv} (inl ay) (inl by) = D-inl (gdiff ay by)
     gdiff {ty = ty ⊕ tv} (inr av) (inr bv) = D-inr (gdiff av bv)
     gdiff {ty = ty ⊕ tv} (inl ay) (inr bv) = D-setl ay bv
     gdiff {ty = ty ⊕ tv} (inr av) (inl by) = D-setr av by
 
-    -- Now we get to the interesting bit.
-    -- Note that we need to use lists to handle
-    -- the possibility of multiple arguments.
     gdiff {ty = μ ty} a b = D-mu (gdiffL (a ∷ []) (b ∷ []))
 \end{code}
 %</gdiff-def>

@@ -23,14 +23,16 @@ Diffing.Universe.Ops.
 Opening a fixed point is pretty simple, we already have the 
 generic functions that do so.
 
-%<*mu-open>
+%<*mu-open-type>
 \begin{code}
   μ-open : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
          → ElU (μ ty) t → Openμ t ty
+\end{code}
+%</mu-open-type>
+\begin{code}
   μ-open (mu el) with unplug el
   ...| hd , ch = hd , toList ch
 \end{code}
-%</mu-open>
 
 It is trivially true that opening a fixpoint preserves it arity.
 
@@ -70,17 +72,19 @@ Closing it, though, requires some care in how we define it.
   ...| hip rewrite hip = refl
 \end{code}
 
-%<*mu-close>
+%<*mu-close-type>
 \begin{code}
   μ-close : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
           → Openμ t ty → Maybe (ElU (μ ty) t × List (ElU (μ ty) t))
+\end{code}
+%</mu-close-type>
+\begin{code}
   μ-close (hd , ch) with arity hd ≤?-ℕ length ch
   ...| no  _ = nothing
   ...| yes p with list-split ch p
   ...| (chA , rest) , prf 
      = just (mu (plug hd (vec chA prf)) , rest)
 \end{code}
-%</mu-close>
 
 Now we need some lemmas stating that μ-open and
 μ-close witness an "isomorpihms". The correct way
