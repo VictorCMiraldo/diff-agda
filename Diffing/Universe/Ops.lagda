@@ -193,6 +193,13 @@ Now we can start defining a few generic operations on terms.
 \end{code}
 %</unplug>
 
+\begin{code}
+  term-hd : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
+          → (el : ElU a (tcons b t))
+          → (ElU a (tcons u1 t))
+  term-hd = p1 ∘ unplug
+\end{code}
+
   Plug follows the same approach,
 
 \begin{code}
@@ -396,3 +403,4 @@ Now we can start defining a few generic operations on terms.
              (plug-lvl-correct fz el)
 \end{code}
 %</plug-correct-type>
+

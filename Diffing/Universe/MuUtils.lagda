@@ -32,6 +32,12 @@ generic functions that do so.
 \end{code}
 %</mu-open>
 
+\begin{code}
+  μ-hd : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+       → ElU (μ ty) t → ElU ty (tcons u1 t)
+  μ-hd = p1 ∘ μ-open
+\end{code}
+
 It is trivially true that opening a fixpoint preserves it arity.
 
 \begin{code}

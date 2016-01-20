@@ -100,6 +100,12 @@ module Diffing.Utils.Propositions where
   nat-≤-step z≤n       = z≤n
   nat-≤-step (s≤s prf) = s≤s (nat-≤-step prf)
 
+  ≤-+ : {m n o p : ℕ} 
+      → m ≤ o → n ≤ p → m + n ≤ o + p
+  ≤-+ {o = zero} z≤n s = s
+  ≤-+ {o = suc o} z≤n s = nat-≤-step (≤-+ {o = o} z≤n s)
+  ≤-+ (s≤s r) s = s≤s (≤-+ r s)
+
   data LEQ : ℕ → ℕ → Set where
     LEQ-refl : {n : ℕ} → LEQ n n
     LEQ-step : {n m : ℕ} → LEQ n m → LEQ n (suc m)

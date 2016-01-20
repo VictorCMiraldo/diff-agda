@@ -102,8 +102,8 @@ module Diffing.Patches.Diff where
     cost  D-void        = 1
     cost (D-inl d)      = 1 + cost d
     cost (D-inr d)      = 1 + cost d
-    cost (D-setl xa xb) = sizeElU xa + sizeElU xb
-    cost (D-setr xa xb) = sizeElU xa + sizeElU xb
+    cost (D-setl xa xb) = 2 * (sizeElU xa + sizeElU xb)
+    cost (D-setr xa xb) = 2 * (sizeElU xa + sizeElU xb)
     cost (D-pair da db) = cost da + cost db
     cost (D-β d)   = cost d
     cost (D-top d) = cost d
