@@ -35,7 +35,8 @@ module Diffing.Patches.Conflicts where
 \begin{code}
   data C : {n : ℕ} → Tel n → U n → Set where
     UpdUpd : {n : ℕ}{t : Tel n}{a b : U n}
-           → ElU (a ⊕ b) t → ElU (a ⊕ b) t → ElU (a ⊕ b) t → C t (a ⊕ b)
+           → ElU (a ⊕ b) t → ElU (a ⊕ b) t → ElU (a ⊕ b) t 
+           → C t (a ⊕ b)
     DelUpd : {n : ℕ}{t : Tel n}{a : U (suc n)}
            → ValU a t → ValU a t → C t (μ a)
     UpdDel : {n : ℕ}{t : Tel n}{a : U (suc n)}

@@ -390,6 +390,13 @@ which indicate the type for which that diff is intented. We then define:
     \[ \text{apply }p_a\;a \equiv \text{Just }a' \]
   \end{definition}
 
+  \begin{figure*}
+  \tiny
+  \Agda{Diffing/Patches/Diff}{D-def}
+  \caption{Complete Definition of $D$} 
+  \label{fig:ddef}
+  \end{figure*}
+
 \paragraph*{Fixed Points}
 
   The treatment for fixed points has to be made uniform, somehow, if we
@@ -430,6 +437,159 @@ constructor of $\mu X . F \; X$, we call this a \emph{down} edit operation.
   
 \subsection{The Cost Function}
 
+  \begin{TODO}
+    \item the cost function should satisfy a few properties, such as:
+          if $x$ and $y$ come from the same constructor,
+          then $cost (diff x y) \le cost (Del x :: Add y :: End)$.
+          Otherwise, $gdiffL$ will always choose $DmuDwn$ first.
+  \end{TODO}
+
+\section{A Category of Patches}
+
+\begin{RESEARCH}
+  \item Define patch composition, prove it makes a category.
+  \item But then... does it make sense to compute the composition of patches?
+  \item In a vcs setting, we always have the intermediate files that originated
+        the patches, meaning that composition can be defined semantically
+        by: $apply (p \cdot q) \equiv apply q \circ apply p$, where $\circ$ is
+        the Kleisli composition of $+1$.
+  \item This gives me an immediate category... how usefull is it?
+\end{RESEARCH}
+  
+\section{Patch Propagation}
+
+  Let's say Bob and Alice perform edits in a given object, which are captured by
+patches $p$ and $q$. In the version control setting, the natural question to ask
+is \emph{how do we join these changes}.
+  
+  There are two solutions that could possibly arise from this question. Either
+we group the changes made by $p$ and by $q$ (as long as they are compatible) and
+create a new patch to be applied on the source object, or, we calculate how to
+propagate the changes of $p$ over $q$ and vice-versa. Figure \ref{fig:residual}
+illustrates these two options.
+  
+  
+  \begin{figure}[h]
+  \begin{displaymath}
+    \xymatrix{
+         & A_0 \ar[dl]_{p} \ar[dr]^{q} &  &
+         & A_0 \ar[dl]_{p} \ar[dr]^{q} \ar[dd]_{p \cup q} & \\
+         A_1 \ar[dr]_{q / p} & & A_2 \ar[dl]^{p / q} & 
+         A_1 & & A_2 \\
+         & A_3 & & & A_3 &     
+      }
+  \end{displaymath}
+  \caption{Residual Square on the left; three-way-merging on the right}
+  \label{fig:residual}
+  \end{figure}
+    
+  The residual $p / q$ of two patches $p$ and $q$ only makes sense if both $p$
+and $q$ are aligned, that is, are defined for the same input. It captures the
+notion of incorporating the changes made by $p$ in an object that has already
+been modified by $q$.
+  
+  We chose to use the residual notion, as it seems to have more structure into
+it. Not to mention we could define $p \cup q \equiv (q \ p) \cdot p \equiv (p /
+q) \cdot q$. Unfortunately, however, there exists conflicts we need to take care
+of, which makes everything more complicated.
+  
+  In an ideal world, we would expect the residual function to have type |D a ->
+D a -> Maybe (D a)|, where the partiality comes from receiving two non-aligned
+patches.
+  
+  But what if Bob and Alice changes the same cell in their CSV file? Then it is
+obvious that someone (human) have to chose which value to use in the final,
+merged, version. 
+  
+  For this illustration, we will consider the conflicts that can arise from
+propagating the changes Alice made over the changes already made by Bob, that
+is, $p_{alice} / p_{bob}$.
+  
+  \begin{itemize}
+    \item If Alice changes $a_1$ to $a_2$ and Bob changed $a_1$ to $a_3$,
+          with $a_2 \neq a_3$, we have an \emph{update-update} conflict;
+    \item If Alice adds information to a fixed-point, this is
+          a \emph{grow-left} conflict;
+    \item When Bob added information to a fixed-point, which Alice didn't,
+          a \emph{grow-right} conflict arises;
+    \item If both Alice and Bob add different information to a fixed-point,
+          a \emph{grow-left-right} conflict arises;
+    \item If Alice deletes information that was changed by Bob we have
+          an \emph{delete-update} conflict;
+    \item Last but not least, if Alice changes information that was deleted by Bob
+          we have an \emph{update-delete} conflict.          
+  \end{itemize}
+  
+  Above we see two distinct conflict types. An \emph{update-update}
+  conflict has to happen on a coproduct type, whereas the rest
+  are restricted to fixed-point types. In Agda,
+  
+  \Agda{Diffing/Patches/Conflicts}{C-def}
+  
+  
+  
+  \begin{TODO}
+    \item Pijul has this notion of handling a merge as a pushout,
+          but it uses the free co-completion of a rather simple category.
+          This doesn't give enough information for structured
+          conflict solving.
+    \item BACK THIS UP!
+  \end{TODO}
+    
+\subsection{Incorporating Conflicts}
+
+  In order to track down these conflicts we need a more expressive patch data
+structure. We exploit $D$'s parameter for that matter. This approach has the
+advantage of separating conflicting from conflict-free patches on the type level,
+guaranteing that we can only \emph{apply} conflict-free patches.
+
+  The type of our residual\footnote{Our residual operation does not form a
+residual as in the Term Rewriting System sense\cite{Bezem2003}. It might,
+however, satisfy interesting properties. This is left as future work for now}.
+operation is:
+  
+  \Agda{Diffing/Patches/Residual}{residual-type}
+  
+  We reitarate that the partiality comes from the fact the residual is not
+defined for non-aligned patches. We chose to make a partial function instead of
+receiving a proof of alignment purely for pratical purposes. Defining alignment
+for our patches is very complicated.
+  
+  The attentive reader might have noticed a symmetric structure on conflicts.
+This is not at all by chance. In fact, we can prove that the residual of
+$p / q$ have the same (modulo symmetry) conflicts as $q / p$. This proof
+goes in two steps. Firstly, \F{residual-symmetry} proves that the symmetric
+of the conflicts of $p / q$ appear in $q / p$, but this happens modulo
+a function. We then prove that this function does not introduce any new conflicts,
+it is purely structural. 
+  
+  \Agda{Diffing/Patches/Residual/Symmetry}{residual-symmetry-type}
+  
+  \Agda{Diffing/Patches/Residual/SymmetryConflict}{residual-sym-stable-type}
+  
+  Here \F{$<M>$} denotes the Kleisli composition of the $Maybe$ monad and
+  \F{$\downarrow-map-\downarrow$} takes care of the indexes.
+    
+  Now, we can compute both $p / q$ and $q / p$ at the same time. It also
+backs the intuition that using residuals or patch commutation (as in darcs) is
+not significantly different.
+  
+  This means that $p / q$ and $q / p$, although different, have the same conflicts
+(up to symmetry).
+  
+\subsection{Solving Conflicts}
+
+  \begin{TODO}
+    \item This is highly dependent on the structure.
+    \begin{itemize}
+      \item some structures might allow permutations,
+            refactorings, etc... whereas others might not.
+    \end{itemize}
+    \item How do we go generic? Free-monads to the rescue!
+  \end{TODO}
+  
+\section{Summary and Remarks}
+
 \subsection{Sharing of Recursive Subterms}
 
   \begin{itemize}
@@ -445,94 +605,6 @@ constructor of $\mu X . F \; X$, we call this a \emph{down} edit operation.
     \item only the interface to the user can be type-safe,
           otherwise we don't have our free-monad multiplication.
   \end{itemize}
-  
-\section{Patch Propagation}
-
-  Let's say Bob and Alice perform edits in a given object, which
-  are captured by patches $p$ and $q$, shown in figure \ref{fig:residual}.
-  The natural question to ask is \emph{how do we join these changes}.
-  
-  \begin{figure}[h]
-  \begin{displaymath}
-    \xymatrix{
-         & A_0 \ar[dl]_{p} \ar[dr]^{q} & \\
-         A_1 \ar[dr]_{q / p} & & A_2 \ar[dl]^{p / q} \\
-         & A_3 &      
-      }
-  \end{displaymath}
-  \caption{Residual Square}
-  \label{fig:residual}
-  \end{figure}
-  
-  The residual $p / q$ of two patches $p$ and $q$ only makes sense if
-  both $p$ and $q$ are aligned, that is, are defined for the same input.
-  It captures the notion of incorporating the changes made by $p$ in
-  an object that has already been modified by $q$.
-  
-  \begin{TODO}
-    \item Pijul has this notion of handling a merge as a pushout,
-          but it uses the free co-completion of a rather simple category.
-          This doesn't give enough information for structured
-          conflict solving.
-    \item BACK THIS UP!
-  \end{TODO}
-  
-  In an ideal world, we would expect the residual function
-  to have type |D a -> D a -> Maybe (D a)|, where the partiality
-  comes from receiving two non-aligned patches.
-  
-  But what if Bob and Alice changes the same cell in their CSV file?
-  Then it is obvious that someone (human) have to chose which value to
-  use in the final, merged, version. 
-  
-  Here we see that this residual operation is where conflicts are introduced in
-our theory.
-  
-\subsection{Incorporating Conflicts}
-
-  In order to track down these conflicts we need a more expressive patch data
-structure. We chose to parametrize $D$ over an abstract type and add another
-dummy constructor to it, much like we would do in a free monad construction.
-The actual data structure we use is presented in figure \ref{fig:ddef}.
-
-  \begin{TODO}
-    \item Show where conflicts arise and the two types
-          of conflicts we identify.
-  \end{TODO}
-  
-  \begin{figure*}
-  \Agda{Diffing/Patches/Diff}{D-def}
-  \caption{Complete Definition of $D$} 
-  \label{fig:ddef}
-  \end{figure*}
-  
-  Note that the first constructor of $D$ just asks for a suitably indexed $A$.
-  With this in mind, we can now start to define our residual operation.
-  
-  \begin{TODO}
-    \item Define $Patch = D\;\bot$
-  \end{TODO}
-  \Agda{Diffing/Patches/Residual}{residual-type}
-  
-  It is interesting to note that this residual operation is somewhat symmetric:
-  
-  \Agda{Diffing/Patches/Residual/Symmetry}{residual-symmetry-type}
-  
-  \Agda{Diffing/Patches/Residual/SymmetryConflict}{residual-sym-stable-type}
-  
-  This means that $p / q$ and $q / p$, although different, have the same conflicts
-(up to symmetry).
-  
-\subsection{Solving Conflicts}
-
-  \begin{TODO}
-    \item This is highly dependent on the structure.
-    \begin{itemize}
-      \item some structures might allow permutations,
-            refactorings, etc... whereas others might not.
-    \end{itemize}
-    \item How do we go generic? Free-monads to the rescue!
-  \end{TODO}
   
 \section{A Haskell Prototype}
   
