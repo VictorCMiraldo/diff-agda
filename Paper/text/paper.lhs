@@ -9,6 +9,7 @@
 \usepackage{agda}
 \usepackage[all]{xypic}
 \usepackage{tikz}
+\usepackage{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% WORKFLOW ENVS
@@ -127,6 +128,16 @@
   \node [csv] {#2}
     child { node [csv] {#1} edge from parent node [left] {#4} }
     child { node [csv] {#3} edge from parent node [right] {#5} } ;
+\end{tikzpicture}}
+
+\newcommand{\csvABlbl}[3]{
+\begin{tikzpicture}[sibling distance=4cm, level distance=2cm,
+  csv/.style = {shape = rectangle , draw , align=center},
+  env/.style = {shape = rectangle , white , draw},
+  edge from parent/.style={draw=black,-latex}]
+  
+  \node [csv] {#1}
+    child { node [csv] {#2} edge from parent node [right] {#3} } ;
 \end{tikzpicture}}
 
 %%%%%%
@@ -282,13 +293,74 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
 \section{Structural Diffing}
 
   Alice and Bob were both editing a CSV file which represents data
-  that is isomorphic to |[[Atom String]]|, where |Atom a| is a simple
-  tag that indicates that |a|s should be treated as atomic. 
+that is isomorphic to |[[Atom String]]|, where |Atom a| is a simple tag that
+indicates that |a|s should be treated abstractly, that is, either they are equal
+or different, we will not open these values to check for structural changes.
+
+  As we are tracking differences, there are a few operations that are inherent
+to our domain, such as: inserting; deleting; copying and updating. When we say
+\emph{structural diffing}, however, we add another option to this list. Now we
+will also be able to go down the structure of some object and inspect its parts.
+To illustrate this, let us take Alice's change as in figure \ref{fig:csvfiles},
+her changes to the file could be described, structurally, as:
+
+\begin{enumerate}[I)]
+    \item Copy the first line;
+    \item Enter the second line;
+      \begin{enumerate}[i)]
+        \item Copy the first field;
+        \item Enter the second field;
+          \begin{itemize}
+            \item Update atom |"1"| for atom |"2"|.
+          \end{itemize}
+        \item Copy the third field;
+      \end{enumerate}
+    \item Copy the third line.
+    \item Finish.
+\end{enumerate}
+  
+In figure \ref{fig:alicespatch} we show the patch that corresponds to that.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{m{.17\textwidth} m{.6\textwidth}}
+\csvABlbl{\begin{tabular}{lll}
+items & qty & unit \\
+flour & 1   & cp   \\
+eggs  & 2   & units
+\end{tabular}}{\begin{tabular}{lll}
+items & qty & unit \\
+flour & 2    & cp  \\
+eggs  & 2    & units 
+\end{tabular}}{Alice}
+ &
+  $ \begin{array}{l l}
+  Cpy & | ["items" , "qty" , "unit" ] | \\
+  Dwn & \left\{ \begin{array}{l l} 
+            Cpy & |"flour"| \\ 
+            Dwn & Upd \; | "1" "2" | \\
+            Cpy & |"cp"| \\
+            End &
+         \end{array} \right. \\
+  Cpy & | ["eggs" , "2" , "units"] | \\
+  End &
+ \end{array} $    
+\end{tabular}
+\end{center}
+\caption{Alice's Patch}
+\label{fig:alicespatch}
+\end{figure}
+
+  Consider now Bob's structural changes to the CSV file\footnote{Exercise to the
+reader! Clue: the last two operations are $Ins\;|["sugar" , "1" , "tsp"]|\;End$}. If you overlap
+both, you should notice that there is $Upd$ operation on top of another. This
+was in fact expected given that Alice and Bob performed changes in disjoint
+parts of the CSV file.
+  
   
   \begin{TODO}
-    \item What do we mean by structural?
-    \item Give some context: Tree-edit distance; 
-    \item We seek to obtain a system with something close to residuals.
+    \item Diffing and tree-edit distance are very closely related problems.
+    \item This should go on background, though.
   \end{TODO}
   
   \begin{RESEARCH}
@@ -302,17 +374,54 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
             See refactoring}
   \end{RESEARCH}
   
-\subsection{Context Free Datatypes}
-  
   \begin{TODO}
-    \item Explain the universe we're using.
-    \item Explain the intuition behing our $D$ datatype.
-    \item Mention that it is correct.
+    \item connect this section and the next
   \end{TODO}
   
-  Took from \cite{Altenkirch2006}.
+\newcommand{\CF}{\text{CF}}
+\subsection{Context Free Datatypes}
+
+  Although our running example, of CSV files, has type |[[Atom String]]|,
+lists of $a$ themselfes are in fact the least fixed point of the functor $X
+\mapsto 1 + a \times X$. Which is a \emph{context-free type}, in the sense of
+\cite{Altenkirch2006}. For it is constructed following the grammar $\CF$ of
+context free types with a deBruijn representation for variables.
+  
+  \[
+    \CF ::= 1 \mid 0 \mid \CF \times \CF \mid \CF + \CF \mid \mu \; \CF \mid \mathbb{N}
+  \]
+  
+  In Agda, the $\CF$ universe is defined by:
   
   \Agda{Diffing/Universe/Syntax}{U-def}
+  
+  We stress that one of the main objectives of this project is to release a 
+solid diffing and merging tool that has formal guarantees, written in Haskell.
+The universe of user-defined Haskell types is smaller than context free types;
+in fact, we have fixed-points of sums-of-products. Therefore, we should be able
+to apply the knowledge acquired in Agda directly in Haskell. In fact, we did so!
+With a few adaptations here and there, to make the type-checker happy, the
+Haskell code is almost a direct translation, and will be discussed in section
+\ref{sec:haskell}.
+  
+  Stating the language of our types is not enough. We need to specify its
+elements too. Fixed-points make things a bit more complicated, therefore we
+refer the reader to \cite{Altenkirch2006} for a more in-depth explanation on the
+topic. In Agda, the elements of \F{U} are defined by:
+  
+  \AgdaI{Diffing/Universe/Syntax}{ElU-def}{-3.5em}
+  
+  The \F{Tel} index is the telescope in which to look for the instantiation
+of type-variables. A value $(v\; :\; \F{ElU}\; \{n\}\; ty\; t)$ reads roughly
+as: a value of type $ty$ with $n$ variables, applied to $n$ types $t$ with at
+most $n-1$ variables. We need this decrease of type variables to convince the
+termination checker that our code is ok.
+  
+  Our universe choice supports a great deal of generic definitions; we have
+generic decidable equality, generic mapping, generic childrens, etc. Explaining
+
+  
+  
   
   \begin{TODO}
     \item Explain the patching problem.
@@ -324,11 +433,13 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   
 \subsection{Patches over a Context Free Type}
 
-  \begin{TODO}
-    \item Explain that a patch is something which we can apply.
-    \item Loh's approach is too generic, as the diff function
-          should have type $a \rightarrow a \rightarrow D\; a$.
-  \end{TODO}
+  A patch over $A$ is an object that describe possible changes that can
+be made to objects of type $A$. The high-level idea is that diffing two
+objects $a_1 , a_2 : A$ will produce a patch over $A$, whereas applying
+a patch over $A$ to an object will produce a $Maybe\;A$. It is interesting
+to note that application can not be made total. Let's consider $A = X + Y$,
+and now consider a patch $(Left\; x) \xrightarrow{p} (Left\; x')$. 
+What should be the result of applying $p$ to a $(Right\; y)$? It is undefined!
 
   In order to simplify the presentation, we are gonna explicitely name variables
 and write our types in a more mathematical fashion, other than the Agda
@@ -368,16 +479,18 @@ vice-versa. The other branches are straight-forward.
 would define patches for a given datatype. The actual definition (figure
 \ref{fig:ddef}) is more complicated, though. The Diff type takes one parameter,
 used to give a free-monad \mcite{find a reference!} structure, and two indexes
-which indicate the type for which that diff is intented. We then define:
+which indicate the type for which that diff is intented. We then define, with
+|BOTP = \ _ _ -> BOT|:
   
   \Agda{Diffing/Patches/Diff}{Patch-def}
   
-  Where |BOTP = \ _ _ -> BOT|. 
-  
-  Our first goal is to produce patches, or to differentiate
-  between to objects of the same type. We can do that generically through
+  Our first goal is, of course, to produce patches, or to differentiate
+between to objects of the same type. We can do that generically through
   
   \Agda{Diffing/Patches/Diff}{gdiff-def}
+  
+  Here the \F{gdiffL} function is virtually the same as presented in
+\cite{Loh2009}, with the extra case for traversing down a constructor.  
   
   \begin{TODO}
     \item wrap it up?
@@ -607,6 +720,7 @@ not significantly different.
   \end{itemize}
   
 \section{A Haskell Prototype}
+\label{sec:haskell}
   
   \begin{TODO}
     \item throw \emph{hs-diff} in github before the deadline!
