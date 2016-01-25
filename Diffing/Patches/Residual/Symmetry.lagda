@@ -5,6 +5,7 @@ open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor
+open import Diffing.Patches.Id
 open import Diffing.Patches.Conflicts
 open import Diffing.Patches.Residual
 open import Data.List.Properties renaming (∷-injective to ∷-inj)
@@ -44,8 +45,8 @@ module Diffing.Patches.Residual.Symmetry where
 
   if-dwn : {n : ℕ}{t : Tel n}{ty : U (suc n)}
          → (D C t (β ty u1) → D C t (β ty u1)) → Dμ C t ty → Dμ C t ty
-  if-dwn f (Dμ-dwn x dx) = Dμ-dwn x (f dx)
-  if-dwn f d             = d
+  if-dwn f (Dμ-dwn dx) = Dμ-dwn (f dx)
+  if-dwn f d           = d
 
   private
     mutual
@@ -191,8 +192,8 @@ module Diffing.Patches.Residual.Symmetry where
       aux* (Dμ-ins x ∷ d1) (Dμ-cpy y ∷ d2) prf with <M>-elim prf
       ...| r , refl , p with aux* d1 (Dμ-cpy y ∷ d2) p 
       ...| op , hip = on-tail op , <M>-intro hip
-      aux* (Dμ-ins x ∷ d1) (Dμ-dwn y dy ∷ d2) prf with <M>-elim prf
-      ...| r , refl , p with aux* d1 (Dμ-dwn y dy ∷ d2) p 
+      aux* (Dμ-ins x ∷ d1) (Dμ-dwn dy ∷ d2) prf with <M>-elim prf
+      ...| r , refl , p with aux* d1 (Dμ-dwn dy ∷ d2) p 
       ...| op , hip = on-tail op , <M>-intro hip
 
       aux* (Dμ-del x ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
@@ -201,16 +202,16 @@ module Diffing.Patches.Residual.Symmetry where
       aux* (Dμ-cpy x ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
       ...| r , refl , p with aux* (Dμ-cpy x ∷ d1) d2 p 
       ...| op , hip = on-tail op , <M>-intro hip
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
-      ...| r , refl , p with aux* (Dμ-dwn x dx ∷ d1) d2 p 
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
+      ...| r , refl , p with aux* (Dμ-dwn dx ∷ d1) d2 p 
       ...| op , hip = on-tail op , <M>-intro hip
 
       aux* [] (Dμ-del x ∷ d2) ()
       aux* [] (Dμ-cpy x ∷ d2) ()
-      aux* [] (Dμ-dwn x dx ∷ d2) ()
+      aux* [] (Dμ-dwn dx ∷ d2) ()
       aux* (Dμ-del x ∷ d1) [] ()
       aux* (Dμ-cpy x ∷ d1) [] ()
-      aux* (Dμ-dwn x dx ∷ d1) [] ()
+      aux* (Dμ-dwn dx ∷ d1) [] ()
 
       aux* (Dμ-del x ∷ d1) (Dμ-del y ∷ d2) prf with x ≟-U y | y ≟-U x
       aux* (Dμ-del x ∷ d1) (Dμ-del y ∷ d2) () | no ¬p | no _
@@ -232,13 +233,9 @@ module Diffing.Patches.Residual.Symmetry where
       ...| yes p | yes _  with aux* d1 d2 prf
       ...| op , hip = (_∷_ (Dμ-del y) ∘ op) , (<M>-intro hip)
 
-      aux* (Dμ-del x ∷ d1) (Dμ-dwn y dy ∷ d2) prf with x ≟-U y | y ≟-U x
-      aux* (Dμ-del x ∷ d1) (Dμ-dwn y dy ∷ d2) () | no ¬p | no _
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      aux* (Dμ-del .y ∷ d1) (Dμ-dwn y dy ∷ d2) prf | yes refl | yes _ 
-        with gapply dy (red y)
-      aux* (Dμ-del .y ∷ d1) (Dμ-dwn y dy ∷ d2) () | yes refl | yes p | nothing
+      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf 
+        with gapply dy (red x)
+      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) () | nothing
       ...| just (red y') with <M>-elim prf
       ...| r , refl , q with aux* d1 d2 q
       ...| op , hip = on-tail op , <M>-intro hip
@@ -251,15 +248,11 @@ module Diffing.Patches.Residual.Symmetry where
       ...| r , refl , q with aux* d1 d2 q
       ...| op , hip = (on-tail op) , <M>-intro hip
 
-      aux* (Dμ-cpy x ∷ d1) (Dμ-dwn y dy ∷ d2) prf with x ≟-U y | y ≟-U x
-      aux* (Dμ-cpy x ∷ d1) (Dμ-dwn y dy ∷ d2) () | no ¬p | no _
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      aux* (Dμ-cpy .y ∷ d1) (Dμ-dwn y dy ∷ d2) prf | yes refl | yes _ 
+      aux* (Dμ-cpy x ∷ d1) (Dμ-dwn dy ∷ d2) prf 
         with <M*>-elim {x = res d1 d2} prf
       ...| (f1 , x1) , (q1 , q2) with <M>-elim q1
       ...| r1 , r2 , r3 with <M>-elim r3
-      ...| s1 , s2 , s3 with aux (D-β (gdiff-id y)) dy s3
+      ...| s1 , s2 , s3 with aux (D-β (gdiff-id x)) dy s3
       ...| opD , hipD rewrite q1 with <M>-elim (<M*>-to-<M> {x = res d1 d2} prf)
       ...| t1 , t2 , t3 with aux* d1 d2 t3
       ...| op* , hip* rewrite hipD | hip* | r2 | q2 
@@ -267,26 +260,18 @@ module Diffing.Patches.Residual.Symmetry where
         , cong just (sym (trans (cong (λ P → Dμ-map C-sym (if-dwn opD P ∷ op* x1)) s2) 
                (cong₂ _∷_ refl (cong (λ P → Dμ-map C-sym (op* P)) (p2 (∷-inj t2))))))
 
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-del y ∷ d2) prf with x ≟-U y | y ≟-U x
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-del y ∷ d2) () | no ¬p | no _
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-del .x ∷ d2) prf | yes refl | yes _ 
-        with gapply dx (red x)
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-del .x ∷ d2) () | yes refl | yes _ | nothing
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf 
+        with gapply dx (red y)
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) () | nothing
       ...| just (red x') with <M>-elim prf
       ...| r , refl , q with aux* d1 d2 q
       ...| op , hip = (on-tail op) , (<M>-intro hip)
 
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-cpy y ∷ d2) prf with x ≟-U y | y ≟-U x
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-cpy y ∷ d2) () | no ¬p | no _
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-cpy .x ∷ d2) prf | yes refl | yes _ 
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-cpy y ∷ d2) prf 
         with <M*>-elim {x = res d1 d2} prf
       ...| (f1 , x1) , (q1 , q2) with <M>-elim q1
       ...| r1 , r2 , r3 with <M>-elim r3
-      ...| s1 , s2 , s3 with aux dx (D-β (gdiff-id x)) s3
+      ...| s1 , s2 , s3 with aux dx (D-β (gdiff-id y)) s3
       ...| opD , hipD rewrite q1 with <M>-elim (<M*>-to-<M> {x = res d1 d2} prf)
       ...| t1 , t2 , t3 with aux* d1 d2 t3
       ...| op* , hip* rewrite hipD | hip* | r2 | q2 
@@ -294,11 +279,7 @@ module Diffing.Patches.Residual.Symmetry where
         , cong just (sym (trans (cong (λ P → Dμ-map C-sym (if-dwn opD P ∷ op* x1)) s2) 
                (cong₂ _∷_ refl (cong (λ P → Dμ-map C-sym (op* P)) (p2 (∷-inj t2))))))
 
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-dwn y dy ∷ d2) prf with x ≟-U y | y ≟-U x
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-dwn y dy ∷ d2) () | no ¬p | no _
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      aux* (Dμ-dwn x dx ∷ d1) (Dμ-dwn .x dy ∷ d2) prf | yes refl | yes _ 
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-dwn dy ∷ d2) prf 
         with <M*>-elim {x = res d1 d2} prf
       ...| (f1 , x1) , (p1 , p2) rewrite p1 
          with <M>-elim (<M*>-to-<M> {f = f1} {x = res d1 d2} prf)
@@ -307,7 +288,7 @@ module Diffing.Patches.Residual.Symmetry where
       ...| rp1 , pp1 , qp1 with <M>-elim qp1
       ...| rqp1 , pqp1 , qqp1 with aux dx dy qqp1
       ...| opHd , hipHd rewrite hipHd | pp1 
-         = hd-tail (const (Dμ-dwn x (opHd rqp1))) op 
+         = hd-tail (const (Dμ-dwn (opHd rqp1))) op 
          , <M>-to-<M*> (<M>-intro hip)
 \end{code}
 

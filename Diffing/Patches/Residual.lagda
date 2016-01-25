@@ -5,6 +5,7 @@ open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor using (cast; forget)
+open import Diffing.Patches.Id
 open import Diffing.Patches.Conflicts
 
 module Diffing.Patches.Residual where
@@ -135,25 +136,19 @@ module Diffing.Patches.Residual where
     ...| yes _ = res dp dq
     ...| no  p = nothing
 
-    res (Dμ-dwn x dx ∷ dp) (Dμ-cpy y ∷ dq) with x ≟-U y
-    ...| no _ = nothing
-    ...| yes _ = _∷_ <M> (Dμ-dwn x <M> (dx / gdiff-id (red y))) <M*> res dp dq
-    res (Dμ-cpy x ∷ dp) (Dμ-dwn y dy ∷ dq) with x ≟-U y
-    ...| no _ = nothing
-    ...| yes _ =  _∷_ <M> (Dμ-dwn x <M> (gdiff-id (red x) / dy)) <M*> res dp dq
-    res (Dμ-dwn x dx ∷ dp) (Dμ-dwn y dy ∷ dq) with x ≟-U y
-    ...| no _ = nothing
-    ...| yes _
-      = _∷_ <M> (Dμ-dwn x <M> (dx / dy)) <M*> res dp dq
+    res (Dμ-dwn dx ∷ dp) (Dμ-cpy y ∷ dq)
+      = _∷_ <M> (Dμ-dwn <M> (dx / gdiff-id (red y))) <M*> res dp dq
+    res (Dμ-cpy x ∷ dp) (Dμ-dwn dy ∷ dq)
+      = _∷_ <M> (Dμ-dwn <M> (gdiff-id (red x) / dy)) <M*> res dp dq
+    res (Dμ-dwn dx ∷ dp) (Dμ-dwn dy ∷ dq) 
+      = _∷_ <M> (Dμ-dwn <M> (dx / dy)) <M*> res dp dq
 
-    res (Dμ-dwn x dx ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
-    ...| no _ = nothing
-    ...| yes _ with gapply dx (red y)
+    res (Dμ-dwn dx ∷ dp) (Dμ-del y ∷ dq)
+      with gapply dx (red y)
     ...| just (red y')  = _∷_ (Dμ-A (UpdDel y' y)) <M> res dp dq
     ...| nothing = nothing
-    res (Dμ-del y ∷ dp) (Dμ-dwn x dx ∷ dq) with x ≟-U y
-    ...| no _ = nothing
-    ...| yes _ with gapply dx (red y)
+    res (Dμ-del y ∷ dp) (Dμ-dwn dx ∷ dq)
+      with gapply dx (red y)
     ...| just (red y')  = _∷_ (Dμ-A (DelUpd y y')) <M> res dp dq
     ...| nothing = nothing
 

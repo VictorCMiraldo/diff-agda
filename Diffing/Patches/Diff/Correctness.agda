@@ -81,7 +81,7 @@ module Diffing.Patches.Diff.Correctness where
                    → (a b : ElU (μ ty) t)
                    → μ-open a ≡ (hdA , chA)
                    → μ-open b ≡ (hdB , chB)
-                   → gapplyL (Dμ-dwn hdA (D-β (gdiff hdA hdB)) ∷ 
+                   → gapplyL (Dμ-dwn (D-β (gdiff hdA hdB)) ∷ 
                               gdiffL (chA ++ as) (chB ++ bs)) (a ∷ as)
                    ≡ just (b ∷ bs)
     correct-mu-down-L a b ra rb with μ-open a | μ-open b | inspect μ-open b

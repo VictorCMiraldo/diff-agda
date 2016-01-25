@@ -37,7 +37,7 @@ module Diffing.Patches.Id where
     Is-diffL-id (Dμ-ins x ∷ p) = ⊥
     Is-diffL-id (Dμ-del x ∷ p) = ⊥
     Is-diffL-id (Dμ-cpy x ∷ p) = Is-diffL-id p
-    Is-diffL-id (Dμ-dwn x dx ∷ p) = Is-diff-id dx × Is-diffL-id p
+    Is-diffL-id (Dμ-dwn dx ∷ p) = Is-diff-id dx × Is-diffL-id p
 \end{code}
 %</Is-diff-id-def>
 
@@ -99,7 +99,7 @@ module Diffing.Patches.Id where
   Now, it is important that Is-diff-id is correct and sound!
 
 %<Is-diff-id-sound>
-\begin{code}
+begin{code}
   mutual
     diff-id-sound : {n : ℕ}{t : Tel n}{ty : U n}
                   → (p : Patch t ty)
@@ -132,6 +132,6 @@ module Diffing.Patches.Id where
     diffL-id-sound (Dμ-ins x ∷ p) () abs
     diffL-id-sound (Dμ-del x ∷ p) () abs
     diffL-id-sound (Dμ-cpy x ∷ p) prf abs = {!!}
-    diffL-id-sound (Dμ-dwn x dx ∷ p) (dxId , pId) abs = {!!}
-\end{code}
+    diffL-id-sound (Dμ-dwn dx ∷ p) (dxId , pId) abs = {!!}
+end{code}
 %</Is-diff-id-sound>
