@@ -106,6 +106,15 @@ module Diffing.Utils.Propositions where
   ≤-+ {o = suc o} z≤n s = nat-≤-step (≤-+ {o = o} z≤n s)
   ≤-+ (s≤s r) s = s≤s (≤-+ r s)
 
+  ¬≤ : {m n : ℕ} → (m ≤ n → ⊥) → n ≤ m
+  ¬≤ {zero} hip = ⊥-elim (hip z≤n)
+  ¬≤ {suc m} {zero} hip = z≤n
+  ¬≤ {suc m} {suc n} hip = s≤s (¬≤ (hip ∘ s≤s))
+
+  ≤-trans : {m n o : ℕ} → m ≤ n → n ≤ o → m ≤ o
+  ≤-trans z≤n s = z≤n
+  ≤-trans (s≤s r) (s≤s s) = s≤s (≤-trans r s)
+
   data LEQ : ℕ → ℕ → Set where
     LEQ-refl : {n : ℕ} → LEQ n n
     LEQ-step : {n m : ℕ} → LEQ n m → LEQ n (suc m)

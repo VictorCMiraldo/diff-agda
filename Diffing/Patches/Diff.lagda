@@ -352,8 +352,7 @@ module Diffing.Patches.Diff where
 \begin{code}
   _≡-Dμ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
          → (d1 d2 : Patchμ t ty) → Set
-  d1 ≡-Dμ d2 = ∀ x → (gapplyL d1 x >>= safeHead)
-                   ≡ (gapplyL d2 x >>= safeHead)
+  d1 ≡-Dμ d2 = ∀ x → gapplyL d1 x ≡ gapplyL d2 x
 \end{code}
 %</patchL-equality>
 
@@ -381,6 +380,31 @@ module Diffing.Patches.Diff where
     postulate
       ≡-Dμ-lift : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
                 → d1 ≡-Dμ d2 → d1 ≡ d2
+
+  substPμ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+          → (P : Patchμ t ty → Set){d1 d2 : Patchμ t ty} 
+          → d1 ≡-Dμ d2
+          → P d1 → P d2
+  substPμ P {d1} {d2} d1≡d2 pd1 with (≡-Dμ-lift {d1 = d1} {d2 = d2} d1≡d2) 
+  ...| prf = subst P prf pd1 
+
+  congPμ : {A : Set}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+         → (P : Patchμ t ty → A) {d1 d2 : Patchμ t ty}
+         → d1 ≡-Dμ d2 → P d1 ≡ P d2
+  congPμ p {d1} {d2} hip = substPμ (λ Q → p Q ≡ p d2) (λ x → sym (hip x)) refl
+
+  open import Data.Nat.Properties
+
+  ⊔μ-≡ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+           (a1 a2 : Patchμ t ty)
+           {b1 b2 : Patchμ t ty}
+         → a1 ≡-Dμ b1
+         → a2 ≡-Dμ b2
+         → (a1 ⊔μ a2) ≡-Dμ (b1 ⊔μ b2)
+  ⊔μ-≡ a1 a2 {b1} {b2} p1 p2
+    rewrite (≡-Dμ-lift {d1 = a1} {d2 = b1} p1) 
+          | (≡-Dμ-lift {d1 = a2} {d2 = b2} p2)
+          = λ x → refl
 \end{code}
 %</patchL-equality-lift>
 
