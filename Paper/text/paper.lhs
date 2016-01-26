@@ -49,17 +49,25 @@
 \vspace{.5em}
 }
 
+\newcommand{\AgdaRaw}[2]{%
+\ExecuteMetaData[excerpts/#1.tex]{#2}
+}
+
+\newcommand{\AgdaDots}{%
+\hskip 3.5em \F{$\vdots$}
+}
+
 % Default code, no additional formatting.
 \newcommand{\Agda}[2]{%
 \begin{agdacode}
-\ExecuteMetaData[excerpts/#1.tex]{#2}
+\AgdaRaw{#1}{#2}
 \end{agdacode}
 }
 
 % Allows us to specify how much \hskip we want through #3.
 \newcommand{\AgdaI}[3]{%
 \begin{agdacode}[#3]
-\ExecuteMetaData[excerpts/#1.tex]{#2}
+\AgdaRaw{#1}{#2}
 \end{agdacode}
 }
 
@@ -68,6 +76,7 @@
 \newcommand{\F}[1]{\AgdaFunction{#1}}
 \newcommand{\K}[1]{\AgdaKeyword{#1}}
 \newcommand{\N}[1]{\AgdaSymbol{#1}}
+\newcommand{\RF}[1]{\AgdaField{#1}}
 \newcommand{\IC}[1]{\AgdaInductiveConstructor{#1}}
 \newcommand{\ICArgs}[2]{\AgdaInductiveConstructor{#1}$\; #2 $}
 \newcommand{\DArgs}[2]{\D{#1}$\; #2 $}
@@ -550,41 +559,41 @@ their diff takes objects of two different types.
   
   \Agda{Diffing/Patches/Diff}{gdiff-def}
   
-  Here the \F{gdiffL} function is very close to what was shown in
-\cite{Loh2009}, with a slight modification.
+  Where the \F{gdiffL} takes care of handling fixed point values. The important
+remark here is that it operates over lists of elements, instead of single
+elements. This is due to the fact that the children of a fixed point element
+is a (possibly empty) list of fixed point elements.
 
 \paragraph*{Fixed Points}
 
-  have a fundamental difference over regular algebraic datatypes.
-  They can grow or shrink arbitralily. We have to account for that when
-  tracking differences between their elements. As we mentioned earlier,
-  the diff of a fixed point is defined by a list of \emph{edit operations}.
+  have a fundamental difference over regular algebraic datatypes. They can grow
+or shrink arbitralily. We have to account for that when tracking differences
+between their elements. As we mentioned earlier, the diff of a fixed point is
+defined by a list of \emph{edit operations}.
   
   \Agda{Diffing/Patches/Diff}{Dmu-type}
   
   Again, we have a constructor for adding \emph{extra} information, which is
-ignored in the case of \F{Patches}/
+ignored in the case of \F{Patches}.
 
   \Agda{Diffing/Patches/Diff}{Dmu-A-def}
   
-  But the interesting part, for now, are the \emph{edit operations} we allow.
+  But the interesting bits are the \emph{edit operations} we allow,
+where $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$:
   
   \Agda{Diffing/Patches/Diff}{Dmu-def}
   
-  The reader familiar with \cite{Loh2009} will notice that they are almost the same
-(adapted to our choice of universe), with the exception of the \IC{D$\mu$-dwn} constructor.
+  The reader familiar with \cite{Loh2009} will notice that they are almost the
+same (adapted to our choice of universe), with two differences: we admit a new
+constructur, \IC{D$\mu$-dwn}; and our diff type is less type-safe. The
+type-safety concerns will be discussed in section \ref{sec:typesafety}.
   
-  
-  it is straight forward to see that the $D\; (\mu X . F\; X)$ is isomorphic to
-a list with three recursive constructors and a non-recursive one. Following the
-edit operations studied by L\"{o}h\cite{loh2009}, we have an \emph{insert}, a
-\emph{delete} and a \emph{end} edit operations. The big difference is that
-instead of copying, we have a constructor that track changes inside a
-constructor of $\mu X . F \; X$, we call this a \emph{down} edit operation.
-
-  We heavily rely on the facth that $\mu X . F\; X \approx F\;1 \times [\mu X . F\; X]$,
-  that is, any inhabitant of a fixed-point type can be seen as a non-recursive head
-  and a list of recursive children, or, expressed in our generic setting:
+  Before we delve into diffing fixed poitn values, we show some specialization
+of our generic operations to fixed points. Given that $\mu X . F\; X \approx
+F\;1 \times [\mu X . F\; X]$, that is, any inhabitant of a fixed-point type can
+be seen as a non-recursive head and a list of recursive children. We then make
+a specialized version of the \F{plug} and \F{unplug} functions, which are more
+convenient:
   
   \Agda{Diffing/Universe/MuUtils}{Openmu-def}
   
@@ -592,14 +601,72 @@ constructor of $\mu X . F \; X$, we call this a \emph{down} edit operation.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-type}
   
-  Although we could have used vectors of a fixed length and made this a total
-  isomorphism, we would have more problems than benefits. This will be discussed
-  in section \ref{subsec:typesafety}. Nonetheless, an important soundness result
-  has been proven:
+  Although the \F{plug} and \F{unplug} uses vectors, to remain total functions,
+we drop that restriction and switch to lists instead, this way we can easily
+construct a fixed-point with the beginning of the list of children, and return
+the unused children. The following soundness lemma guarantees the correct
+behaviour;
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
   
+  We denote the first component of an \emph{opened} fixed point by its
+\emph{value}, or \emph{head}; whereas the second component by its children. The
+diffing of fixed points, which was heavily inspired by \cite{Loh2009}, is then
+defined by:
+  
+  \Agda{Diffing/Patches/Diff}{gdiffL-def}
+  
+  
+\newcommand{\lubmu}{\sqcup \hskip -0.1em \mu \;} 
+  The first three branches are simple. To transform |[]| into |[]|, we do not
+need to perform any action; to transform |[]| into |y : ys|, we need to insert
+the respective values; and to transform |x : xs| into |[]| we need to delete the
+respective values. The interesting case happens when we want to transform |x:xs|
+into |y:ys|. The first thing we check is whether the heads are equal, if so, we
+force the copying. If they are not equal, we have three possible diffs that
+perform the required transformation. We then choose the one with \emph{minimum
+cost}, in fact, \F{$\_\lubmu\_$} will return the patch with the least cost. This
+cost notion is very delicate, for it will be discussed later, in section
+\ref{sec:cost}.
+
+  In fact, the example provided in figure \ref{fig:alicespatch} is a diff produced
+by our algorithm, with the constructors simplified to improve readability.
+
+\subsection{Applying Patches}
+
+  At this stage we are able to: work generically on a suitable universe; describe
+how elements of this universe can change and compute those changes. In order to
+make our framework usefull, though, we need to be able to apply the patches we
+compute. To our luck, the application of patches is easy, for we will only
+show the implementation for coproducts and fixedpoints here. The rest is very
+straight forward.
+
+  \begin{agdacode}
+  \AgdaRaw{Diffing/Patches/Diff}{gapply-type}
+  \AgdaRaw{Diffing/Patches/Diff}{gapply-sum-def}
+  \AgdaRaw{Diffing/Patches/Diff}{gapply-mu-def}
+  \AgdaDots
+  \end{agdacode}
+  
+  \Agda{Diffing/Patches/Diff}{gapplyL-def}
+  
+  Where \F{<M>} is the applicative-style application for the \emph{Maybe} monad;
+\RF{>>=} is the usual bind for the \emph{Maybe} monad and \F{safeHead} is the 
+partial head function with type |[a] -> Maybe a|. In \F{gapplyL}, we have
+a \F{gIns} function, which will get a head and a list of children of a
+fixed point, will try to \F{$\mu$-close} it and add the result to the
+head of the remaining list. On the other hand, \F{gDel} will \F{$\mu-open$}
+the first element of the received list, compare it with the current head
+and return the tail of the input list appended to its children. 
+
+  The important part of application is that it must produce the 
+expected result. Our correctness result, below, guarantees that. Its
+proof is too big to be shown here, however.
+
+  \Agda{Diffing/Postulated}{gdiff-correctness}
+
 \subsection{The Cost Function}
+\label{sec:cost}
 
   \begin{TODO}
     \item the cost function should satisfy a few properties, such as:
@@ -764,7 +831,7 @@ not significantly different.
   \end{itemize}
   
 \subsection{Remarks on Type Safety}
-\label{subsec:typesafety}
+\label{sec:typesafety}
 
   \begin{itemize}
     \item only the interface to the user can be type-safe,

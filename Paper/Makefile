@@ -28,7 +28,8 @@ CODE_AGDA_MODULES=Diffing/Universe/Syntax\
                   Diffing/Patches/Conflicts\
                   Diffing/Patches/Residual\
                   Diffing/Patches/Residual/Symmetry\
-                  Diffing/Patches/Residual/SymmetryConflict
+                  Diffing/Patches/Residual/SymmetryConflict\
+                  Diffing/Postulated\
                   
 COMPILER=pdflatex -etex
 
