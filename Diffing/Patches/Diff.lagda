@@ -129,13 +129,31 @@ module Diffing.Patches.Diff where
 \end{code}
 %</lub-def>
 
+\begin{code}
+  paIsFirst : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+            → Patchμ t ty → Patchμ t ty → Bool
+  paIsFirst [] [] = true
+  paIsFirst [] (x ∷ pb) = false
+  paIsFirst (x ∷ pa) [] = true
+  paIsFirst (Dμ-A () ∷ pa) _
+  paIsFirst _ (Dμ-A () ∷ pb)
+  paIsFirst (Dμ-dwn _ ∷ pa) (Dμ-dwn _ ∷ pb) = paIsFirst pa pb
+  paIsFirst (Dμ-dwn _ ∷ pa) (_ ∷ _) = true
+  paIsFirst (_ ∷ _) (Dμ-dwn _ ∷ pb) = false
+  paIsFirst (x ∷ pa) (y ∷ pb)       = paIsFirst pa pb
+\end{code}
+
 %<*lubmu-def>
 \begin{code}
   _⊔μ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
       → Patchμ t ty → Patchμ t ty → Patchμ t ty
   _⊔μ_ {ty = ty} da db with cost (D-mu da) ≤?-ℕ cost (D-mu db)
-  ...| yes _ = da
   ...| no  _ = db
+  ...| yes _ with cost (D-mu da) ≟-ℕ cost (D-mu db)
+  ...| no  _ = da
+  ...| yes _ with paIsFirst da db
+  ...| true  = da
+  ...| false = db
 \end{code}
 %</lubmu-def>
 

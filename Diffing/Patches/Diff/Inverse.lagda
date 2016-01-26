@@ -94,14 +94,25 @@ module Diffing.Patches.Diff.Inverse where
     D-inv-sound (a₁ , a₂) (b₁ , b₂) (x₁ , x₂) = {!!}
     D-inv-sound (top a) (top b) (top x) = {!!}
     D-inv-sound (pop a) (pop b) (pop x) = {!!}
-    D-inv-sound (mu a) (mu b) (mu x) = cong (λ P → P >>= safeHead)
+    D-inv-sound (mu a) (mu b) (mu x) = {! cong (λ P → P >>= safeHead)
                                          (Dμ-inv-sound (mu a ∷ []) (mu b ∷ []) (mu x ∷ []))
+                                       !}
     D-inv-sound (red a) (red b) (red x) = {!!}
 
     Dμ-inv-sound
       : {n : ℕ}{t : Tel n}{ty : U (suc n)}
       → (as bs : List (ElU (μ ty) t))
       → Dμ-inv (gdiffL as bs) ≡-Dμ gdiffL bs as
+    Dμ-inv-sound [] [] = refl
+    Dμ-inv-sound [] (b ∷ bs) = {!!}
+    Dμ-inv-sound (a ∷ as) [] = {!!}
+    Dμ-inv-sound (a ∷ as) (b ∷ bs)
+      with μ-open a | μ-open b
+    ...| hdA , chA | hdB , chB with hdA ≟-U hdB
+    ...| yes _ = {!!}
+    ...| no  _ = {!!}
+
+\end{code}
     Dμ-inv-sound [] [] [] = refl
     Dμ-inv-sound [] [] (x ∷ xs) = refl
     Dμ-inv-sound [] (b ∷ bs) [] = refl
@@ -125,16 +136,5 @@ module Diffing.Patches.Diff.Inverse where
     ...| no ¬p with hdB ≟-U hdA
     ...| yes q = ⊥-elim (¬p (sym q))
     ...| no  _ 
-       rewrite sym (⊔μ-cross (Dμ-ins hdA ∷ gdiffL (b ∷ bs) (chA ++ as)) 
-                         (Dμ-del hdB ∷ gdiffL (chB ++ bs) (a ∷ as)) 
-                         (Dμ-dwn (gdiff (red hdB) (red hdA)) ∷ gdiffL bs as))
-             = {! congPμ (λ P → gapplyL P (x ∷ xs)) 
-               (⊔μ-≡ (Dμ-ins hdB ∷ gdiffL (a ∷ as) (chB ++ bs))
-                     ((Dμ-del hdA ∷ gdiffL (chA ++ as) (b ∷ bs)) ⊔μ
-                             (Dμ-dwn (gdiff (red hdB) (red hdA)) ∷ gdiffL as bs)) 
-                     {!!} 
-                     (⊔μ-≡ (Dμ-del hdA ∷ gdiffL (chA ++ as) (b ∷ bs))
-                           (Dμ-dwn (gdiff (red hdB) (red hdA)) ∷ gdiffL as bs) 
-                           {!!} 
-                           {!!})) !}
-\end{code}
+       = {!!}
+end{code}

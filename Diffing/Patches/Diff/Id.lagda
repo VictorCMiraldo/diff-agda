@@ -6,7 +6,7 @@ open import Diffing.Universe.MuUtils
 open import Diffing.Universe.Measures
 open import Diffing.Patches.Diff
 
-module Diffing.Patches.Id where
+module Diffing.Patches.Diff.Id where
 \end{code}
 
   It is easy to check whether a diff is the identity
@@ -95,43 +95,3 @@ module Diffing.Patches.Id where
        = cong (_∷_ (Dμ-cpy hdA)) (gdiffL-id-correct (chA ++ as))      
 \end{code}
 %</gdiff-id-correct>
-
-  Now, it is important that Is-diff-id is correct and sound!
-
-%<Is-diff-id-sound>
-begin{code}
-  mutual
-    diff-id-sound : {n : ℕ}{t : Tel n}{ty : U n}
-                  → (p : Patch t ty)
-                  → Is-diff-id p
-                  → ∃ (λ el → p ≡ gdiff-id el)
-    diff-id-sound (D-A ()) prf
-    diff-id-sound D-void prf = void , refl
-    diff-id-sound (D-inl p) prf 
-      = split (inl ∘ p1) (cong D-inl ∘ p2) (diff-id-sound p prf)
-    diff-id-sound (D-inr p) prf 
-      = split (inr ∘ p1) (cong D-inr ∘ p2) (diff-id-sound p prf)
-    diff-id-sound (D-setl x x₁) ()
-    diff-id-sound (D-setr x x₁) ()
-    diff-id-sound (D-pair p q) (pp , pq) 
-      = let (ep , hipP) = diff-id-sound p pp
-      in split (_,_ ep ∘ p1) (cong₂ D-pair hipP ∘ p2) (diff-id-sound q pq)
-    diff-id-sound (D-mu x) (prf , abs) 
-      = split (mu ∘ p1) (cong D-mu ∘ p2) {! (diffL-id-sound x prf abs) !}
-    diff-id-sound (D-β p) prf = {!!}
-    diff-id-sound (D-top p) prf = {!!}
-    diff-id-sound (D-pop p) prf = {!!}
-
-    diffL-id-sound : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-                   → (p : Patchμ t ty)
-                   → Is-diffL-id p
-                   → (p ≡ [] → ⊥)
-                   → ∃ (λ el → p ≡ gdiffL-id (el ∷ [])) 
-    diffL-id-sound [] prf abs = ⊥-elim (abs refl)
-    diffL-id-sound (Dμ-A () ∷ p) prf abs
-    diffL-id-sound (Dμ-ins x ∷ p) () abs
-    diffL-id-sound (Dμ-del x ∷ p) () abs
-    diffL-id-sound (Dμ-cpy x ∷ p) prf abs = {!!}
-    diffL-id-sound (Dμ-dwn dx ∷ p) (dxId , pId) abs = {!!}
-end{code}
-%</Is-diff-id-sound>
