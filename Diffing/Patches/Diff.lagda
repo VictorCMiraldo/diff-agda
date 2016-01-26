@@ -264,7 +264,8 @@ module Diffing.Patches.Diff where
     ...| no  _ = let
           d1 = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
           d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
-          d3 = Dμ-dwn (gdiff (red hdX) (red hdY)) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
+          d3 = Dμ-dwn (gdiff (red hdX) (red hdY)) 
+             ∷ (gdiffL (chX ++ xs) (chY ++ ys))
        in d1 ⊔μ d2 ⊔μ d3
     ...|  yes _ = let
           d3 = Dμ-cpy hdX ∷ (gdiffL (chX ++ xs) (chY ++ ys))
@@ -281,30 +282,35 @@ module Diffing.Patches.Diff where
 
   mutual
 \end{code}
-%<*gapply-def>
+%<*gapply-type>
 \begin{code}
     gapply : {n : ℕ}{t : Tel n}{ty : U n}
            → Patch t ty → ElU ty t → Maybe (ElU ty t)
+\end{code}
+%</gapply-type>
+\begin{code}
     gapply (D-A ())
 
     gapply D-void void = just void
+\end{code}
 
+%<*gapply-sum-def>
+\begin{code}
     gapply (D-inl diff) (inl el) = inl <M> gapply diff el
-    gapply (D-inl diff) (inr el) = nothing
-
-    gapply (D-inr diff) (inl el) = nothing
     gapply (D-inr diff) (inr el) = inr <M> gapply diff el
-
     gapply (D-setl x y) (inl el) with x ≟-U el
     ...| yes _ = just (inr y)
     ...| no  _ = nothing
-    gapply (D-setl _ _) (inr _) = nothing
-
     gapply (D-setr y x) (inr el) with y ≟-U el
     ...| yes _ = just (inl x)
     ...| no  _ = nothing
-    gapply (D-setr _ _) (inl _) = nothing
-
+    gapply (D-setr _ _) (inl _)  = nothing
+    gapply (D-setl _ _) (inr _)  = nothing
+    gapply (D-inl diff) (inr el) = nothing
+    gapply (D-inr diff) (inl el) = nothing
+\end{code}
+%</gapply-sum-def>
+\begin{code}
     gapply (D-pair da db) (a , b) with gapply da a
     ...| nothing = nothing
     ...| just ra = _,_ ra <M> gapply db b
@@ -312,12 +318,12 @@ module Diffing.Patches.Diff where
     gapply (D-β diff) (red el) = red <M> gapply diff el
     gapply (D-top diff) (top el) = top <M> gapply diff el
     gapply (D-pop diff) (pop el) = pop <M> gapply diff el
-
-    -- gapply (dx ∘ᴰ dy) el = gapply dy el >>= gapply dx
-
+\end{code}
+%<*gapply-mu-def>
+\begin{code}
     gapply {ty = μ ty} (D-mu d) el = gapplyL d (el ∷ []) >>= safeHead
 \end{code}
-%</gapply-def>
+%</gapply-mu-def>
 
 %<*safeHead-def>
 \begin{code}
