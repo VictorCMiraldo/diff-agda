@@ -150,6 +150,13 @@
 \newtheorem{definition}{Definition}[section]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% LHS formatting rules
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%format BOTP = "\bot_p"
+%format BOT  = "\bot"
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Title, etc...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -395,8 +402,13 @@ context free types with a deBruijn representation for variables.
   
   \Agda{Diffing/Universe/Syntax}{U-def}
   
+  Here, \IC{$\beta$} stands for type application; \IC{$vl$} is the topmost
+variable in scope and \IC{$wk$} ignores the topmost variable in scope. We could
+have used a \F{Fin} to identify variables, and have one instead of two constructors
+for variables, but that would trigger more complicated definitions later on.
+  
   We stress that one of the main objectives of this project is to release a 
-solid diffing and merging tool that has formal guarantees, written in Haskell.
+solid diffing and merging tool, that can provide formal guarantees, written in Haskell.
 The universe of user-defined Haskell types is smaller than context free types;
 in fact, we have fixed-points of sums-of-products. Therefore, we should be able
 to apply the knowledge acquired in Agda directly in Haskell. In fact, we did so!
@@ -405,125 +417,164 @@ Haskell code is almost a direct translation, and will be discussed in section
 \ref{sec:haskell}.
   
   Stating the language of our types is not enough. We need to specify its
-elements too. Fixed-points make things a bit more complicated, therefore we
-refer the reader to \cite{Altenkirch2006} for a more in-depth explanation on the
-topic. In Agda, the elements of \F{U} are defined by:
+elements too, after all, they are the domain which we seek to define our
+algorithms for! Defining elements of fixed-point types make things a bit more
+complicated, check \cite{Altenkirch2006} for a more in-depth explanation of
+these details. Long story short, we have to use a decreasing \F{Tel}escope to
+satisy the termination checker. In Agda, the elements of \F{U} are defined by:
   
-  \AgdaI{Diffing/Universe/Syntax}{ElU-def}{-3.5em}
+  \Agda{Diffing/Universe/Syntax}{ElU-def}
   
   The \F{Tel} index is the telescope in which to look for the instantiation
 of type-variables. A value $(v\; :\; \F{ElU}\; \{n\}\; ty\; t)$ reads roughly
 as: a value of type $ty$ with $n$ variables, applied to $n$ types $t$ with at
 most $n-1$ variables. We need this decrease of type variables to convince the
-termination checker that our code is ok.
-  
-  Our universe choice supports a great deal of generic definitions; we have
-generic decidable equality, generic mapping, generic childrens, etc. Explaining
+termination checker that our code is ok. It's Agda definition is:
 
+  \Agda{Diffing/Universe/Syntax}{Tel-def}
   
+  Let us see a simple example of how types and elements are defined in this
+framework. Consider that we want to encode the list |(u : []) :: [U]|, for
+|U| being the unit type with the single constructor |u|. We start by defining
+the type of lists, this is an element of $\F{U}\;(\IC{suc}\;n)$, which later
+lets us define an element of that type.
+
+  \Agda{Diffing/Universe/Syntax}{U-example}
   
+  So far so good. We seem to have the syntax figured out. But which operations
+can we perform to these elements? As we shall see, this choice of universe
+turns out to be very expressive, providing a plethora of interesting operations.
+The first very usefull concept is the decidability of generic 
+equality\cite{Altenkirch2006}.
+
+  \Agda{Diffing/Universe/Equality}{equality-type}
+  
+  But only comparing things will not get us very far. We need to be able to
+inspect our elements generically. Things like getting the list of immediate children,
+or computing their arity, that is, how many children do they have, are very usefull.
+
+  \Agda{Diffing/Universe/Ops}{children-type}
+  
+  \Agda{Diffing/Universe/Ops}{arity-type}
+  
+  The advantage of doing so in Agda, is that we can prove that our definitions 
+are correct.
+  
+  \Agda{Diffing/Universe/Ops}{children-arity-lemma-type}
+  
+  We can even go a step further and say that every element is defined by a constructor
+and a vector of children, with the correct arity. This lets us treat generic elements as
+elements of a (typed) rose-tree, whenever thas is convenient.
+
+  \Agda{Diffing/Universe/Ops}{unplug-type}
+  
+  \Agda{Diffing/Universe/Ops}{plug-type}
+  
+  \Agda{Diffing/Universe/Ops}{plug-correct-type}
   
   \begin{TODO}
-    \item Explain the patching problem.
-    \item We want a type-safe approach.
-    \item Argue that the types resulting from our parser
-          are in a sub-language of what we treated next.
-    \item introduce \emph{edit-script}, \emph{diffing} and \emph{patching} or \emph{apply}
+    \item Vassena's and Loh's universe is the typed rose-tree! Correlate!!
   \end{TODO}
+  
+  This repertoire of operations, and the hability to inspect an element structurally,
+according to its type, gives us the toolset we need in order to start describing
+differences between elements. That is, we can now start discussing what does it mean
+to \emph{diff} two elements or \emph{patch} an element according to some description
+of changes.  
   
 \subsection{Patches over a Context Free Type}
 
-  A patch over $A$ is an object that describe possible changes that can
-be made to objects of type $A$. The high-level idea is that diffing two
-objects $a_1 , a_2 : A$ will produce a patch over $A$, whereas applying
-a patch over $A$ to an object will produce a $Maybe\;A$. It is interesting
-to note that application can not be made total. Let's consider $A = X + Y$,
+  A patch over $T$ is an object that describe possible changes that can
+be made to objects of type $T$. The high-level idea is that diffing two
+objects $t_1 , t_2 : T$ will produce a patch over $T$, whereas applying
+a patch over $A$ to an object will produce a $Maybe\;T$. It is interesting
+to note that application can not be made total. Let's consider $T = X + Y$,
 and now consider a patch $(Left\; x) \xrightarrow{p} (Left\; x')$. 
 What should be the result of applying $p$ to a $(Right\; y)$? It is undefined!
 
-  In order to simplify the presentation, we are gonna explicitely name variables
-and write our types in a more mathematical fashion, other than the Agda
-encoding. As we discussed earlier, a patch is an object that track differences
-in a given type. Different types will allow for different types of changes.
-  
-  \begin{definition}[Simple Patch]
-  \label{def:simplepatch}
-  We define a (simple) patch $D\; ty$ by induction on $ty$ as:
-    \begin{eqnarray*}
-      D\; 0 & = & 0 \\
-      D\; 1 & = & 1 \\
-      D\; (x \times y) & = & D\; x \times D\; y \\
-      D\; (x + y) & = & (D\; x + D\; y) + 2\times(x \times y) \\
-      D\; (\mu X . F\; X) & = & \mu X . (1 \\
-                          & + & D\;(F\;1) \times X \\
-                          & + & 2\times(F\;1) \times X \\
-                          & ) & 
-    \end{eqnarray*}
-    Where 1 and 0 are the usual terminal and initial objects of a given
-    category.
-  \end{definition}
-  
-  Let's see the coproduct case in more detail. There are four different
-possibilities for the changes seen in a coproduct, just like there are four
-different combinations of constructors for two objects of type |Either a b|. The
-first and second options, namelly $D\; x$ and $D\; y$ track differences of a
-|Left a| into a |Left a'| and a |Right b| into a |Right b'|, respectively. The
-other possibilities are representing a |Left a| becoming a |Right b| or
-vice-versa. The other branches are straight-forward.
+  The type of \emph{diff}'s is defined by \F{D}. It is indexed by a type
+and a telescope, which is the same as saying that we only define \emph{diff}'s for
+closed types\footnote{Types that do not have any free type-variables}. However,
+it also has a parameter $A$, this will be addressed later.
 
-%format BOTP = "\bot_p"
-%format BOT  = "\bot"
-\paragraph*{Producing Patches}
+  \Agda{Diffing/Patches/Diff}{D-type}
+  
+  As we mentioned earlier, we are interested in analizing the set of possible
+changes that can be made to objects of a type $T$. These changes depend on
+the structure of $T$, for the definition follows by induction on it.
 
-  Definition \ref{def:simplepatch} provides us with some intuition on how one
-would define patches for a given datatype. The actual definition (figure
-\ref{fig:ddef}) is more complicated, though. The Diff type takes one parameter,
-used to give a free-monad \mcite{find a reference!} structure, and two indexes
-which indicate the type for which that diff is intented. We then define, with
-|BOTP = \ _ _ -> BOT|:
+  For $T$ being the Unit type, we can not modify it.
+
+  \Agda{Diffing/Patches/Diff}{D-void-def}
   
-  \Agda{Diffing/Patches/Diff}{Patch-def}
+  For $T$ being a product, we need to provide \emph{diffs} for both
+its components.
+
+  \Agda{Diffing/Patches/Diff}{D-pair-def}
   
-  Our first goal is, of course, to produce patches, or to differentiate
-between to objects of the same type. We can do that generically through
+  For $T$ being a coproduct, things become slighlty more interesting. There
+are four possible ways of modifying a coproduct, which are defined by:
+
+  \Agda{Diffing/Patches/Diff}{D-sum-def}
+  
+  We also need some housekeeping definitions to make sure we handle all
+types defined by \F{U}.
+
+  \Agda{Diffing/Patches/Diff}{D-rest-def}
+  
+  Fixed points are handled by a list of \emph{edit operations}. We will
+discuss them in detail later on.
+
+  \Agda{Diffing/Patches/Diff}{D-mu-def}
+  
+  The aforementioned parameter $A$ goes is used in a single consrtuctor,
+allowing us to have a free-monad structure over \F{D}'s. This shows to be
+very usefull for adding extra information, as we shall discuss, on section 
+\ref{sec:conflicts}, for adding conflicts.
+
+  \Agda{Diffing/Patches/Diff}{D-A-def} 
+ 
+  Finally, we define $\F{Patch}\;t\;ty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
+Meaning that a \F{Patch} is a \F{D} with \emph{no} extra information.
+
+\subsection{Producing Patches}  
+  
+  Given a generic definition of possible changes, the primary goal is to produce
+an instance of this possible changes, for two specific elements of a type $T$.
+We shall call this process \emph{diffing}. It is important to note that
+our \F{gdiff} function expects two elements of the same type! This constrasts
+with the work done by Vassena\cite{Vassena2015} and Lempsink\cite{Loh2009}, where
+their diff takes objects of two different types. 
+  
+  For types which are not fixed points, the \F{gdiff} functions looks like:
   
   \Agda{Diffing/Patches/Diff}{gdiff-def}
   
-  Here the \F{gdiffL} function is virtually the same as presented in
-\cite{Loh2009}, with the extra case for traversing down a constructor.  
-  
-  \begin{TODO}
-    \item wrap it up?
-  \end{TODO}
-  
-  \begin{definition}[Defined]
-    We say that a patch $p_a$ is defined for an input $a$ iff there
-    exists an object $a'$ such that:
-    
-    \[ \text{apply }p_a\;a \equiv \text{Just }a' \]
-  \end{definition}
-
-  \begin{figure*}
-  \tiny
-  \Agda{Diffing/Patches/Diff}{D-def}
-  \caption{Complete Definition of $D$} 
-  \label{fig:ddef}
-  \end{figure*}
+  Here the \F{gdiffL} function is very close to what was shown in
+\cite{Loh2009}, with a slight modification.
 
 \paragraph*{Fixed Points}
 
-  The treatment for fixed points has to be made uniform, somehow, if we
-  want a generic algorithm by the end of the day. What makes fixed points different
-  than regular algebraic types is that they can grow or shrink arbitralily,
-  and our diff function has to take that into account.
+  have a fundamental difference over regular algebraic datatypes.
+  They can grow or shrink arbitralily. We have to account for that when
+  tracking differences between their elements. As we mentioned earlier,
+  the diff of a fixed point is defined by a list of \emph{edit operations}.
   
-  Recalling the fixed point clause of simple patches (def \ref{def:simplepatch}),
-  \begin{eqnarray*}
-    D\; (\mu X . F\; X) & = & \mu X . (1 \\
-                          & + & D\;(F\;1) \times X \\
-                          & + & 2\times(F\;1) \times X \\
-                          & ) & 
-  \end{eqnarray*}
+  \Agda{Diffing/Patches/Diff}{Dmu-type}
+  
+  Again, we have a constructor for adding \emph{extra} information, which is
+ignored in the case of \F{Patches}/
+
+  \Agda{Diffing/Patches/Diff}{Dmu-A-def}
+  
+  But the interesting part, for now, are the \emph{edit operations} we allow.
+  
+  \Agda{Diffing/Patches/Diff}{Dmu-def}
+  
+  The reader familiar with \cite{Loh2009} will notice that they are almost the same
+(adapted to our choice of universe), with the exception of the \IC{D$\mu$-dwn} constructor.
+  
+  
   it is straight forward to see that the $D\; (\mu X . F\; X)$ is isomorphic to
 a list with three recursive constructors and a non-recursive one. Following the
 edit operations studied by L\"{o}h\cite{loh2009}, we have an \emph{insert}, a
@@ -650,6 +701,7 @@ is, $p_{alice} / p_{bob}$.
   \end{TODO}
     
 \subsection{Incorporating Conflicts}
+\label{sec:conflicts}
 
   In order to track down these conflicts we need a more expressive patch data
 structure. We exploit $D$'s parameter for that matter. This approach has the

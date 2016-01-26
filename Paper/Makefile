@@ -21,6 +21,7 @@ CODE_AGDA_STDLIB=/home/victor/.include/agda-stdlib
 
 CODE_AGDA_MODULES=Diffing/Universe/Syntax\
                   Diffing/Universe/Equality\
+                  Diffing/Universe/Ops\
                   Diffing/Universe/Map\
                   Diffing/Universe/MuUtils\
                   Diffing/Patches/Diff\
