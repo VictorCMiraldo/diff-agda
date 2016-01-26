@@ -73,13 +73,20 @@ Now, we define a 'free-monad' like datatype for elements.
 %<*ElU-def>
 \begin{code}
   data ElU : {n : ℕ} → U n → Tel n → Set where
-    void : {n : ℕ}{t : Tel n} → ElU u1 t
-    inl  : {n : ℕ}{t : Tel n}{a b : U n}(x : ElU a t) → ElU (a ⊕ b) t
-    inr  : {n : ℕ}{t : Tel n}{a b : U n}(x : ElU b t) → ElU (a ⊕ b) t
-    _,_  : {n : ℕ}{t : Tel n}{a b : U n} → ElU a t → ElU b t → ElU (a ⊗ b) t
-    top  : {n : ℕ}{t : Tel n}{a : U n}   → ElU a t → ElU vl (tcons a t)
-    pop  : {n : ℕ}{t : Tel n}{a b : U n} → ElU b t → ElU (wk b) (tcons a t)
-    mu   : {n : ℕ}{t : Tel n}{a : U (suc n)} → ElU a (tcons (μ a) t) → ElU (μ a) t
+    void : {n : ℕ}{t : Tel n} 
+         → ElU u1 t
+    inl  : {n : ℕ}{t : Tel n}{a b : U n}
+         (x : ElU a t) → ElU (a ⊕ b) t
+    inr  : {n : ℕ}{t : Tel n}{a b : U n}
+         (x : ElU b t) → ElU (a ⊕ b) t
+    _,_  : {n : ℕ}{t : Tel n}{a b : U n} 
+         → ElU a t → ElU b t → ElU (a ⊗ b) t
+    top  : {n : ℕ}{t : Tel n}{a : U n}   
+         → ElU a t → ElU vl (tcons a t)
+    pop  : {n : ℕ}{t : Tel n}{a b : U n} 
+         → ElU b t → ElU (wk b) (tcons a t)
+    mu   : {n : ℕ}{t : Tel n}{a : U (suc n)} 
+         → ElU a (tcons (μ a) t) → ElU (μ a) t
     red  : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n}
          → ElU F (tcons x t)
          → ElU (β F x) t

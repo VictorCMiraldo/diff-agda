@@ -369,7 +369,7 @@ module Diffing.Patches.Diff where
     gapplyL (Dμ-dwn dx ∷ d) [] = nothing
     gapplyL (Dμ-dwn dx ∷ d) (y ∷ l) with μ-open y
     ...| hdY , chY with gapply dx (red hdY)
-    ...| nothing       = nothing
+    ...| nothing   = nothing
     ...| just (red y') = gapplyL d (chY ++ l) >>= gIns y' 
 \end{code}
 %</gapplyL-def>
