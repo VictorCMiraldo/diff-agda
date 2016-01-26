@@ -5,7 +5,7 @@ open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor using (cast; forget)
-open import Diffing.Patches.Id
+open import Diffing.Patches.Diff.Id
 open import Diffing.Patches.Conflicts
 
 module Diffing.Patches.Residual where
@@ -49,11 +49,6 @@ module Diffing.Patches.Residual where
 \end{code}
 %</residual-type>
 \begin{code}
-    {-
-    _/_ D-id _ = just D-id
-    _/_ p D-id = just (cast p)
-    -}
-
     _/_ {ty = u1} p q = just D-void
 
     _/_ {ty = a ⊕ b} (D-inl p) (D-inl q) = D-inl <M> (p / q)

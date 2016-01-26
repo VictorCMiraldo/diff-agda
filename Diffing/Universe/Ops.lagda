@@ -36,13 +36,15 @@ Now we can start defining a few generic operations on terms.
 
   A mmore usefull variant returning the immediate children.
 
-%<*children>
+%<*children-type>
 \begin{code}
   children : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
            → ElU a (tcons b t) → List (ElU b t)
+\end{code}
+%</children-type>
+\begin{code}
   children el = map unpop (children-lvl fz el)
 \end{code}
-%</children>
 
   (forget i) takes a term and ignores the terms at level i,
   substituting them for void.
@@ -87,13 +89,15 @@ Now we can start defining a few generic operations on terms.
 
   Again, a more useful variant.
 
-%<*arity>
+%<*arity-type>
 \begin{code}
   arity : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
         → ElU a (tcons b t) → ℕ
+\end{code}
+%</arity-type>
+\begin{code}
   arity el = arity-lvl fz el
 \end{code}
-%</arity>
 
   Now, a few lemmas come in handy.
   Arity and children are consistent:
@@ -183,15 +187,17 @@ Now we can start defining a few generic operations on terms.
 
   Following with the more useful top-level unplugging.
 
-%<*unplug>
+%<*unplug-type>
 \begin{code}
   unplug : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
          → (el : ElU a (tcons b t))
          → Σ (ElU a (tcons u1 t)) (λ x → Vec (ElU b t) (arity x))
+\end{code}
+%</unplug-type>
+\begin{code}
   unplug el with unplug-lvl fz el
   ...| hd , ch = hd , vmap unpop ch
 \end{code}
-%</unplug>
 
 \begin{code}
   term-hd : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
@@ -394,6 +400,9 @@ Now we can start defining a few generic operations on terms.
   plug-correct : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
                → (el : ElU a (tcons b t))
                → el ≡ plug (p1 (unplug el)) (p2 (unplug el))
+\end{code}
+%</plug-correct-type>
+\begin{code}
   plug-correct {a = a} el with unplug el
   ...| hd , ch  
      = subst (λ P → el ≡ plug-lvl fz (forget fz el) P) 
@@ -402,5 +411,4 @@ Now we can start defining a few generic operations on terms.
                     (λ { (pop x) → refl }))) 
              (plug-lvl-correct fz el)
 \end{code}
-%</plug-correct-type>
 
