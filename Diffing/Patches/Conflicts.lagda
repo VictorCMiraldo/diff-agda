@@ -188,7 +188,7 @@ module Diffing.Patches.Conflicts where
         aux* (Dμ-ins x ∷ ls) = Dμ-ins x ∷ aux* ls
         aux* (Dμ-del x ∷ ls) = Dμ-del x ∷ aux* ls
         aux* (Dμ-cpy x ∷ ls) = Dμ-cpy x ∷ aux* ls
-        aux* (Dμ-dwn x dx ∷ ls) = Dμ-dwn x (aux dx) ∷ aux* ls
+        aux* (Dμ-dwn dx ∷ ls) = Dμ-dwn (aux dx) ∷ aux* ls
     
 \end{code}
 %</partial-merge>

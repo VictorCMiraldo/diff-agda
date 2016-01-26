@@ -46,8 +46,8 @@ module Diffing.Patches.Diff.Functor where
     Dμ-map f (Dμ-ins x ∷ d) = Dμ-ins x ∷ Dμ-map f d
     Dμ-map f (Dμ-cpy x ∷ d) = Dμ-cpy x ∷ Dμ-map f d
     Dμ-map f (Dμ-del x ∷ d) = Dμ-del x ∷ Dμ-map f d
-    Dμ-map f (Dμ-dwn x dx ∷ d) 
-      = Dμ-dwn x (D-map f dx) ∷ Dμ-map f d
+    Dμ-map f (Dμ-dwn dx ∷ d) 
+      = Dμ-dwn (D-map f dx) ∷ Dμ-map f d
 
   --
   -- D-map preserves composition
@@ -88,8 +88,8 @@ module Diffing.Patches.Diff.Functor where
     Dμ-map-join f g (Dμ-ins x ∷ d) = cong (_∷_ (Dμ-ins x)) (Dμ-map-join f g d)
     Dμ-map-join f g (Dμ-del x ∷ d) = cong (_∷_ (Dμ-del x)) (Dμ-map-join f g d)
     Dμ-map-join f g (Dμ-cpy x ∷ d) = cong (_∷_ (Dμ-cpy x)) (Dμ-map-join f g d)
-    Dμ-map-join f g (Dμ-dwn x dx ∷ d) 
-      = cong₂ (λ P Q → Dμ-dwn x P ∷ Q) (D-map-join f g dx) (Dμ-map-join f g d)
+    Dμ-map-join f g (Dμ-dwn dx ∷ d) 
+      = cong₂ (λ P Q → Dμ-dwn P ∷ Q) (D-map-join f g dx) (Dμ-map-join f g d)
 
   --
   -- And identities
@@ -120,8 +120,8 @@ module Diffing.Patches.Diff.Functor where
     Dμ-map-id (Dμ-ins x ∷ d) = cong (_∷_ (Dμ-ins x)) (Dμ-map-id d)
     Dμ-map-id (Dμ-del x ∷ d) = cong (_∷_ (Dμ-del x)) (Dμ-map-id d)
     Dμ-map-id (Dμ-cpy x ∷ d) = cong (_∷_ (Dμ-cpy x)) (Dμ-map-id d)
-    Dμ-map-id (Dμ-dwn x dx ∷ d) 
-      = cong₂ (λ P Q → Dμ-dwn x P ∷ Q) (D-map-id dx) (Dμ-map-id d)
+    Dμ-map-id (Dμ-dwn dx ∷ d) 
+      = cong₂ (λ P Q → Dμ-dwn P ∷ Q) (D-map-id dx) (Dμ-map-id d)
 
   --
   -- Here we define a forgetful functor from D's to Lists.
@@ -184,7 +184,7 @@ module Diffing.Patches.Diff.Functor where
             → List (Dμ A t ty) → List (↓ A)
     forgetμ [] = []
     forgetμ (Dμ-A x ∷ ds)      = unIdx x ∷ forgetμ ds
-    forgetμ (Dμ-dwn _ dx ∷ ds) = forget dx ++ forgetμ ds
+    forgetμ (Dμ-dwn dx ∷ ds) = forget dx ++ forgetμ ds
     forgetμ (_ ∷ ds)           = forgetμ ds
 
   
@@ -255,8 +255,8 @@ module Diffing.Patches.Diff.Functor where
     uncastμ (Dμ-ins x ∷ d) prf = Dμ-ins x ∷ uncastμ d prf
     uncastμ (Dμ-del x ∷ d) prf = Dμ-del x ∷ uncastμ d prf
     uncastμ (Dμ-cpy x ∷ d) prf = Dμ-cpy x ∷ uncastμ d prf
-    uncastμ (Dμ-dwn x dx ∷ d) prf with ++-[] {l = forget dx} prf 
-    ...| p1 , p2 = Dμ-dwn x (uncast dx p1) ∷ uncastμ d p2
+    uncastμ (Dμ-dwn dx ∷ d) prf with ++-[] {l = forget dx} prf 
+    ...| p1 , p2 = Dμ-dwn (uncast dx p1) ∷ uncastμ d p2
 
   {- Mapping over a "casted" value is doing nothing. -}
   D-map-cast : ∀{a b}{k : ℕ}{t : Tel k}{ty : U k}
@@ -315,4 +315,4 @@ module Diffing.Patches.Diff.Functor where
     Dμ-mult (Dμ-ins x ∷ l) = Dμ-ins x ∷ Dμ-mult l
     Dμ-mult (Dμ-del x ∷ l) = Dμ-del x ∷ Dμ-mult l
     Dμ-mult (Dμ-cpy x ∷ l) = Dμ-cpy x ∷ Dμ-mult l
-    Dμ-mult (Dμ-dwn x x₁ ∷ l) = Dμ-dwn x (D-mult x₁) ∷ Dμ-mult l
+    Dμ-mult (Dμ-dwn dx ∷ l) = Dμ-dwn (D-mult dx) ∷ Dμ-mult l
