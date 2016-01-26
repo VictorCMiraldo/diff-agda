@@ -5,7 +5,7 @@ open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor
-open import Diffing.Patches.Id
+open import Diffing.Patches.Diff.Id
 open import Diffing.Patches.Conflicts
 open import Diffing.Patches.Residual
 open import Data.List.Properties renaming (∷-injective to ∷-inj)
@@ -58,14 +58,6 @@ module Diffing.Patches.Residual.Symmetry where
               (λ op → d2 / d1 ≡ just (D-map C-sym (op k)))
       aux (D-A ()) _ _
       aux _ (D-A ()) _
-      {-
-      aux D-id d prf rewrite sym (just-inj prf) 
-        = const (cast d) 
-        , trans (/-id d) (cong just (sym (D-map-cast C-sym d)))
-
-      aux p D-id prf rewrite sym prf
-        = const D-id , refl 
-      -}
 
       aux D-void D-void refl = id , refl
 

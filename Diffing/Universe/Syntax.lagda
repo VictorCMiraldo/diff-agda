@@ -130,3 +130,12 @@ And some general purpose functions
 \end{code}
 
 
+%<*U-example>
+\begin{code}
+  list : {n : ℕ} → U (suc n)
+  list = μ (u1 ⊕ wk vl ⊗ vl)
+
+  myList : {n : ℕ}{t : Tel n} → ElU list (tcons u1 t)
+  myList = mu (inr (pop (top void) , top (mu (inl void))))
+\end{code}
+%</U-example>

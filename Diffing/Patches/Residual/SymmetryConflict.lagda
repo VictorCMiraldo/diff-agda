@@ -5,7 +5,7 @@ open import Diffing.Universe.Equality
 open import Diffing.Universe.MuUtils
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor
-open import Diffing.Patches.Id
+open import Diffing.Patches.Diff.Id
 open import Diffing.Patches.Conflicts
 open import Diffing.Patches.Residual
 open import Diffing.Patches.Residual.Symmetry

@@ -5,11 +5,11 @@ open import Diffing.Universe.Syntax
 module Diffing.Universe.Equality where
 \end{code}
 
-%<*eqaulity-type>
+%<*equality-type>
 \begin{code}
   _≟-U_ : {n : ℕ}{t : Tel n}{u : U n}(x y : ElU u t) → Dec (x ≡ y)
 \end{code}
-%</eqaulity-type>
+%</equality-type>
 %<*equality-def>
 \begin{code}
   _≟-U_ {u = u1} void void = yes refl
