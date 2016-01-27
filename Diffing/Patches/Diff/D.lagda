@@ -5,7 +5,6 @@ open import Diffing.Universe.Syntax
 module Diffing.Patches.Diff.D where
 \end{code}
 
-
 %<*ValU>
 \begin{code}
   ValU : {n : ℕ} → U (suc n) → Tel n → Set
