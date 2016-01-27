@@ -24,7 +24,10 @@ CODE_AGDA_MODULES=Diffing/Universe/Syntax\
                   Diffing/Universe/Ops\
                   Diffing/Universe/Map\
                   Diffing/Universe/MuUtils\
+                  Diffing/Universe/Measures\
                   Diffing/Patches/Diff\
+                  Diffing/Patches/Diff/D\
+                  Diffing/Patches/Diff/Cost\
                   Diffing/Patches/Conflicts\
                   Diffing/Patches/Residual\
                   Diffing/Patches/Residual/Symmetry\

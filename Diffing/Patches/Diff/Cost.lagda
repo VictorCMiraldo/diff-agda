@@ -62,7 +62,7 @@ module Diffing.Patches.Diff.Cost where
     cost (D-pop d) = cost d
     cost (D-mu l)  = foldr (λ h r → costμ h + r) 0 l
 
-    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ (const (const ⊥)) t ty → ℕ
+    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ ⊥ₚ t ty → ℕ
     costμ (Dμ-A ())
     costμ (Dμ-ins x) = sizeElU x + 1
     costμ (Dμ-del x) = sizeElU x + 1

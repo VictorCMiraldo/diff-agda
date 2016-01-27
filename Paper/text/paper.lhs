@@ -506,7 +506,7 @@ and a telescope, which is the same as saying that we only define \emph{diff}'s f
 closed types\footnote{Types that do not have any free type-variables}. However,
 it also has a parameter $A$, this will be addressed later.
 
-  \Agda{Diffing/Patches/Diff}{D-type}
+  \Agda{Diffing/Patches/Diff/D}{D-type}
   
   As we mentioned earlier, we are interested in analizing the set of possible
 changes that can be made to objects of a type $T$. These changes depend on
@@ -514,34 +514,34 @@ the structure of $T$, for the definition follows by induction on it.
 
   For $T$ being the Unit type, we can not modify it.
 
-  \Agda{Diffing/Patches/Diff}{D-void-def}
+  \Agda{Diffing/Patches/Diff/D}{D-void-def}
   
   For $T$ being a product, we need to provide \emph{diffs} for both
 its components.
 
-  \Agda{Diffing/Patches/Diff}{D-pair-def}
+  \Agda{Diffing/Patches/Diff/D}{D-pair-def}
   
   For $T$ being a coproduct, things become slighlty more interesting. There
 are four possible ways of modifying a coproduct, which are defined by:
 
-  \Agda{Diffing/Patches/Diff}{D-sum-def}
+  \Agda{Diffing/Patches/Diff/D}{D-sum-def}
   
   We also need some housekeeping definitions to make sure we handle all
 types defined by \F{U}.
 
-  \Agda{Diffing/Patches/Diff}{D-rest-def}
+  \Agda{Diffing/Patches/Diff/D}{D-rest-def}
   
   Fixed points are handled by a list of \emph{edit operations}. We will
 discuss them in detail later on.
 
-  \Agda{Diffing/Patches/Diff}{D-mu-def}
+  \Agda{Diffing/Patches/Diff/D}{D-mu-def}
   
   The aforementioned parameter $A$ goes is used in a single consrtuctor,
 allowing us to have a free-monad structure over \F{D}'s. This shows to be
 very usefull for adding extra information, as we shall discuss, on section 
 \ref{sec:conflicts}, for adding conflicts.
 
-  \Agda{Diffing/Patches/Diff}{D-A-def} 
+  \Agda{Diffing/Patches/Diff/D}{D-A-def} 
  
   Finally, we define $\F{Patch}\;t\;ty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
 Meaning that a \F{Patch} is a \F{D} with \emph{no} extra information.
@@ -571,17 +571,17 @@ or shrink arbitralily. We have to account for that when tracking differences
 between their elements. As we mentioned earlier, the diff of a fixed point is
 defined by a list of \emph{edit operations}.
   
-  \Agda{Diffing/Patches/Diff}{Dmu-type}
+  \Agda{Diffing/Patches/Diff/D}{Dmu-type}
   
   Again, we have a constructor for adding \emph{extra} information, which is
 ignored in the case of \F{Patches}.
 
-  \Agda{Diffing/Patches/Diff}{Dmu-A-def}
+  \Agda{Diffing/Patches/Diff/D}{Dmu-A-def}
   
   But the interesting bits are the \emph{edit operations} we allow,
 where $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$:
   
-  \Agda{Diffing/Patches/Diff}{Dmu-def}
+  \Agda{Diffing/Patches/Diff/D}{Dmu-def}
   
   The reader familiar with \cite{Loh2009} will notice that they are almost the
 same (adapted to our choice of universe), with two differences: we admit a new
@@ -617,7 +617,8 @@ defined by:
   \Agda{Diffing/Patches/Diff}{gdiffL-def}
   
   
-\newcommand{\lubmu}{\sqcup \hskip -0.1em \mu \;} 
+\newcommand{\lubmu}{\sqcup_{\mu} \;}
+\newcommand{\Flubmu}{\; \F{$\lubmu$} \;}
   The first three branches are simple. To transform |[]| into |[]|, we do not
 need to perform any action; to transform |[]| into |y : ys|, we need to insert
 the respective values; and to transform |x : xs| into |[]| we need to delete the
@@ -631,6 +632,86 @@ cost notion is very delicate, for it will be discussed later, in section
 
   In fact, the example provided in figure \ref{fig:alicespatch} is a diff produced
 by our algorithm, with the constructors simplified to improve readability.
+
+\subsubsection{The Cost Function}
+\label{sec:cost}
+  
+  As we mentioned earlier, the cost function is one of the key pieces of the
+diff algorithm. In fact, a clever definition of a cost function should allow
+one to define a non-trivial measure over the set of all elements of a datatype.
+
+  Unfortunately, however, formally studying the \F{cost} function turns out to
+be extremely complicated, as not only the generic nature of patches encompasses
+a plethora of cost behaviors, but the semantics of the domain one is applying
+the diff to might also require a slightly different definition.
+
+  This section does not show any formal development about the \F{cost} function,
+as we leave this as future work. Nonetheless, we explain the intuition behind our
+actual definition.
+
+  The \F{cost} of a \F{Patch} is used only in the \F{gdiffL} function, in order
+to choose which path to follow when the heads are not equal, therefore cannot
+be copied. Let us assume we have stop execution at the $d_1 \Flubmu d_2 \Flubmu d_3$
+expression, in \F{gdiffL}. Here we have:
+
+\newcommand{\cons}{\; :\hskip -.1em : \;}
+\newcommand{\cat}{\; + \hskip -.8em + \;}
+\newcommand{\DmuIns}{\IC{D$\mu$-ins} \;}
+\newcommand{\DmuDel}{\IC{D$\mu$-del} \;}
+\newcommand{\DmuDwn}{\IC{D$\mu$-dwn} \;}
+\newcommand{\ICoplus}{\; \IC{$\oplus$} \;}
+\begin{center}
+\[
+\begin{array}{l c l}
+  d_1 & = & \DmuIns hdY \cons \F{gdiffL}\;(x \cons xs)\;(chY \cat ys) \\
+  d_2 & = & \DmuDel hdX \cons \F{gdiffL}\;(chX \cat xs)\;(y \cons ys) \\
+  d_3 & = & \DmuDwn (\F{gdiff}\;hdX\;hdY) \\ 
+      & \cons & \F{gdiffL}\;(chX \cat xs)\;(chY \cat ys)
+\end{array}
+\]
+\end{center}
+
+  Let us not forget that at this point we know that $hdX \neq hdY$. There are two
+possibilities, however: either they can come from the same coproduct injection, or they dont.
+That is, imagine $hdX , hdY : \F{ElU}\;(a \ICoplus b \ICoplus c)\;(\IC{tcons}\;\IC{u1}\;t)$, 
+for some types $a, b ,c$ and telescope $t$. Let us assume further that there are no
+more coproducts inside $a$, $b$ and $c$, unless wrapped by a \IC{$\mu$}\footnote{In fact, this
+is how types are structured in Haskell, as \emph{sums-of-products}, which is why we make
+this assumptions for the following reasoning.}. Saying that $hdX$ and $hdY$ come from the same
+coproduct injection is saying that both $hdX$ and $hdY$ come from either $a$, $b$ or $c$ wrapped in
+their particular injections.
+
+  If $hdX$ and $hdY$ \emph{do not} come from the same coproduct injection, then $d_3$ should
+not be selected, as in fact it would be trying to change the outer constructor of a datatype
+instead of traversing inside of it and changing its non-recursive contents. That is to
+say, in this scenario, we want that $\F{cost}\;d_3 > \F{cost}\;d_i$, for $i \in \{1 , 2\}$.
+
+  On the other hand, if $hdX$ and $hdY$ \emph{do} come from the same coproduct injection, 
+then we want to preserve this injection and traack the recursive changes, for
+we then want $\F{cost}\;d_3 < \F{cost}\;d_i$, for $i \in \{1 , 2\}$.
+
+  In short, we want to prevent deleting $hdX$ and inserting $hdY$ whenever there
+is information that could be preserved. With this intuition in mind, we then
+define the cost function as:
+
+  \Agda{Diffing/Patches/Diff/Cost}{cost-def}
+  
+  Where the size of an element is defined by:
+  
+  \Agda{Diffing/Universe/Measures}{sizeEl}
+
+  We reiterate that this is an informal definition with nothing but intuition
+backing it up so far. This is, however, a central point of our current research.
+Our intention is to iterate over the design of this function until |dist = curry (cost . uncurry gdiff)|
+becomes a metric over the set of elements of a given datatype, that is:
+
+  \vskip -1em
+  \begin{eqnarray*}
+    dist\;x\;y = 0 & \Leftrightarrow & x = y \\
+    dist\;x\;y & = & dist\;y\;x \\
+    dist\;x\;y + dist\;y\;z & \leq & dist\;x\;z \\
+    0 & \leq & dist\;x\;y \\
+  \end{eqnarray*} 
 
 \subsection{Applying Patches}
 
@@ -655,38 +736,21 @@ straight forward.
 partial head function with type |[a] -> Maybe a|. In \F{gapplyL}, we have
 a \F{gIns} function, which will get a head and a list of children of a
 fixed point, will try to \F{$\mu$-close} it and add the result to the
-head of the remaining list. On the other hand, \F{gDel} will \F{$\mu-open$}
+head of the remaining list. On the other hand, \F{gDel} will \F{$\mu$-open}
 the first element of the received list, compare it with the current head
 and return the tail of the input list appended to its children. 
 
   The important part of application is that it must produce the 
-expected result. Our correctness result, below, guarantees that. Its
-proof is too big to be shown here, however.
+expected result. A correctness result guarantees that. Its
+proof is too big to be shown here, however, it has type:
 
   \Agda{Diffing/Postulated}{gdiff-correctness}
-
-\subsection{The Cost Function}
-\label{sec:cost}
-
-  \begin{TODO}
-    \item the cost function should satisfy a few properties, such as:
-          if $x$ and $y$ come from the same constructor,
-          then $cost (diff x y) \le cost (Del x :: Add y :: End)$.
-          Otherwise, $gdiffL$ will always choose $DmuDwn$ first.
-  \end{TODO}
-
-\section{A Category of Patches}
-
-\begin{RESEARCH}
-  \item Define patch composition, prove it makes a category.
-  \item But then... does it make sense to compute the composition of patches?
-  \item In a vcs setting, we always have the intermediate files that originated
-        the patches, meaning that composition can be defined semantically
-        by: $apply (p \cdot q) \equiv apply q \circ apply p$, where $\circ$ is
-        the Kleisli composition of $+1$.
-  \item This gives me an immediate category... how usefull is it?
-\end{RESEARCH}
   
+  We have given algorithms for computing and applying differences over
+elements of a generic datatype. Moreover, we proved our algorithms are correct
+with respect to each other. This functionality is necessary for constructing
+a version control system, but it is by no means sufficient!
+   
 \section{Patch Propagation}
 
   Let's say Bob and Alice perform edits in a given object, which are captured by
@@ -698,7 +762,6 @@ we group the changes made by $p$ and by $q$ (as long as they are compatible) and
 create a new patch to be applied on the source object, or, we calculate how to
 propagate the changes of $p$ over $q$ and vice-versa. Figure \ref{fig:residual}
 illustrates these two options.
-  
   
   \begin{figure}[h]
   \begin{displaymath}
@@ -819,6 +882,27 @@ not significantly different.
     \end{itemize}
     \item How do we go generic? Free-monads to the rescue!
   \end{TODO}
+  
+\section{A Category of Patches}
+
+  \begin{TODO}
+    \item Having patch composition and inversion we can design
+          a version control system for a single file in a categorical setting.
+          \begin{itemize}
+            \item Label each composition chain as a branch,
+                  let residuals do the merging after conflict resolution.
+          \end{itemize}
+  \end{TODO}
+
+\begin{RESEARCH}
+  \item Define patch composition, prove it makes a category.
+  \item But then... does it make sense to compute the composition of patches?
+  \item In a vcs setting, we always have the intermediate files that originated
+        the patches, meaning that composition can be defined semantically
+        by: $apply (p \cdot q) \equiv apply q \circ apply p$, where $\circ$ is
+        the Kleisli composition of $+1$.
+  \item This gives me an immediate category... how usefull is it?
+\end{RESEARCH}
   
 \section{Summary and Remarks}
 
