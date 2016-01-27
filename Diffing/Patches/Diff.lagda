@@ -6,14 +6,12 @@ open import Diffing.Universe.MuUtils
 open import Diffing.Universe.Measures
 
 module Diffing.Patches.Diff where
+
+  open import Diffing.Patches.Diff.D public
+  open import Diffing.Patches.Diff.Cost
 \end{code}
 
-%<*ValU>
-\begin{code}
-  ValU : {n : ℕ} → U (suc n) → Tel n → Set
-  ValU ty t = ElU ty (tcons u1 t)
-\end{code}
-%</ValU>
+
 
 \begin{code}
   mutual
@@ -104,24 +102,18 @@ module Diffing.Patches.Diff where
 \end{code}
 %</Dmu-def>
 
+%<*Patch-def>
 \begin{code}
   ⊥ₚ : {n : ℕ} → Tel n → U n → Set
   ⊥ₚ {_} _ _ = ⊥
-\end{code}
 
-%<*Patch-def>
-\begin{code}
   Patch : {n : ℕ} → Tel n → U n → Set
   Patch t ty = D ⊥ₚ t ty
-\end{code}
-%</Patch-def>
-
-%<*Patchmu-def>
-\begin{code}
+       
   Patchμ : {n : ℕ} → Tel n → U (suc n) → Set
   Patchμ t ty = List (Dμ ⊥ₚ t ty)
 \end{code}
-%</Patchmu-def>
+%</Patch-def>
 
   The cost function is trivial for the non-inductive types.
   The inductive types are a bit trickier, though.
@@ -224,28 +216,30 @@ module Diffing.Patches.Diff where
   infixr 20 _⊔_
   infixr 20 _⊔μ_
   mutual
-    {-# TERMINATING #-}
 \end{code}
 %<*gdiff-def>
 \begin{code}
+    {-# TERMINATING #-}
     gdiff : {n : ℕ}{t : Tel n}{ty : U n} 
           → ElU ty t → ElU ty t → Patch t ty
     gdiff {ty = vl} (top a) (top b)    = D-top (gdiff a b)
-    
     gdiff {ty = wk u} (pop a) (pop b)  = D-pop (gdiff a b)
-    
     gdiff {ty = β F x} (red a) (red b) = D-β (gdiff a b)
 
+    -- Units and products are trivial.
     gdiff {ty = u1} void void = D-void
-    
     gdiff {ty = ty ⊗ tv} (ay , av) (by , bv) 
       = D-pair (gdiff ay by) (gdiff av bv)
 
+    -- Coproducts are not very hard either
     gdiff {ty = ty ⊕ tv} (inl ay) (inl by) = D-inl (gdiff ay by)
     gdiff {ty = ty ⊕ tv} (inr av) (inr bv) = D-inr (gdiff av bv)
     gdiff {ty = ty ⊕ tv} (inl ay) (inr bv) = D-setl ay bv
     gdiff {ty = ty ⊕ tv} (inr av) (inl by) = D-setr av by
 
+    -- Now we get to the interesting bit.
+    -- Note that we need to use lists to handle
+    -- the possibility of multiple arguments.
     gdiff {ty = μ ty} a b = D-mu (gdiffL (a ∷ []) (b ∷ []))
 \end{code}
 %</gdiff-def>
@@ -264,8 +258,7 @@ module Diffing.Patches.Diff where
     ...| no  _ = let
           d1 = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
           d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
-          d3 = Dμ-dwn (gdiff (red hdX) (red hdY)) 
-             ∷ (gdiffL (chX ++ xs) (chY ++ ys))
+          d3 = Dμ-dwn (gdiff (red hdX) (red hdY)) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
        in d1 ⊔μ d2 ⊔μ d3
     ...|  yes _ = let
           d3 = Dμ-cpy hdX ∷ (gdiffL (chX ++ xs) (chY ++ ys))
@@ -282,35 +275,30 @@ module Diffing.Patches.Diff where
 
   mutual
 \end{code}
-%<*gapply-type>
+%<*gapply-def>
 \begin{code}
     gapply : {n : ℕ}{t : Tel n}{ty : U n}
            → Patch t ty → ElU ty t → Maybe (ElU ty t)
-\end{code}
-%</gapply-type>
-\begin{code}
     gapply (D-A ())
 
     gapply D-void void = just void
-\end{code}
 
-%<*gapply-sum-def>
-\begin{code}
     gapply (D-inl diff) (inl el) = inl <M> gapply diff el
+    gapply (D-inl diff) (inr el) = nothing
+
+    gapply (D-inr diff) (inl el) = nothing
     gapply (D-inr diff) (inr el) = inr <M> gapply diff el
+
     gapply (D-setl x y) (inl el) with x ≟-U el
     ...| yes _ = just (inr y)
     ...| no  _ = nothing
+    gapply (D-setl _ _) (inr _) = nothing
+
     gapply (D-setr y x) (inr el) with y ≟-U el
     ...| yes _ = just (inl x)
     ...| no  _ = nothing
-    gapply (D-setr _ _) (inl _)  = nothing
-    gapply (D-setl _ _) (inr _)  = nothing
-    gapply (D-inl diff) (inr el) = nothing
-    gapply (D-inr diff) (inl el) = nothing
-\end{code}
-%</gapply-sum-def>
-\begin{code}
+    gapply (D-setr _ _) (inl _) = nothing
+
     gapply (D-pair da db) (a , b) with gapply da a
     ...| nothing = nothing
     ...| just ra = _,_ ra <M> gapply db b
@@ -318,12 +306,12 @@ module Diffing.Patches.Diff where
     gapply (D-β diff) (red el) = red <M> gapply diff el
     gapply (D-top diff) (top el) = top <M> gapply diff el
     gapply (D-pop diff) (pop el) = pop <M> gapply diff el
-\end{code}
-%<*gapply-mu-def>
-\begin{code}
+
+    -- gapply (dx ∘ᴰ dy) el = gapply dy el >>= gapply dx
+
     gapply {ty = μ ty} (D-mu d) el = gapplyL d (el ∷ []) >>= safeHead
 \end{code}
-%</gapply-mu-def>
+%</gapply-def>
 
 %<*safeHead-def>
 \begin{code}
