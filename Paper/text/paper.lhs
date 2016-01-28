@@ -165,6 +165,13 @@
 %format BOTP = "\bot_p"
 %format BOT  = "\bot"
 
+%%% Domain Specific Typesetting
+
+\newcommand{\Dtty}{\F{D}\;\F{$\bot_p$}\;t\;ty}
+\newcommand{\DCtty}{\F{D}\;\F{C}\;t\;ty}
+\newcommand{\Patchtty}{\F{Patch}\;t\;ty}
+\newcommand{\Ctty}{\F{C}\;t\;ty}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Title, etc...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -291,11 +298,17 @@ able to detect semantical operations such as \emph{cloning} and \emph{swapping}.
   
 \subsection*{Contributions}
 
-\begin{TODO}
-  \item Study of a more algebraic patch theory.
-  \item Agda model.
-  \item Haskell Prototype.
-\end{TODO}
+\begin{itemize}
+  \item We provide a type-indexed definition of a generic diff, over
+        the universe of context-free types.
+  \item We provide the base, proven to be correct, algorithms for computing
+        and applying a diff generically.
+  \item A notion of residual is used to propagate changes of different diffs,
+        hence providing a bare mechanism for merging and conflict resolution.
+  \item We provide a Haskell prototype with advanced, user defined, 
+        automatic conflict solving strategies.
+\end{itemize} 
+
 
 \subsection*{Background}
 
@@ -543,7 +556,7 @@ very usefull for adding extra information, as we shall discuss, on section
 
   \Agda{Diffing/Patches/Diff/D}{D-A-def} 
  
-  Finally, we define $\F{Patch}\;t\;ty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
+  Finally, we define $\Patchtty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
 Meaning that a \F{Patch} is a \F{D} with \emph{no} extra information.
 
 \subsection{Producing Patches}  
@@ -862,26 +875,55 @@ it is purely structural.
   
   \Agda{Diffing/Patches/Residual/SymmetryConflict}{residual-sym-stable-type}
   
-  Here \F{$<M>$} denotes the Kleisli composition of the $Maybe$ monad and
-  \F{$\downarrow-map-\downarrow$} takes care of the indexes.
+  Here \F{$\downarrow-map-\downarrow$} takes care of hiding type indexes and
+\F{forget} is the cannonical function with type $\F{D}\;A\;t\;ty \rightarrow
+\F{List}\;(\F{$\downarrow$}\; A)$, \F{$\downarrow\_$} encapsulates the type indexes of
+the different $A$'s we might come accross.
     
   Now, we can compute both $p / q$ and $q / p$ at the same time. It also
-backs the intuition that using residuals or patch commutation (as in darcs) is
+backs up the intuition that using residuals or patch commutation (as in darcs) is
 not significantly different.
   
   This means that $p / q$ and $q / p$, although different, have the same conflicts
-(up to symmetry).
-  
-\subsection{Solving Conflicts}
+(up to symmetry). Hence, we can (informally) define a \emph{merge strategy} as a function 
+$m : \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$, which can
+now be mapped over $\DCtty$ pointwise on its conflicts. We end up
+with an object of type $\F{D}\;(\F{D}\;\F{$\bot_p$})\;t\;ty$. This is not
+a problem, however, since the free-monad structure on \F{D} provides
+us with a multiplication $\mu_D : \F{D}\;(\F{D}\;A)\;t\;ty \rightarrow \F{D}\;A\;t\;ty$.
+Therefore, $merge_1\;m : \DCtty \xrightarrow{\mu_D \cdot D\; m} \Patchtty$ is the \emph{merge tool}
+for removing the conflicts of a single patch.
 
-  \begin{TODO}
-    \item This is highly dependent on the structure.
-    \begin{itemize}
-      \item some structures might allow permutations,
-            refactorings, etc... whereas others might not.
-    \end{itemize}
-    \item How do we go generic? Free-monads to the rescue!
-  \end{TODO}
+  Even though the last paragraph was a simple informal sketch, as we did not have
+enough time to figure out precisely how to fit our framework in theory, we can
+see how solving conflicts is just a matter of walking over the patch structure and
+removing them, one by one. This is unsurprising, and is exactly what we currently do manually
+when merge conflicts arise on any mature CVS. The interesting bit, however, is
+that different ways of walking the patch might give us more or less information
+to handle a conflict. This opens up room for interesting automatic solvers, and
+besides not having a formal theory (yet!), they've shown to be very promissing
+in practice as we will illustrate in section \ref{sec:haskell}.
+
+\subsection{A remark on Type Safety}
+\label{sec:typesafety}
+
+  There is one major flaw in our approach so far. Our \F{D-mu} constructor
+admits the creation of ill-formed patches. Consider the following simple example:
+
+  \Agda{Diffing/Patches/IllDiff}{ill-patch-example}
+  
+  On \F{ill-patch} we try to insert a \IC{suc} constructor, which require one recursive
+argument, but then we simply end the patch. Agda realizes that this patch will
+lead nowhere in an instant.
+
+  We stress that on this model, we strive for type-safety on
+the API level, that is, if the user does not manually edit the patches, they will
+be type-safe. This is a problem that is not very hard to fix, however. We would
+just require two additional indexes on \F{D$\mu$}, expressing how many elements
+it expects, and how many it produces. Changing the whole library to handle these type-safe
+patches might require some coding efort, as many internal manipulations are gonna
+have to change. In particular, the way we handle conflicts is going to change significantly.
+The conflict type will have to receive these indexes too. We leave this is future work.   
   
 \section{A Category of Patches}
 
@@ -904,29 +946,26 @@ not significantly different.
   \item This gives me an immediate category... how usefull is it?
 \end{RESEARCH}
   
-\section{Summary and Remarks}
-
-\subsection{Sharing of Recursive Subterms}
-
-  \begin{itemize}
-    \item If we want to be able to share recursive subexpressions
-          we need a mutually recursive approach.
-    \item Or, this will be handled during conflict solving. See refactoring.
-  \end{itemize}
-  
-\subsection{Remarks on Type Safety}
-\label{sec:typesafety}
-
-  \begin{itemize}
-    \item only the interface to the user can be type-safe,
-          otherwise we don't have our free-monad multiplication.
-  \end{itemize}
-  
 \section{A Haskell Prototype}
 \label{sec:haskell}
   
+\subsection{The Interface}
+
   \begin{TODO}
-    \item throw \emph{hs-diff} in github before the deadline!
+    \item present the |Diffable| typeclass.
+  \end{TODO}
+
+\subsection{Sums-of-Products and Fixed points}
+
+  \begin{TODO}
+    \item present the |HasAlg| and |HasSOP| classes.
+    \item mention the memoization table for diffing fixed points.
+  \end{TODO}
+
+\subsection{A more involved example}
+
+  \begin{TODO}
+    \item Show how refactoring works
   \end{TODO}
 
 \section{Sketching a Control Version System}
