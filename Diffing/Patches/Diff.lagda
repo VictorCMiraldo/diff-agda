@@ -8,7 +8,7 @@ open import Diffing.Universe.Measures
 module Diffing.Patches.Diff where
 
   open import Diffing.Patches.Diff.D public
-  open import Diffing.Patches.Diff.Cost
+  open import Diffing.Patches.Diff.Cost public
 \end{code}
 
         Diffing
@@ -53,16 +53,14 @@ module Diffing.Patches.Diff where
     ...| hdY , chY = Dμ-ins hdY ∷ (gdiffL [] (chY ++ ys)) 
     gdiffL (x ∷ xs) [] with μ-open x
     ...| hdX , chX = Dμ-del hdX ∷ (gdiffL (chX ++ xs) [])
-    gdiffL (x ∷ xs) (y ∷ ys) with μ-open x | μ-open y
-    ...| hdX , chX | hdY , chY with hdX ≟-U hdY
-    ...| no  _ = let
+    gdiffL (x ∷ xs) (y ∷ ys) 
+      = let
+          hdX , chX = μ-open x
+          hdY , chY = μ-open y
           d1 = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
           d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
-          d3 = Dμ-dwn (gdiff (red hdX) (red hdY)) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
+          d3 = Dμ-dwn (gdiff hdX hdY) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
        in d1 ⊔μ d2 ⊔μ d3
-    ...|  yes _ = let
-          d3 = Dμ-cpy hdX ∷ (gdiffL (chX ++ xs) (chY ++ ys))
-       in d3
 \end{code}
 %</gdiffL-def>
 
@@ -153,12 +151,11 @@ module Diffing.Patches.Diff where
     gapplyL (Dμ-A () ∷ _)
     gapplyL (Dμ-ins x  ∷ d) l = gapplyL d l >>= gIns x
     gapplyL (Dμ-del x  ∷ d) l = gDel x l    >>= gapplyL d 
-    gapplyL (Dμ-cpy x  ∷ d) l = gDel x l    >>= gapplyL d >>= gIns x
     gapplyL (Dμ-dwn dx ∷ d) [] = nothing
     gapplyL (Dμ-dwn dx ∷ d) (y ∷ l) with μ-open y
-    ...| hdY , chY with gapply dx (red hdY)
-    ...| nothing   = nothing
-    ...| just (red y') = gapplyL d (chY ++ l) >>= gIns y' 
+    ...| hdY , chY with gapply dx hdY
+    ...| nothing = nothing
+    ...| just y' = gapplyL d (chY ++ l) >>= gIns y' 
 \end{code}
 %</gapplyL-def>
 

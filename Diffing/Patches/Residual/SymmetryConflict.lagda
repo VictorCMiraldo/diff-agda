@@ -147,10 +147,8 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| s2 , r2 , q2 rewrite q2 = cong just (cong (_∷_ _) (sym r2))
         
         aux* [] (Dμ-del x ∷ d2) ()
-        aux* [] (Dμ-cpy x ∷ d2) ()
         aux* [] (Dμ-dwn dx ∷ d2) ()
         aux* (Dμ-del x ∷ d1) [] ()
-        aux* (Dμ-cpy x ∷ d1) [] ()
         aux* (Dμ-dwn dx ∷ d1) [] ()
 
         aux* (Dμ-ins x ∷ d1) (Dμ-ins y ∷ d2) prf with x ≟-U y | y ≟-U x
@@ -158,7 +156,12 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
         ...| yes p | yes _ with <M>-elim prf
         ...| r1 , refl , q1 with <M>-elim (aux* d1 d2 q1)
-        ...| r2 , s2 , q2 rewrite q2 = cong just (sym s2)
+        ...| r2 , s2 , q2 rewrite q2
+           = cong just (subst (λ P → P ++ forgetμ r2 ≡ _) 
+                       (sym (forget-cast (gdiff-id y))) 
+                       (subst (λ P → forgetμ r2 ≡ map (↓-map-↓ C-sym) (P ++ forgetμ r1)) 
+                          (sym (forget-cast (gdiff-id x)))
+                          (sym s2)))
         aux* (Dμ-ins x ∷ d1) (Dμ-ins y ∷ d2) prf | no ¬p | no _ 
           with <M>-elim prf
         ...| s1 , refl , q1 with <M>-elim (aux* d1 d2 q1)
@@ -168,18 +171,12 @@ module Diffing.Patches.Residual.SymmetryConflict where
         aux* (Dμ-ins x ∷ d1) (Dμ-del y ∷ d2) prf with <M>-elim prf
         ...| s1 , refl , q1 with <M>-elim (aux* d1 (Dμ-del y ∷ d2) q1)
         ...| s2 , r2 , q2 rewrite q2 = cong just (cong (_∷_ _) (sym r2))
-        aux* (Dμ-ins x ∷ d1) (Dμ-cpy y ∷ d2) prf with <M>-elim prf
-        ...| s1 , refl , q1 with <M>-elim (aux* d1 (Dμ-cpy y ∷ d2) q1)
-        ...| s2 , r2 , q2 rewrite q2 = cong just (cong (_∷_ _) (sym r2))
         aux* (Dμ-ins x ∷ d1) (Dμ-dwn dy ∷ d2) prf with <M>-elim prf
         ...| s1 , refl , q1 with <M>-elim (aux* d1 (Dμ-dwn dy ∷ d2) q1)
         ...| s2 , r2 , q2 rewrite q2 = cong just (cong (_∷_ _) (sym r2))
 
         aux* (Dμ-del x ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
         ...| s1 , refl , q1 with <M>-elim (aux* (Dμ-del x ∷ d1) d2 q1)
-        ...| s2 , r2 , q2 rewrite q2 = cong just (cong (_∷_ _) (sym r2))
-        aux* (Dμ-cpy x ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
-        ...| s1 , refl , q1 with <M>-elim (aux* (Dμ-cpy x ∷ d1) d2 q1)
         ...| s2 , r2 , q2 rewrite q2 = cong just (cong (_∷_ _) (sym r2))
         aux* (Dμ-dwn dx ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
         ...| s1 , refl , q1 with <M>-elim (aux* (Dμ-dwn dx ∷ d1) d2 q1)
@@ -191,64 +188,21 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
         aux* (Dμ-del x ∷ d1) (Dμ-del y ∷ d2) () | no ¬p | no ¬p₁
         ...| yes p | yes _ = aux* d1 d2 prf
-        aux* (Dμ-del x ∷ d1) (Dμ-cpy y ∷ d2) prf with x ≟-U y | y ≟-U x
-        ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-        ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-        aux* (Dμ-del x ∷ d1) (Dμ-cpy y ∷ d2) () | no ¬p | no ¬p₁
-        ...| yes p | yes _ with <M>-elim prf
-        ...| s , refl , q = aux* d1 d2 q
         aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf
-          with gapply dy (red x)
+          with gapply dy x
         aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) () | nothing
-        ...| just (red x') with <M>-elim prf
+        ...| just x' with <M>-elim prf
         ...| s , refl , q with residualμ-symmetry-thm d1 d2 q
         ...| op , hip with aux* d1 d2 q
         ...| res rewrite hip = cong just (cong (_∷_ _) (just-inj res))
         
-        aux* (Dμ-cpy x ∷ d1) (Dμ-del y ∷ d2) prf with x ≟-U y | y ≟-U x
-        ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-        ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-        aux* (Dμ-cpy x ∷ d1) (Dμ-del y ∷ d2) () | no ¬p | no ¬p₁
-        ...| yes p | yes _ with aux* d1 d2 prf
-        ...| res with <M>-elim res
-        ...| r , s , q rewrite q = cong just (sym s)
-        aux* (Dμ-cpy x ∷ d1) (Dμ-cpy y ∷ d2) prf with x ≟-U y | y ≟-U x
-        ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-        ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-        aux* (Dμ-cpy x ∷ d1) (Dμ-cpy y ∷ d2) () | no ¬p | no ¬p₁
-        ...| yes p | yes _ with <M>-elim prf
-        ...| s1 , refl , q1 with <M>-elim (aux* d1 d2 q1)
-        ...| s2 , r2 , q2 rewrite q2 = cong just (sym r2)
-        aux* (Dμ-cpy x ∷ d1) (Dμ-dwn dy ∷ d2) prf 
-          with <M*>-elim-full {x = res d1 d2} prf
-        ...| (f1 , x1) , q1 , refl , q3 with aux* d1 d2 q3
-        ...| res with <M>-elim q1
-        ...| r1 , r2 , r3 with <M>-elim r3
-        ...| s1 , s2 , s3 with aux (D-β (gdiff-id x)) dy s3
-        ...| hip with <M>-elim hip
-        ...| t1 , t2 , t3 rewrite t3 with <M>-elim res
-        ...| v1 , v2 , v3 rewrite v3 | r2 | s2
-           = cong just (sym (trans (map-++-commute (↓-map-↓ C-sym) (forget s1) (forgetμ x1)) 
-                  (cong₂ _++_ t2 v2)))
-        
         aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf
-          with gapply dx (red y)
+          with gapply dx y
         aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) () | nothing
-        ...| just (red y') with <M>-elim prf
+        ...| just y' with <M>-elim prf
         ...| s1 , refl , q1 with <M>-elim (aux* d1 d2 q1)
         ...| s2 , r2 , q2 rewrite q2 | forget-cast {A = C} dx 
            = cong just (cong (_∷_ _) (sym r2)) 
-        aux* (Dμ-dwn dx ∷ d1) (Dμ-cpy y ∷ d2) prf
-          with <M*>-elim-full {x = res d1 d2} prf
-        ...| (f1 , x1) , q1 , refl , q3 with aux* d1 d2 q3
-        ...| res with <M>-elim q1
-        ...| r1 , r2 , r3 with <M>-elim r3
-        ...| s1 , s2 , s3 with aux dx (D-β (gdiff-id y)) s3
-        ...| hip with <M>-elim hip
-        ...| t1 , t2 , t3 rewrite t3 with <M>-elim res
-        ...| v1 , v2 , v3 rewrite v3 | r2 | s2
-           = cong just (sym (trans (map-++-commute (↓-map-↓ C-sym) (forget s1) (forgetμ x1)) 
-                  (cong₂ _++_ t2 v2)))
         aux* {k = k} (Dμ-dwn dx ∷ d1) (Dμ-dwn dy ∷ d2) prf
           with <M*>-elim-full {f = _∷_ <M> (Dμ-dwn <M> (dx / dy))} {x = res d1 d2}  prf
         ...| (fa , a) , r1 , s1 , q1 with aux* d1 d2 q1

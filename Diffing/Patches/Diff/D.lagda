@@ -94,10 +94,8 @@ module Diffing.Patches.Diff.D where
              → ValU a t → Dμ A t a
       Dμ-del : {n : ℕ}{t : Tel n}{a : U (suc n)} 
              → ValU a t → Dμ A t a
-      Dμ-cpy : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → ValU a t → Dμ A t a
       Dμ-dwn : {n : ℕ}{t : Tel n}{a : U (suc n)} 
-             → D A t (β a u1) → Dμ A t a
+             → D A (tcons u1 t) a → Dμ A t a
 \end{code}
 %</Dmu-def>
 
