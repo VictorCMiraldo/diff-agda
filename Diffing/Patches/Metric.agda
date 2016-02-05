@@ -10,25 +10,27 @@ module Diffing.Patches.Metric where
       → ElU ty t → ElU ty t → ℕ
   a - b = cost (gdiff a b)
 
-  dist-comm : {n : ℕ}{t : Tel n}{ty : U n}
-            → (a b : ElU ty t)
-            → a - b ≡ b - a
-  dist-comm a b with gdiff a b | inspect (gdiff a) b
-  dist-comm a b | D-A () | _ 
-  dist-comm void void | D-void | _ = refl
-  dist-comm (inl a₁) (inl b₁) | D-inl p | [ R ] 
-    = cong suc {!!}
-  dist-comm (inr a₁) (inl b₁) | D-inl p | [ () ]
-  dist-comm a₁ (inr b₁) | D-inl p | [ R ] 
-    = {!!}
-  dist-comm a₁ b₁ | D-inr p | [ R ] 
-    = {!!}
-  dist-comm a₁ b₁ | D-setl x x₁ | _  = {!!}
-  dist-comm a₁ b₁ | D-setr x x₁ | _ = {!!}
-  dist-comm (a1 , a2) (b1 , b2) | D-pair p p₁ | [ R ]
-    = {!!}
-  dist-comm (red a) (red b) | D-β p | _ = {!!}
-  dist-comm a₁ b | D-top p | _ = {!!}
-  dist-comm a₁ b₁ | D-pop p | _ = {!!}
-  dist-comm (mu a) (mu b) | D-mu x | _ = {!!}
+  cons : {n : ℕ}{t : Tel n}{a : U n}
+       → ElU a t → ElU list (tcons a t) → ElU list (tcons a t)
+  cons hd tl = mu (inr ((pop (top hd)) , (top tl)))
+
+  nil : {n : ℕ}{t : Tel (suc n)}
+      → ElU list t
+  nil = mu (inl void)
+
+  bool : {n : ℕ} → U n
+  bool = u1 ⊕ u1
+
+  bT : {n : ℕ}{t : Tel n} → ElU bool t
+  bT = inl void
+
+  bF : {n : ℕ}{t : Tel n} → ElU bool t
+  bF = inr void
+
+  l1 : ElU list (tcons list (tcons bool tnil))
+  l1 = cons (cons bF nil) nil
+
+  l2 : ElU list (tcons list (tcons bool tnil))
+  l2 = cons (cons bT nil) nil
+
   

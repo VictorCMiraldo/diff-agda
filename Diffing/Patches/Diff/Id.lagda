@@ -17,11 +17,16 @@ module Diffing.Patches.Diff.Id where
   diff of a given element or not. 
   This is a simple decidable property
 
-%<*Is-diff-id-def>
 \begin{code}
   mutual
+\end{code}
+%<*Is-diff-id-type>
+\begin{code}
     Is-diff-id : {n : ℕ}{t : Tel n}{ty : U n}
                → (d : Patch t ty) → Set
+\end{code}
+%</Is-diff-id-type>
+\begin{code}
     Is-diff-id (D-A ())
     Is-diff-id D-void = Unit
     Is-diff-id (D-inl p) = Is-diff-id p
@@ -33,16 +38,20 @@ module Diffing.Patches.Diff.Id where
     Is-diff-id (D-β p) = Is-diff-id p
     Is-diff-id (D-top p) = Is-diff-id p
     Is-diff-id (D-pop p) = Is-diff-id p
-
+\end{code}
+%<*Is-diffL-id-type>
+\begin{code}
     Is-diffL-id : {n : ℕ}{t : Tel n}{ty : U (suc n)}
                → (d : Patchμ t ty) → Set
+\end{code}
+%</Is-diffL-id-type>
+\begin{code}
     Is-diffL-id [] = Unit
     Is-diffL-id (Dμ-A () ∷ p)
     Is-diffL-id (Dμ-ins x ∷ p) = ⊥
     Is-diffL-id (Dμ-del x ∷ p) = ⊥
     Is-diffL-id (Dμ-dwn dx ∷ p) = Is-diff-id dx × Is-diffL-id p
 \end{code}
-%</Is-diff-id-def>
 
   The identity patch is the same as (gdiff x x) but
   much easier to compute, as no comparisons are needed.
@@ -72,11 +81,16 @@ module Diffing.Patches.Diff.Id where
 
   gdiff id has to have cost 0, as it is the identity.
 
-%</gdiff-id-cost>
 \begin{code}
   mutual
+\end{code}
+%<*gdiff-id-cost-type>
+\begin{code}
     gdiff-id-cost : {n : ℕ}{t : Tel n}{ty : U n}
                   → (a : ElU ty t) → cost (gdiff-id a) ≡ 0
+\end{code}
+%</gdiff-id-cost-type>
+\begin{code}
     gdiff-id-cost void = refl
     gdiff-id-cost (inl a) = gdiff-id-cost a
     gdiff-id-cost (inr a) = gdiff-id-cost a
@@ -97,16 +111,20 @@ module Diffing.Patches.Diff.Id where
               (sym (gdiff-id-cost (μ-hd a))) 
               (gdiffL-id-cost (μ-ch a ++ as))
 \end{code}
-%</gdiff-id-cost>
 
   It turns out that we were indeed correct in computing our diff-id:
 
-%<*gdiff-id-correct>
 \begin{code}
   mutual
+\end{code}
+%<*gdiff-id-correct-type>
+\begin{code}
     gdiff-id-correct 
       : {n : ℕ}{t : Tel n}{ty : U n}
       → (a : ElU ty t) → gdiff-id a ≡ gdiff a a
+\end{code}
+%</gdiff-id-correct-type>
+\begin{code}
     gdiff-id-correct void = refl
     gdiff-id-correct (inl a) = cong D-inl (gdiff-id-correct a)
     gdiff-id-correct (inr a) = cong D-inr (gdiff-id-correct a)
@@ -180,4 +198,3 @@ module Diffing.Patches.Diff.Id where
       where
         postulate trustme : ∀{a}{A : Set a} → A
 \end{code}
-%</gdiff-id-correct>
