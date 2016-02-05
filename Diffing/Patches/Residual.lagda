@@ -110,41 +110,25 @@ module Diffing.Patches.Residual where
     -- we can always keep inserting things, though.
     -- If we find the same exact insert, though, we simply copy it.
     res (Dμ-ins x ∷ dp) (Dμ-ins y ∷ dq) with x ≟-U y
-    ...| yes _ = _∷_ (Dμ-cpy x) <M> res dp dq
+    ...| yes _ = _∷_ (Dμ-dwn (cast (gdiff-id x))) <M> res dp dq
     ...| no  _ = _∷_ (Dμ-A (GrowLR x y)) <M> res dp dq
     res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-A (GrowR x)) <M> res dp dq
     res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-A (GrowL x)) <M> res dp dq
-      
-    -- Copies must be consistent.
-    res (Dμ-cpy x ∷ dp) (Dμ-cpy y ∷ dq) with x ≟-U y
-    ...| yes _ = _∷_ (Dμ-cpy x) <M> res dp dq
-    ...| no  p = nothing 
 
-    -- Erasing is a bit more tricky.
-    res (Dμ-del x ∷ dp) (Dμ-cpy y ∷ dq) with x ≟-U y
-    ...| yes _ = _∷_ (Dμ-del x) <M> res dp dq
-    ...| no  p = nothing
-    res (Dμ-cpy x ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
-    ...| yes _ = res dp dq
-    ...| no  p = nothing
     res (Dμ-del x ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
     ...| yes _ = res dp dq
     ...| no  p = nothing
 
-    res (Dμ-dwn dx ∷ dp) (Dμ-cpy y ∷ dq)
-      = _∷_ <M> (Dμ-dwn <M> (dx / gdiff-id (red y))) <M*> res dp dq
-    res (Dμ-cpy x ∷ dp) (Dμ-dwn dy ∷ dq)
-      = _∷_ <M> (Dμ-dwn <M> (gdiff-id (red x) / dy)) <M*> res dp dq
     res (Dμ-dwn dx ∷ dp) (Dμ-dwn dy ∷ dq) 
       = _∷_ <M> (Dμ-dwn <M> (dx / dy)) <M*> res dp dq
 
     res (Dμ-dwn dx ∷ dp) (Dμ-del y ∷ dq)
-      with gapply dx (red y)
-    ...| just (red y')  = _∷_ (Dμ-A (UpdDel y' y)) <M> res dp dq
+      with gapply dx y
+    ...| just y'  = _∷_ (Dμ-A (UpdDel y' y)) <M> res dp dq
     ...| nothing = nothing
     res (Dμ-del y ∷ dp) (Dμ-dwn dx ∷ dq)
-      with gapply dx (red y)
-    ...| just (red y')  = _∷_ (Dμ-A (DelUpd y y')) <M> res dp dq
+      with gapply dx y
+    ...| just y'  = _∷_ (Dμ-A (DelUpd y y')) <M> res dp dq
     ...| nothing = nothing
 
     res [] _  = nothing

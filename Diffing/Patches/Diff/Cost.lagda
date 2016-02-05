@@ -44,6 +44,10 @@ module Diffing.Patches.Diff.Cost where
   With this in mind, we implement the cost function as follows:
 
 \begin{code}
+  sum : ∀{a}{A : Set a}(f : A → ℕ)
+      → List A → ℕ
+  sum f = foldr (λ h r → f h + r) 0
+
   mutual
     {-# TERMINATING #-}
 \end{code}
@@ -51,22 +55,21 @@ module Diffing.Patches.Diff.Cost where
 \begin{code}
     cost : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → ℕ
     cost (D-A ())
-    cost  D-void        = 1
-    cost (D-inl d)      = 1 + cost d
-    cost (D-inr d)      = 1 + cost d
+    cost  D-void        = 0
+    cost (D-inl d)      = cost d
+    cost (D-inr d)      = cost d
     cost (D-setl xa xb) = 2 * (sizeElU xa + sizeElU xb)
     cost (D-setr xa xb) = 2 * (sizeElU xa + sizeElU xb)
     cost (D-pair da db) = cost da + cost db
     cost (D-β d)   = cost d
     cost (D-top d) = cost d
     cost (D-pop d) = cost d
-    cost (D-mu l)  = foldr (λ h r → costμ h + r) 0 l
+    cost (D-mu l)  = sum costμ l
 
     costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ ⊥ₚ t ty → ℕ
     costμ (Dμ-A ())
-    costμ (Dμ-ins x) = sizeElU x + 1
-    costμ (Dμ-del x) = sizeElU x + 1
-    costμ (Dμ-cpy x) = 0
+    costμ (Dμ-ins x) = 1 + sizeElU x
+    costμ (Dμ-del x) = 1 + sizeElU x
     costμ (Dμ-dwn x) = cost x
 \end{code}
 %</cost-def>
@@ -106,10 +109,6 @@ module Diffing.Patches.Diff.Cost where
       → Patchμ t ty → Patchμ t ty → Patchμ t ty
   _⊔μ_ {ty = ty} da db with cost (D-mu da) ≤?-ℕ cost (D-mu db)
   ...| no  _ = db
-  ...| yes _ with cost (D-mu da) ≟-ℕ cost (D-mu db)
-  ...| no  _ = da
-  ...| yes _ with paIsFirst da db
-  ...| true  = da
-  ...| false = db
+  ...| yes _ = da
 \end{code}
 %</lubmu-def>

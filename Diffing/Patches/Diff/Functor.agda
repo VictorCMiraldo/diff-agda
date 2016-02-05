@@ -44,7 +44,6 @@ module Diffing.Patches.Diff.Functor where
     Dμ-map f [] = []
     Dμ-map f (Dμ-A x   ∷ d) = Dμ-A (f x) ∷ Dμ-map f d
     Dμ-map f (Dμ-ins x ∷ d) = Dμ-ins x ∷ Dμ-map f d
-    Dμ-map f (Dμ-cpy x ∷ d) = Dμ-cpy x ∷ Dμ-map f d
     Dμ-map f (Dμ-del x ∷ d) = Dμ-del x ∷ Dμ-map f d
     Dμ-map f (Dμ-dwn dx ∷ d) 
       = Dμ-dwn (D-map f dx) ∷ Dμ-map f d
@@ -87,7 +86,6 @@ module Diffing.Patches.Diff.Functor where
     Dμ-map-join f g (Dμ-A x ∷ d) = cong (_∷_ (Dμ-A (f (g x)))) (Dμ-map-join f g d)
     Dμ-map-join f g (Dμ-ins x ∷ d) = cong (_∷_ (Dμ-ins x)) (Dμ-map-join f g d)
     Dμ-map-join f g (Dμ-del x ∷ d) = cong (_∷_ (Dμ-del x)) (Dμ-map-join f g d)
-    Dμ-map-join f g (Dμ-cpy x ∷ d) = cong (_∷_ (Dμ-cpy x)) (Dμ-map-join f g d)
     Dμ-map-join f g (Dμ-dwn dx ∷ d) 
       = cong₂ (λ P Q → Dμ-dwn P ∷ Q) (D-map-join f g dx) (Dμ-map-join f g d)
 
@@ -119,7 +117,6 @@ module Diffing.Patches.Diff.Functor where
     Dμ-map-id (Dμ-A x ∷ d) = cong (_∷_ (Dμ-A x)) (Dμ-map-id d)
     Dμ-map-id (Dμ-ins x ∷ d) = cong (_∷_ (Dμ-ins x)) (Dμ-map-id d)
     Dμ-map-id (Dμ-del x ∷ d) = cong (_∷_ (Dμ-del x)) (Dμ-map-id d)
-    Dμ-map-id (Dμ-cpy x ∷ d) = cong (_∷_ (Dμ-cpy x)) (Dμ-map-id d)
     Dμ-map-id (Dμ-dwn dx ∷ d) 
       = cong₂ (λ P Q → Dμ-dwn P ∷ Q) (D-map-id dx) (Dμ-map-id d)
 
@@ -254,7 +251,6 @@ module Diffing.Patches.Diff.Functor where
     uncastμ (Dμ-A x ∷ d) ()
     uncastμ (Dμ-ins x ∷ d) prf = Dμ-ins x ∷ uncastμ d prf
     uncastμ (Dμ-del x ∷ d) prf = Dμ-del x ∷ uncastμ d prf
-    uncastμ (Dμ-cpy x ∷ d) prf = Dμ-cpy x ∷ uncastμ d prf
     uncastμ (Dμ-dwn dx ∷ d) prf with ++-[] {l = forget dx} prf 
     ...| p1 , p2 = Dμ-dwn (uncast dx p1) ∷ uncastμ d p2
 
@@ -314,5 +310,4 @@ module Diffing.Patches.Diff.Functor where
     Dμ-mult (Dμ-A (D-mu x) ∷ l) = x ++ Dμ-mult l
     Dμ-mult (Dμ-ins x ∷ l) = Dμ-ins x ∷ Dμ-mult l
     Dμ-mult (Dμ-del x ∷ l) = Dμ-del x ∷ Dμ-mult l
-    Dμ-mult (Dμ-cpy x ∷ l) = Dμ-cpy x ∷ Dμ-mult l
     Dμ-mult (Dμ-dwn dx ∷ l) = Dμ-dwn (D-mult dx) ∷ Dμ-mult l
