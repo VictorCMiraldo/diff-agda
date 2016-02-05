@@ -597,16 +597,20 @@ where $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$:
   \Agda{Diffing/Patches/Diff/D}{Dmu-def}
   
   The reader familiar with \cite{Loh2009} will notice that they are almost the
-same (adapted to our choice of universe), with two differences: we admit a new
-constructur, \IC{D$\mu$-dwn}; and our diff type is less type-safe. The
-type-safety concerns will be discussed in section \ref{sec:typesafety}.
+same (adapted to our choice of universe), with two differences: 
+our diff type is \emph{less type-safe}, which will be discussed in section \ref{sec:typesafety};
+and instead of copying, we introduce a new constructor, \IC{D$\mu$-dwn}, which
+is responsible for traversing down the type-structure. Copying is modelled by
+$\IC{D$\mu$-dwn}\;(\F{gdiff-id}\; x)$. The intuition is that for every object
+$x$ there is a diff that does not change $x$, we will look into this on
+section \ref{sec:id}.
   
-  Before we delve into diffing fixed poitn values, we show some specialization
-of our generic operations to fixed points. Given that $\mu X . F\; X \approx
+  Before we delve into diffing fixed point values, we need some specialization
+of our generic operations for fixed points. Given that $\mu X . F\; X \approx
 F\;1 \times [\mu X . F\; X]$, that is, any inhabitant of a fixed-point type can
 be seen as a non-recursive head and a list of recursive children. We then make
-a specialized version of the \F{plug} and \F{unplug} functions, which are more
-convenient:
+a specialized version of the \F{plug} and \F{unplug} functions, which lets us
+open and close fixed point values.
   
   \Agda{Diffing/Universe/MuUtils}{Openmu-def}
   
@@ -617,8 +621,8 @@ convenient:
   Although the \F{plug} and \F{unplug} uses vectors, to remain total functions,
 we drop that restriction and switch to lists instead, this way we can easily
 construct a fixed-point with the beginning of the list of children, and return
-the unused children. The following soundness lemma guarantees the correct
-behaviour;
+the unused children, this will be very conveient when defining how patches are applied. 
+Nevertheless, a soundness lemma guarantees the correct behaviour.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
   
@@ -636,23 +640,44 @@ defined by:
 need to perform any action; to transform |[]| into |y : ys|, we need to insert
 the respective values; and to transform |x : xs| into |[]| we need to delete the
 respective values. The interesting case happens when we want to transform |x:xs|
-into |y:ys|. The first thing we check is whether the heads are equal, if so, we
-force the copying. If they are not equal, we have three possible diffs that
-perform the required transformation. We then choose the one with \emph{minimum
-cost}, in fact, \F{$\_\lubmu\_$} will return the patch with the least cost. This
-cost notion is very delicate, for it will be discussed later, in section
-\ref{sec:cost}.
+into |y:ys|. Here we have three possible diffs that perform the required transformation. 
+We want to choose the diff with the least cost between the three of them. That
+is precisely what \F{$\_\lubmu\_$} does. As we shall see in section \ref{sec:cost},
+this notion of cost is very delicate. The idea, however, is simple. If the heads
+are equal we have $d3 = \IC{D$\mu$-dwn}\; (\F{gdiff}\; hdX\; hdX) \cdots \approx Copy\; hdX$.
+Forcing to copy equal things will happen by assuring that for all $a$, $\F{gdiff}\;a\;a$
+has cost 0 whereas \IC{D$\mu$-ins} and \IC{D$\mu$-del} have strictly positive cost.
 
+\paragraph*{The Identity Patch}
+\label{sec:id}
+
+  Given the definition of $\F{gdiff}\;x\;y$, it is not hard to see that: whenever
+$x \equiv y$, we produce a patch without any \IC{D-setl}, \IC{D-setr},
+\IC{D$\mu$-ins} or \IC{D$\mu$-del}. Which allows one to trivially define a the
+identity patch for an object $x$, $\F{gdiff-id}\; x$, by induction on $x$. A
+good sanity check, however, is to prove that this intuition is in fact correct:
+  
+  \Agda{Diffing/Patches/Diff/Id}{gdiff-id-correct-type}
+  
   In fact, the example provided in figure \ref{fig:alicespatch} is a diff produced
-by our algorithm, with the constructors simplified to improve readability.
-
+by our algorithm, with the constructors simplified to improve readability. 
+  
 \subsubsection{The Cost Function}
 \label{sec:cost}
   
   As we mentioned earlier, the cost function is one of the key pieces of the
-diff algorithm. In fact, a clever definition of a cost function should allow
+diff algorithm. In fact, the definition of the cost function should allow
 one to define a non-trivial measure over the set of all elements of a datatype.
+Henceforth, the identity patch should have cost 0. If the identity patch is one
+without \IC{D-setl}, \IC{D-setr}, \IC{D$\mu$-ins} or \IC{D$\mu$-del}, this means
+every other constructor should have cost 0. Let us see now how do we attribute a
+cost to these constructors.
 
+  \begin{TODO}
+    \item We might actually give some formal developments here...
+    \item BEGIN IGNORE
+  \end{TODO}
+  
   Unfortunately, however, formally studying the \F{cost} function turns out to
 be extremely complicated, as not only the generic nature of patches encompasses
 a plethora of cost behaviors, but the semantics of the domain one is applying
@@ -662,10 +687,14 @@ the diff to might also require a slightly different definition.
 as we leave this as future work. Nonetheless, we explain the intuition behind our
 actual definition.
 
+  \begin{TODO}
+    \item END IGNORE
+  \end{TODO}
+
   The \F{cost} of a \F{Patch} is used only in the \F{gdiffL} function, in order
-to choose which path to follow when the heads are not equal, therefore cannot
-be copied. Let us assume we have stop execution at the $d_1 \Flubmu d_2 \Flubmu d_3$
-expression, in \F{gdiffL}. Here we have:
+to choose which path to follow when multiple options arise. Let us assume we
+have stoped execution at the $d_1 \Flubmu d_2 \Flubmu d_3$ expression, in
+\F{gdiffL}. Here we have:
 
 \newcommand{\cons}{\; :\hskip -.1em : \;}
 \newcommand{\cat}{\; + \hskip -.8em + \;}
@@ -684,27 +713,41 @@ expression, in \F{gdiffL}. Here we have:
 \]
 \end{center}
 
-  Let us not forget that at this point we know that $hdX \neq hdY$. There are two
-possibilities, however: either they can come from the same coproduct injection, or they dont.
-That is, imagine $hdX , hdY : \F{ElU}\;(a \ICoplus b \ICoplus c)\;(\IC{tcons}\;\IC{u1}\;t)$, 
-for some types $a, b ,c$ and telescope $t$. Let us assume further that there are no
-more coproducts inside $a$, $b$ and $c$, unless wrapped by a \IC{$\mu$}\footnote{In fact, this
-is how types are structured in Haskell, as \emph{sums-of-products}, which is why we make
-this assumptions for the following reasoning.}. Saying that $hdX$ and $hdY$ come from the same
-coproduct injection is saying that both $hdX$ and $hdY$ come from either $a$, $b$ or $c$ wrapped in
-their particular injections.
+  If $hdX \equiv hdY$, then $d_3$ will be selected as expected. Let us now
+assume that $hdX \neq hdY$. Two possibilities arise: either they
+can come from the same coproduct injection, or they dont. That is, imagine $hdX
+, hdY : \F{ElU}\;(a \ICoplus b \ICoplus c)\;(\IC{tcons}\;\IC{u1}\;t)$, for some
+types $a, b ,c$ and telescope $t$. assuming that there are no more
+coproducts inside $a$, $b$ and $c$, unless wrapped by a \IC{$\mu$}\footnote{In
+fact, this is how types are structured in Haskell, as \emph{sums-of-products},
+which is why we make this assumptions for the following reasoning.}. Saying that
+$hdX$ and $hdY$ come from the same coproduct injection is saying that both $hdX$
+and $hdY$ come from either $a$, $b$ or $c$ wrapped in their particular
+injections, or, in Haskell's term, they come from the same constructor.
 
   If $hdX$ and $hdY$ \emph{do not} come from the same coproduct injection, then $d_3$ should
 not be selected, as in fact it would be trying to change the outer constructor of a datatype
 instead of traversing inside of it and changing its non-recursive contents. That is to
 say, in this scenario, we want that $\F{cost}\;d_3 > \F{cost}\;d_i$, for $i \in \{1 , 2\}$.
+Where $\F{cost}\;d_3 = \F{cost}\;(\IC{D-set}\;hdX\;hdY) + k$ for some $k \in \mathbb{N}$
 
   On the other hand, if $hdX$ and $hdY$ \emph{do} come from the same coproduct injection, 
-then we want to preserve this injection and traack the recursive changes, for
-we then want $\F{cost}\;d_3 < \F{cost}\;d_i$, for $i \in \{1 , 2\}$.
+then we want to preserve this injection and track the recursive changes, for
+we then want $\F{cost}\;d_3 < \F{cost}\;d_i$, for $i \in \{1 , 2\}$. Here,
+$\F{cost}\;d_3 = \F{cost}\;(\F{gdiff}\;(i_j\; a') \;(i_j\;b')) + k$, for some $k \in \mathbb{N}$ and
+$hdX = i_j\; a'$ and $hdY = i_j \; b'$, where $i_j$ is the injection to the $j$-th constructor.
+Diffing $hdX$ and $hdY$ will yield a sequence of \IC{D-inl} and \IC{D-inr} on top
+of $\F{gdiff}\;a'\;b'$. But \IC{D-inl} and \IC{D-inr} have cost 0, hence 
+$\F{cost}\;(\F{gdiff}\;(i_j\; a') \;(i_j\;b')) = \F{cost}\;(\F{gdiff}\;a'\;b')$. 
+
+  Since cost for $d_1$ and $d_2$ involve inserting and deleting $hdX$ and $hdY$. 
+From the intuition gathered above, we can say that we want to have \IC{D-set} as the most expensive
+operation, inserting and deleting should lie in the middle and just traversing the structure
+must be very cheap.
 
   In short, we want to prevent deleting $hdX$ and inserting $hdY$ whenever there
-is information that could be preserved. With this intuition in mind, we then
+is information that could be preserved. With this intuition and the fact that the
+identity patch should have zero cost in mind, we then
 define the cost function as:
 
   \Agda{Diffing/Patches/Diff/Cost}{cost-def}
@@ -725,6 +768,10 @@ becomes a metric over the set of elements of a given datatype, that is:
     dist\;x\;y + dist\;y\;z & \leq & dist\;x\;z \\
     0 & \leq & dist\;x\;y \\
   \end{eqnarray*} 
+  
+    Moreover, the cost of the identity patch is in fact 0.
+
+  \Agda{Diffing/Patches/Diff/Id}{gdiff-id-cost-type}
 
 \subsection{Applying Patches}
 
@@ -898,7 +945,7 @@ for removing the conflicts of a single patch.
 enough time to figure out precisely how to fit our framework in theory, we can
 see how solving conflicts is just a matter of walking over the patch structure and
 removing them, one by one. This is unsurprising, and is exactly what we currently do manually
-when merge conflicts arise on any mature CVS. The interesting bit, however, is
+when merge conflicts arise on any mature version control system. The interesting bit, however, is
 that different ways of walking the patch might give us more or less information
 to handle a conflict. This opens up room for interesting automatic solvers, and
 besides not having a formal theory (yet!), they've shown to be very promissing
