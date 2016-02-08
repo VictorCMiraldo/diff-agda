@@ -26,7 +26,9 @@ module Prelude where
 
   open import Data.Nat
     using (ℕ; suc; zero; _+_; _*_; _∸_)
-    renaming (_≟_ to _≟-ℕ_; _≤?_ to _≤?-ℕ_)
+    renaming (_≟_ to _≟-ℕ_; _≤?_ to _≤?-ℕ_
+             ; compare to compareℕ; Ordering to Ordℕ
+             ; less to LE ; greater to GE ; equal to EQ)
     public
 
   open import Data.Fin
@@ -67,6 +69,7 @@ module Prelude where
 
   open import Relation.Binary.PropositionalEquality
     using (_≡_; refl; sym; trans; cong; cong₂; subst)
+    renaming (proof-irrelevance to ≡-pi)
     public
 
   open import Data.Maybe
@@ -208,6 +211,10 @@ module Prelude where
     fun-ext : ∀{a b}{A : Set a}{B : Set b}{f g : A → B}
             → (∀ x → f x ≡ g x)
             → f ≡ g
+
+  ¬≡-pi : ∀{a}{A : Set a}{a₁ a₂ : A}
+        → (p q : ¬ (a₁ ≡ a₂)) → p ≡ q
+  ¬≡-pi p q = fun-ext (λ x → ⊥-elim (p x))
 
   -- Some minor boilerplate to solve equality problem...
   record Eq (A : Set) : Set where

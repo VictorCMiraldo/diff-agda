@@ -16,9 +16,9 @@ module Diffing.Patches.Diff.Correctness where
             → gapplyL d1 a ≡ just b
             → gapplyL d2 a ≡ just b
             → gapplyL (d1 ⊔μ d2) a ≡ just b
-  gapplyL-⊔ {d1 = d1} {d2 = d2} l1 l2 with cost (D-mu d1) ≤?-ℕ cost (D-mu d2)
-  ...| yes prf = l1
-  ...| no  prf = l2
+  gapplyL-⊔ {a = a} {b = b} {d1 = d1} {d2 = d2} l1 l2
+    = ⊔μ-elim {P = λ p → gapplyL p a ≡ just b} 
+              d1 d2 l1 l2
 
   mutual
     {-# TERMINATING #-}
@@ -119,8 +119,12 @@ module Diffing.Patches.Diff.Correctness where
     ...| hdB , chB | [ rB ] 
        = gapplyL-⊔ 
          {d1 = Dμ-ins hdB ∷ gdiffL (a ∷ as) (chB ++ bs)} 
+         {d2 = (Dμ-del hdA ∷ gdiffL (chA ++ as) (b ∷ bs)) ⊔μ
+                 (Dμ-dwn (gdiff hdA hdB) ∷ gdiffL (chA ++ as) (chB ++ bs))}
          (correct-mu-ins-L {as = a ∷ as} {bs = bs} b rB) 
-         (gapplyL-⊔ {d1 = Dμ-del hdA ∷ gdiffL (chA ++ as) (b ∷ bs)}
+         (gapplyL-⊔ 
+             {d1 = Dμ-del hdA ∷ gdiffL (chA ++ as) (b ∷ bs)}
+             {d2 = Dμ-dwn (gdiff hdA hdB) ∷ gdiffL (chA ++ as) (chB ++ bs)}
            (correct-mu-del-L {as = as} {bs = b ∷ bs} a rA) 
            (correct-mu-down-L {as = as} {bs = bs} a b rA rB))
 

@@ -90,15 +90,34 @@ module Diffing.Utils.Propositions where
   nat≡≤ {zero} refl = z≤n
   nat≡≤ {suc m} refl = s≤s (nat≡≤ refl)
 
+  nat-≤-strict : {n m : ℕ}{p : ¬ (n ≡ m)} 
+               → suc n ≤ m → (n ≟-ℕ m) ≡ no p
+  nat-≤-strict {n} {suc m} {p} (s≤s hip) 
+    with n ≟-ℕ (suc m)
+  ...| yes q = ⊥-elim (p q)
+  ...| no ¬q = cong no (¬≡-pi ¬q p)
+
   nat-≤-elim : {n m : ℕ} → m ≤ suc n → (m ≡ suc n → ⊥) → m ≤ n
   nat-≤-elim {_} {zero} prf n≢m         = z≤n
   nat-≤-elim {zero} {suc .0} (s≤s z≤n) n≢m = ⊥-elim (n≢m refl)
   nat-≤-elim {suc n} {suc m} (s≤s prf) n≢m 
     = s≤s (nat-≤-elim prf (n≢m ∘ cong suc))
 
+  nat-≤-elim2 : {n m : ℕ} → n ≤ m → (¬ (n ≡ m)) → suc n ≤ m
+  nat-≤-elim2 {m = zero} z≤n hip = ⊥-elim (hip refl)
+  nat-≤-elim2 {m = suc m} z≤n hip = s≤s z≤n
+  nat-≤-elim2 (s≤s nm) hip = s≤s (nat-≤-elim2 nm (hip ∘ cong suc))
+
   nat-≤-step : {n m : ℕ} → n ≤ m → n ≤ suc m
   nat-≤-step z≤n       = z≤n
   nat-≤-step (s≤s prf) = s≤s (nat-≤-step prf)
+
+  nat-≤-unstep : {n m : ℕ} → suc n ≤ m → n ≤ m
+  nat-≤-unstep (s≤s p) = nat-≤-step p
+
+  nat-≤-abs : {n m : ℕ} → suc m ≤ n → m ≡ n → ⊥
+  nat-≤-abs {m = zero} (s≤s p) ()
+  nat-≤-abs {m = suc m} (s≤s p) q = nat-≤-abs p (suc-inj q)
 
   ≤-+ : {m n o p : ℕ} 
       → m ≤ o → n ≤ p → m + n ≤ o + p
@@ -106,10 +125,21 @@ module Diffing.Utils.Propositions where
   ≤-+ {o = suc o} z≤n s = nat-≤-step (≤-+ {o = o} z≤n s)
   ≤-+ (s≤s r) s = s≤s (≤-+ r s)
 
+  ≤-pi : {n m : ℕ} → (p q : n ≤ m) → p ≡ q
+  ≤-pi z≤n z≤n = refl
+  ≤-pi (s≤s p) (s≤s q) = cong s≤s (≤-pi p q)
+
+  nat-≤-dec : {n m : ℕ}(p : suc n ≤ m) → (n ≤?-ℕ m) ≡ yes (nat-≤-unstep p)
+  nat-≤-dec {n} {suc m} (s≤s p) with n ≤?-ℕ (suc m)
+  ...| yes q = cong yes (≤-pi q (nat-≤-step p))
+  ...| no ¬q = ⊥-elim (¬q (nat-≤-step p))
+
   ¬≤ : {m n : ℕ} → (m ≤ n → ⊥) → n ≤ m
   ¬≤ {zero} hip = ⊥-elim (hip z≤n)
   ¬≤ {suc m} {zero} hip = z≤n
   ¬≤ {suc m} {suc n} hip = s≤s (¬≤ (hip ∘ s≤s))
+
+  
 
   ≤-trans : {m n o : ℕ} → m ≤ n → n ≤ o → m ≤ o
   ≤-trans z≤n s = z≤n

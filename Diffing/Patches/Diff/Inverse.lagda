@@ -1,10 +1,13 @@
 \begin{code}
 open import Prelude
+open import Data.Nat using (_≤_)
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.MuUtils
 open import Diffing.Universe.Equality
 open import Diffing.Universe.Measures
 open import Diffing.Patches.Diff
+open import Diffing.Patches.Diff.Correctness
+open import Diffing.Utils.Propositions
 
 module Diffing.Patches.Diff.Inverse where
 
@@ -29,15 +32,18 @@ module Diffing.Patches.Diff.Inverse where
     D-inv (D-β p) = D-β (D-inv p)
     D-inv (D-top p) = D-top (D-inv p)
     D-inv (D-pop p) = D-pop (D-inv p)
-
+    
+    {-# TERMINATING #-}
     Dμ-inv : {n : ℕ}{t : Tel n}{ty : U (suc n)}
            → Patchμ t ty → Patchμ t ty
-    Dμ-inv [] = []
-    Dμ-inv (Dμ-A () ∷ ps)
-    Dμ-inv (Dμ-ins x ∷ ps) = Dμ-del x ∷ Dμ-inv ps
-    Dμ-inv (Dμ-del x ∷ ps) = Dμ-ins x ∷ Dμ-inv ps
-    Dμ-inv (Dμ-cpy x ∷ ps) = Dμ-cpy x ∷ Dμ-inv ps
-    Dμ-inv (Dμ-dwn dx ∷ ps) = Dμ-dwn (D-inv dx) ∷ Dμ-inv ps
+    Dμ-inv = map Dμ-inv1
+
+    Dμ-inv1 : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+            → Dμ ⊥ₚ t ty → Dμ ⊥ₚ t ty
+    Dμ-inv1 (Dμ-A ())
+    Dμ-inv1 (Dμ-ins x) = Dμ-del x
+    Dμ-inv1 (Dμ-del x) = Dμ-ins x
+    Dμ-inv1 (Dμ-dwn x) = Dμ-dwn (D-inv x)
 \end{code}
 
 \begin{code}
@@ -47,8 +53,8 @@ module Diffing.Patches.Diff.Inverse where
                → cost d ≡ cost (D-inv d)
     D-inv-cost (D-A ())
     D-inv-cost D-void = refl
-    D-inv-cost (D-inl d) = cong suc (D-inv-cost d)
-    D-inv-cost (D-inr d) = cong suc (D-inv-cost d)
+    D-inv-cost (D-inl d) = D-inv-cost d
+    D-inv-cost (D-inr d) = D-inv-cost d
     D-inv-cost (D-setl x x₁) = cong₂ _+_ (+-comm (sizeElU x) (sizeElU x₁)) 
                                (cong (λ P → P + zero) (+-comm (sizeElU x) (sizeElU x₁)))
     D-inv-cost (D-setr x x₁) = cong₂ _+_ (+-comm (sizeElU x) (sizeElU x₁)) 
@@ -61,80 +67,127 @@ module Diffing.Patches.Diff.Inverse where
 
     Dμ-inv-cost : {n : ℕ}{t : Tel n}{ty : U (suc n)}
                → (d : Patchμ t ty)
-               → cost (D-mu d) ≡ cost (D-mu (Dμ-inv d))
+               → costL d ≡ costL (Dμ-inv d)
     Dμ-inv-cost [] = refl
     Dμ-inv-cost (Dμ-A () ∷ d)
-    Dμ-inv-cost (Dμ-ins x ∷ d) = cong (λ P → sizeElU x + 1 + P) (Dμ-inv-cost d)
-    Dμ-inv-cost (Dμ-del x ∷ d) = cong (λ P → sizeElU x + 1 + P) (Dμ-inv-cost d)
-    Dμ-inv-cost (Dμ-cpy x ∷ d) = Dμ-inv-cost d
+    Dμ-inv-cost (Dμ-ins x ∷ d) = cong (λ P → 1 + sizeElU x + P) (Dμ-inv-cost d)
+    Dμ-inv-cost (Dμ-del x ∷ d) = cong (λ P → 1 + sizeElU x + P) (Dμ-inv-cost d)
     Dμ-inv-cost (Dμ-dwn x ∷ d) = cong₂ _+_ (D-inv-cost x) (Dμ-inv-cost d)
 \end{code}
 
 \begin{code}
-  postulate 
-    ⊔μ-cross : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-             → (d1 d2 d3 : Patchμ t ty)
-             → d1 ⊔μ (d2 ⊔μ d3) ≡ d2 ⊔μ (d1 ⊔μ d3)
+  inv-bias : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+           → (p q : Patchμ t ty) 
+           → bias p q ≡ bias (Dμ-inv p) (Dμ-inv q)
+  inv-bias [] [] = refl
+  inv-bias [] (q ∷ qs) = refl
+  inv-bias (p ∷ ps) [] = refl
+  inv-bias (_ ∷ _) (Dμ-A () ∷ _) 
+  inv-bias (Dμ-A () ∷ _) (_ ∷ _)
+  inv-bias (Dμ-ins p ∷ ps) (Dμ-ins q ∷ qs) = inv-bias ps qs
+  inv-bias (Dμ-ins p ∷ ps) (Dμ-del q ∷ qs) = inv-bias ps qs
+  inv-bias (Dμ-ins p ∷ ps) (Dμ-dwn q ∷ qs) = refl
+  inv-bias (Dμ-del p ∷ ps) (Dμ-ins q ∷ qs) = inv-bias ps qs
+  inv-bias (Dμ-del p ∷ ps) (Dμ-del q ∷ qs) = inv-bias ps qs
+  inv-bias (Dμ-del p ∷ ps) (Dμ-dwn q ∷ qs) = refl
+  inv-bias (Dμ-dwn p ∷ ps) (Dμ-ins q ∷ qs) = refl
+  inv-bias (Dμ-dwn p ∷ ps) (Dμ-del q ∷ qs) = refl
+  inv-bias (Dμ-dwn p ∷ ps) (Dμ-dwn q ∷ qs) = inv-bias ps qs
+
+  ⊔μ-cross : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+           → (d1 d2 d3 : Patchμ t ty)
+           → d1 ⊔μ (d2 ⊔μ d3) ≡ d2 ⊔μ (d1 ⊔μ d3)
+  ⊔μ-cross d1 d2 d3 
+    = trans (⊔μ-assoc d1 d2 d3) 
+      (trans (cong (λ P → P ⊔μ d3) (⊔μ-comm d1 d2)) 
+       (sym (⊔μ-assoc d2 d1 d3)))
+
+  private
+    fix : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+        → (d1 d2 : Patchμ t ty)
+        → suc (costL (Dμ-inv d1)) ≤ costL (Dμ-inv d2)
+        → suc (costL d1) ≤ costL d2
+    fix d1 d2 p = {!!}
+
+  ⊔μ-inv-lemma : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+               → (d1 d2 : Patchμ t ty)
+               → Dμ-inv (d1 ⊔μ d2) ≡ Dμ-inv d1 ⊔μ Dμ-inv d2
+  ⊔μ-inv-lemma d1 d2 with comp (costL (Dμ-inv d1)) (costL (Dμ-inv d2))
+  ⊔μ-inv-lemma d1 d2 | LE x 
+    rewrite comp-NEQ {q = nat-≤-abs (fix d1 d2 x)} (fix d1 d2 x) 
+          | comp-GE x
+         = {!!}
+  ⊔μ-inv-lemma d1 d2 | GE x = {!!}
+  ⊔μ-inv-lemma d1 d2 | EQ x = {!!}
+
+  ⊔μ-inv-lemma-3 : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+                 → (d1 d2 d3 : Patchμ t ty)
+                 → Dμ-inv (d1 ⊔μ (d2 ⊔μ d3)) 
+                 ≡ Dμ-inv d1 ⊔μ (Dμ-inv d2 ⊔μ Dμ-inv d3)
+  ⊔μ-inv-lemma-3 d1 d2 d3 = {!!}
 
   mutual
     {-# TERMINATING #-}
     D-inv-sound 
       : {n : ℕ}{t : Tel n}{ty : U n}
       → (a b : ElU ty t)
-      → D-inv (gdiff a b) ≡-D gdiff b a
-    D-inv-sound void void x = refl
-    D-inv-sound (inl a) (inl b) (inl x) = cong (_<M>_ inl) (D-inv-sound a b x)
-    D-inv-sound (inl a) (inl b) (inr x) = refl
-    D-inv-sound (inl a) (inr b) (inl x) = refl
-    D-inv-sound (inl a) (inr b) (inr x) = {!!}
-    D-inv-sound (inr a) (inl b) (inl x) = {!!}
-    D-inv-sound (inr a) (inl b) (inr x) = refl
-    D-inv-sound (inr a) (inr b) (inl x) = refl
-    D-inv-sound (inr a) (inr b) (inr x) = {!!}
-    D-inv-sound (a₁ , a₂) (b₁ , b₂) (x₁ , x₂) = {!!}
-    D-inv-sound (top a) (top b) (top x) = {!!}
-    D-inv-sound (pop a) (pop b) (pop x) = {!!}
-    D-inv-sound (mu a) (mu b) (mu x) = {! cong (λ P → P >>= safeHead)
-                                         (Dμ-inv-sound (mu a ∷ []) (mu b ∷ []) (mu x ∷ []))
-                                       !}
-    D-inv-sound (red a) (red b) (red x) = {!!}
+      → D-inv (gdiff a b) ≡ gdiff b a
+    D-inv-sound void void = refl
+    D-inv-sound (inl p) (inl q) = cong D-inl (D-inv-sound p q)
+    D-inv-sound (inl p) (inr q) = refl
+    D-inv-sound (inr p) (inl q) = refl
+    D-inv-sound (inr p) (inr q) = cong D-inr (D-inv-sound p q)
+    D-inv-sound (p1 , p2) (q1 , q2) 
+      = cong₂ D-pair (D-inv-sound p1 q1) (D-inv-sound p2 q2)
+    D-inv-sound (top p) (top q) 
+      = cong D-top (D-inv-sound p q)
+    D-inv-sound (pop p) (pop q) = cong D-pop (D-inv-sound p q)
+    D-inv-sound (mu p) (mu q) = cong D-mu (Dμ-inv-sound (mu p ∷ []) (mu q ∷ []))
+    D-inv-sound (red p) (red q) = cong D-β (D-inv-sound p q)
+
 
     Dμ-inv-sound
       : {n : ℕ}{t : Tel n}{ty : U (suc n)}
       → (as bs : List (ElU (μ ty) t))
-      → Dμ-inv (gdiffL as bs) ≡-Dμ gdiffL bs as
+      → Dμ-inv (gdiffL as bs) ≡ gdiffL bs as
     Dμ-inv-sound [] [] = refl
-    Dμ-inv-sound [] (b ∷ bs) = {!!}
-    Dμ-inv-sound (a ∷ as) [] = {!!}
+    Dμ-inv-sound [] (b ∷ bs)
+      = cong₂ _∷_ refl (Dμ-inv-sound [] (μ-ch b ++ bs))
+    Dμ-inv-sound (a ∷ as) [] 
+      = cong₂ _∷_ refl (Dμ-inv-sound (μ-ch a ++ as) [])
     Dμ-inv-sound (a ∷ as) (b ∷ bs)
-      with μ-open a | μ-open b
-    ...| hdA , chA | hdB , chB with hdA ≟-U hdB
-    ...| yes _ = {!!}
-    ...| no  _ = {!!}
-
+      = let
+        a1 = Dμ-ins (μ-hd b)
+        a2 = Dμ-del (μ-hd a)
+        a3 = Dμ-dwn (gdiff (μ-hd a) (μ-hd b))
+        d1 = gdiffL (a ∷ as) (μ-ch b ++ bs)
+        d2 = gdiffL (μ-ch a ++ as) (b ∷ bs)
+        d3 = gdiffL (μ-ch a ++ as) (μ-ch b ++ bs)
+        b1 = Dμ-ins (μ-hd a)
+        b2 = Dμ-del (μ-hd b)
+        b3 = Dμ-dwn (gdiff (μ-hd b) (μ-hd a))
+        e1 = gdiffL (b ∷ bs) (μ-ch a ++ as) 
+        e2 = gdiffL (μ-ch b ++ bs) (a ∷ as)
+        e3 = gdiffL (μ-ch b ++ bs) (μ-ch a ++ as)
+      in begin
+           Dμ-inv
+            ((a1 ∷ d1) ⊔μ (a2 ∷ d2) ⊔μ (a3 ∷ d3))
+         ≡⟨ ⊔μ-inv-lemma-3 (a1 ∷ d1) (a2 ∷ d2) (a3 ∷ d3) ⟩
+           Dμ-inv (a1 ∷ d1) ⊔μ Dμ-inv (a2 ∷ d2) ⊔μ Dμ-inv (a3 ∷ d3) 
+         ≡⟨ cong (λ P → P ⊔μ Dμ-inv (a2 ∷ d2) ⊔μ Dμ-inv (a3 ∷ d3)) {x = Dμ-inv (a1 ∷ d1)}
+              (cong₂ _∷_ refl (Dμ-inv-sound (a ∷ as) (μ-ch b ++ bs))) ⟩
+           (b2 ∷ e2) ⊔μ Dμ-inv (a2 ∷ d2) ⊔μ Dμ-inv (a3 ∷ d3)
+         ≡⟨ cong (λ P → (b2 ∷ e2) ⊔μ P ⊔μ Dμ-inv (a3 ∷ d3)) {x = Dμ-inv (a2 ∷ d2)}
+              (cong₂ _∷_ refl (Dμ-inv-sound (μ-ch a ++ as) (b ∷ bs))) ⟩
+           (b2 ∷ e2) ⊔μ (b1 ∷ e1) ⊔μ Dμ-inv (a3 ∷ d3)
+         ≡⟨ cong (λ P → (b2 ∷ e2) ⊔μ (b1 ∷ e1) ⊔μ P) 
+              (cong₂ _∷_ (cong Dμ-dwn (D-inv-sound (μ-hd a) (μ-hd b))) 
+                         (Dμ-inv-sound (μ-ch a ++ as) (μ-ch b ++ bs))) ⟩
+           (b2 ∷ e2) ⊔μ (b1 ∷ e1) ⊔μ (b3 ∷ e3)
+         ≡⟨ ⊔μ-cross (b2 ∷ e2) (b1 ∷ e1) (b3 ∷ e3) ⟩
+           (b1 ∷ e1) ⊔μ (b2 ∷ e2) ⊔μ (b3 ∷ e3)
+           ∎
+      where
+        open import Relation.Binary.PropositionalEquality as PropEq
+        open PropEq.≡-Reasoning
 \end{code}
-    Dμ-inv-sound [] [] [] = refl
-    Dμ-inv-sound [] [] (x ∷ xs) = refl
-    Dμ-inv-sound [] (b ∷ bs) [] = refl
-    Dμ-inv-sound [] (b ∷ bs) (x ∷ xs) 
-      with μ-open x
-    ...| hdX , chX with μ-hd b ≟-U hdX
-    ...| no  _ = refl
-    ...| yes _ = Dμ-inv-sound [] (μ-ch b ++ bs) (chX ++ xs)
-    Dμ-inv-sound (a ∷ as) [] [] = cong (λ P → P >>= (gIns (μ-hd a))) (Dμ-inv-sound (μ-ch a ++ as) [] [])
-    Dμ-inv-sound (a ∷ as) [] (x ∷ xs) = {!cong!}
-    Dμ-inv-sound (a ∷ as) (b ∷ bs) [] = {!!}
-    Dμ-inv-sound (a ∷ as) (b ∷ bs) (x ∷ xs)
-      with μ-open a | μ-open b
-    ...| hdA , chA | hdB , chB with hdA ≟-U hdB
-    ...| yes p rewrite sym p | ≟-U-refl hdA
-       = cong (λ P → _>>=_ (_>>=_ (gDel hdA (x ∷ xs)) P) (gIns hdA)) 
-         (congPμ gapplyL 
-           {d1 = Dμ-inv (gdiffL (chA ++ as) (chB ++ bs))} 
-           {d2 = gdiffL (chB ++ bs) (chA ++ as)} 
-           (Dμ-inv-sound (chA ++ as) (chB ++ bs)))
-    ...| no ¬p with hdB ≟-U hdA
-    ...| yes q = ⊥-elim (¬p (sym q))
-    ...| no  _ 
-       = {!!}
-end{code}
