@@ -141,27 +141,59 @@ module Diffing.Patches.Diff.Cost where
   Patchμ1 : {n : ℕ}(t : Tel n)(ty : U (suc n)) → Set
   Patchμ1 t ty = Dμ ⊥ₚ t ty × Patchμ t ty
 
+  {-# TERMINATING #-}
   bias : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-       → Patchμ t ty → Patchμ t ty → Bool
-  bias [] [] = true
-  bias (_ ∷ _) [] = true
-  bias [] (_ ∷ _) = false
-  bias (Dμ-A () ∷ _) _ 
-  bias _ (Dμ-A () ∷ _)
-  bias (Dμ-ins p ∷ ps) (Dμ-ins q ∷ qs) = bias ps qs -- 1
-  bias (Dμ-ins p ∷ ps) (Dμ-del q ∷ qs) = bias ps qs -- 2
-  bias (Dμ-ins p ∷ ps) (Dμ-dwn q ∷ qs) = false
-  bias (Dμ-del p ∷ ps) (Dμ-ins q ∷ qs) = bias ps qs -- 2
-  bias (Dμ-del p ∷ ps) (Dμ-del q ∷ qs) = bias ps qs -- 1
-  bias (Dμ-del p ∷ ps) (Dμ-dwn q ∷ qs) = false
-  bias (Dμ-dwn p ∷ ps) (Dμ-ins q ∷ qs) = true
-  bias (Dμ-dwn p ∷ ps) (Dμ-del q ∷ qs) = true
-  bias (Dμ-dwn p ∷ ps) (Dμ-dwn q ∷ qs) = bias ps qs
+       → Patchμ1 t ty → Patchμ1 t ty → Set
+  bias (p , []) (q , []) 
+    = suc (costμ p) ≤ costμ q
+  bias (p , (hp ∷ ps)) (q , []) 
+    = suc (costμ p) ≤ costμ q
+  bias (p , []) (q , (hq ∷ qs)) 
+    = suc (costμ p) ≤ costμ q
+  bias (p , (hp ∷ ps)) (q , (hq ∷ qs)) 
+       = suc (costμ p) ≤ costμ q 
+       ⊎ costμ p ≡ costμ q × bias (hp , ps) (hq , qs)
 
-  bias-comm : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → (a b :  Dμ ⊥ₚ t ty)
-            → (as bs : Patchμ t ty)
-            → bias (a ∷ as) (b ∷ bs) ≡ not (bias (b ∷ bs) (a ∷ as))
+  {-# TERMINATING #-}
+  bias-dec : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+           → (p q : Patchμ1 t ty) → Dec (bias p q)
+  bias-dec (p , []) (q , [])        = suc (costμ p) ≤?-ℕ costμ q
+  bias-dec (p , []) (q , (hq ∷ qs)) = suc (costμ p) ≤?-ℕ costμ q
+  bias-dec (p , (hp ∷ ps)) (q , []) = suc (costμ p) ≤?-ℕ costμ q
+  bias-dec (p , (hp ∷ ps)) (q , (hq ∷ qs)) with bias-dec (hp , ps) (hq , qs)
+  bias-dec (p , (hp ∷ ps)) (q , (hq ∷ qs)) | yes r with costμ p ≟-ℕ costμ q
+  ...| yes c = yes (i2 (c , r))
+  ...| no ¬c with suc (costμ p) ≤?-ℕ costμ q
+  ...| yes d = yes (i1 d)
+  ...| no ¬d = no (either ¬d (¬c ∘ p1))
+  bias-dec (p , (hp ∷ ps)) (q , (hq ∷ qs)) | no ¬r with suc (costμ p) ≤?-ℕ (costμ q)
+  ...| yes d = yes (i1 d)
+  ...| no ¬d = no (either ¬d (¬r ∘ p2))
+  
+  bias-antisym : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+               → (p q : Patchμ1 t ty) → bias p q → ¬ (bias q p)
+  bias-antisym (p , []) (q , []) hip abs 
+    = nat-≤-abs (≤-trans hip (nat-≤-unstep abs)) refl
+  bias-antisym (p , []) (q , hq ∷ qs) hip abs
+    = nat-≤-abs (≤-trans hip (nat-≤-unstep abs)) refl
+  bias-antisym (p , hp ∷ ps) (q , []) hip abs 
+    = nat-≤-abs (≤-trans hip (nat-≤-unstep abs)) refl
+  bias-antisym (p , hp ∷ ps) (q , hq ∷ qs) (i1 x) (i1 y) 
+    = nat-≤-abs (≤-trans y (nat-≤-unstep x)) refl
+  bias-antisym (p , hp ∷ ps) (q , hq ∷ qs) (i2 (c≡ , rec)) (i1 x) 
+    = nat-≤-abs x (sym c≡)
+  bias-antisym (p , hp ∷ ps) (q , hq ∷ qs) (i1 x) (i2 (c≡ , rec)) 
+    = nat-≤-abs x (sym c≡)
+  bias-antisym (p , hp ∷ ps) (q , hq ∷ qs) (i2 (_ , r1)) (i2 (_ , r2)) 
+    = bias-antisym (hp , ps) (hq , qs) r1 r2
+
+  {-
+  postulate
+    bias-comm : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+              → (a b :  Dμ ⊥ₚ t ty)
+              → (as bs : Patchμ t ty)
+              → bias (a ∷ as) (b ∷ bs) ≡ not (bias (b ∷ bs) (a ∷ as))
+  
   bias-comm (Dμ-A ()) _ _ _
   bias-comm _ (Dμ-A ()) _ _
   bias-comm (Dμ-del x) (Dμ-dwn x₁) da db = refl
@@ -176,6 +208,7 @@ module Diffing.Patches.Diff.Cost where
   bias-comm (Dμ-del x) (Dμ-ins x₁) da db = {!!}
   bias-comm (Dμ-del x) (Dμ-del x₁) da db = {!!}
   bias-comm (Dμ-dwn x) (Dμ-dwn x₁) da db = {!!}
+  -}
 \end{code}
 
 %<*lubmu-def>
@@ -187,9 +220,9 @@ module Diffing.Patches.Diff.Cost where
   _⊔μ_ {ty = ty} (a ∷ da) (b ∷ db) with comp (costL (a ∷ da)) (costL (b ∷ db))
   ...| LE _ = a ∷ da
   ...| GE _ = b ∷ db
-  ...| EQ p with bias (a ∷ da) (b ∷ db)
-  ...| true = a ∷ da
-  ...| false = b ∷ db
+  ...| EQ p with bias-dec (a , da) (b , db)
+  ...| yes _ = a ∷ da
+  ...| no _  = b ∷ db
 \end{code}
 %</lubmu-def>
 
@@ -203,12 +236,12 @@ module Diffing.Patches.Diff.Cost where
     with comp (costL (a ∷ da)) (costL (b ∷ db))
   ...| LE p = pda
   ...| GE p = pdb
-  ...| EQ p with bias (a ∷ da) (b ∷ db)
-  ...| true = pda
-  ...| false = pdb
+  ...| EQ p with bias-dec (a , da) (b , db)
+  ...| yes _ = pda
+  ...| no _  = pdb
 \end{code}
 
-\begin{code}
+begin{code}
   ⊔μ-comm : {n : ℕ}{t : Tel n}{ty : U (suc n)}
           → (da db : Patchμ t ty)
           → da ⊔μ db ≡ db ⊔μ da
@@ -219,17 +252,19 @@ module Diffing.Patches.Diff.Cost where
   ...| LE x rewrite comp-GE x = refl
   ...| GE x rewrite comp-LE x = refl
   ...| EQ x rewrite comp-EQ (sym x)
-                  | bias-comm a b da db
-            with bias (b ∷ db) (a ∷ da) 
-  ...| true  = refl
-  ...| false = refl
+               with bias-dec (a , da) (b , db) 
+                  | bias-dec (b , db) (a , da)
+  ...| yes as | yes bs = ⊥-elim (bias-antisym (a , da) (b , db) as bs)
+  ...| no  as | no  bs = ⊥-elim (bs {!!})
+  ...| yes _  | no  _  = refl
+  ...| no  _  | yes _  = refl
           
 
   postulate
     ⊔μ-assoc : {n : ℕ}{t : Tel n}{ty : U (suc n)}
              → (da db dc : Patchμ t ty)
              → da ⊔μ (db ⊔μ dc) ≡ (da ⊔μ db) ⊔μ dc
-\end{code}
+end{code}
   ⊔μ-assoc da db dc 
     with comp (costL da) (costL db)
        | comp (costL db) (costL dc)

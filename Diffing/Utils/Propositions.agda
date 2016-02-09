@@ -139,8 +139,6 @@ module Diffing.Utils.Propositions where
   ¬≤ {suc m} {zero} hip = z≤n
   ¬≤ {suc m} {suc n} hip = s≤s (¬≤ (hip ∘ s≤s))
 
-  
-
   ≤-trans : {m n o : ℕ} → m ≤ n → n ≤ o → m ≤ o
   ≤-trans z≤n s = z≤n
   ≤-trans (s≤s r) (s≤s s) = s≤s (≤-trans r s)
