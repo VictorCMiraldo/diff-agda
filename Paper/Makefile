@@ -30,6 +30,7 @@ CODE_AGDA_MODULES=Diffing/Universe/Syntax\
                   Diffing/Patches/Diff/D\
                   Diffing/Patches/Diff/Cost\
                   Diffing/Patches/Diff/Id\
+                  Diffing/Patches/Diff/Inverse\
                   Diffing/Patches/Conflicts\
                   Diffing/Patches/Residual\
                   Diffing/Patches/Residual/Symmetry\

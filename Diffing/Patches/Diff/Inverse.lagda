@@ -19,7 +19,7 @@ module Diffing.Patches.Diff.Inverse where
 \begin{code}
   mutual
 \end{code}
-%<D-inv-type>
+%<*D-inv-type>
 \begin{code}
     D-inv : {n : ℕ}{t : Tel n}{ty : U n}
           → Patch t ty → Patch t ty
@@ -60,7 +60,7 @@ module Diffing.Patches.Diff.Inverse where
                → (d : Patch t ty)
                → cost d ≡ cost (D-inv d)
 \end{code}
-%</D-inv-type>
+%</D-inv-cost-type>
 \begin{code}
     D-inv-cost (D-A ())
     D-inv-cost D-void = refl

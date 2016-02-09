@@ -575,7 +575,7 @@ their diff takes objects of two different types.
   Where the \F{gdiffL} takes care of handling fixed point values. The important
 remark here is that it operates over lists of elements, instead of single
 elements. This is due to the fact that the children of a fixed point element
-is a (possibly empty) list of fixed point elements.
+is a (possibly empty) list of fixed point elements. 
 
 \paragraph*{Fixed Points}
 
@@ -631,8 +631,7 @@ Nevertheless, a soundness lemma guarantees the correct behaviour.
 diffing of fixed points, which was heavily inspired by \cite{Loh2009}, is then
 defined by:
   
-  \Agda{Diffing/Patches/Diff}{gdiffL-def}
-  
+  \Agda{Diffing/Patches/Diff}{gdiffL-def}  
   
 \newcommand{\lubmu}{\sqcup_{\mu} \;}
 \newcommand{\Flubmu}{\; \F{$\lubmu$} \;}
@@ -641,60 +640,122 @@ need to perform any action; to transform |[]| into |y : ys|, we need to insert
 the respective values; and to transform |x : xs| into |[]| we need to delete the
 respective values. The interesting case happens when we want to transform |x:xs|
 into |y:ys|. Here we have three possible diffs that perform the required transformation. 
-We want to choose the diff with the least cost between the three of them. That
-is precisely what \F{$\_\lubmu\_$} does. As we shall see in section \ref{sec:cost},
+We want to choose the diff with the least \emph{cost} between the three of them, for
+we introduce an operator to do exactly that:
+
+  \Agda{Diffing/Patches/Diff/Cost}{lubmu-def}
+
+As we shall see in section \ref{sec:cost},
 this notion of cost is very delicate. The idea, however, is simple. If the heads
-are equal we have $d3 = \IC{D$\mu$-dwn}\; (\F{gdiff}\; hdX\; hdX) \cdots \approx Copy\; hdX$.
-Forcing to copy equal things will happen by assuring that for all $a$, $\F{gdiff}\;a\;a$
-has cost 0 whereas \IC{D$\mu$-ins} and \IC{D$\mu$-del} have strictly positive cost.
+are equal we have $d3 = \IC{D$\mu$-dwn}\; (\F{gdiff}\; hdX\; hdX) \cdots$, which
+is how copy is implemented. We want to copy as much as possible, so we will ensure 
+that for all $a$, $\F{gdiff}\;a\;a$, that is, the identity patch for $a$, has cost 0 whereas \IC{D$\mu$-ins} and \IC{D$\mu$-del} will have strictly positive cost.
+
+Since we mentioned \emph{the identity patch} for an object, we might already introduce 
+the two \emph{special} patches that we need before talking about \F{cost}.
 
 \paragraph*{The Identity Patch}
 \label{sec:id}
 
-  Given the definition of $\F{gdiff}\;x\;y$, it is not hard to see that: whenever
+  Given the definition of \F{gdiff}, it is not hard to see that whenever
 $x \equiv y$, we produce a patch without any \IC{D-setl}, \IC{D-setr},
-\IC{D$\mu$-ins} or \IC{D$\mu$-del}. Which allows one to trivially define a the
+\IC{D$\mu$-ins} or \IC{D$\mu$-del}, let us call these the \emph{change-introduction} constructors. 
+Well, one can spare the comparisons made by \F{gdiff} and trivially define the
 identity patch for an object $x$, $\F{gdiff-id}\; x$, by induction on $x$. A
 good sanity check, however, is to prove that this intuition is in fact correct:
   
   \Agda{Diffing/Patches/Diff/Id}{gdiff-id-correct-type}
   
-  In fact, the example provided in figure \ref{fig:alicespatch} is a diff produced
-by our algorithm, with the constructors simplified to improve readability. 
+\paragraph*{The Inverse Patch} 
+
+  If a patch $\F{gdiff}\;x\;y$ is not the identity, then it has \emph{change-introduction} constructors.
+if we swap every \IC{D-setl} for \IC{D-setr}, and \IC{D$\mu$-ins} for \IC{D$\mu$-del} and
+vice-versa, we get a patch that transforms $y$ into $x$. We shall call this operation the inverse
+of a patch.
+
+  \Agda{Diffing/Patches/Diff/Inverse}{D-inv-type}
+  
+  As one would expect, $\F{gdiff}\;y\;x$ or $\F{D-inv}\;(\F{gdiff}\;x\;y)$
+should be the same patch. Proving they are actually equal is very tricky and
+requires a lot of extra machinery regarding \F{$\_\lubmu\_$}, namelly it needs to
+be associative and commutative. Moreover, inverses 
+must distribute over it, that is $\F{D-inv}\;(p_a \F{$\lubmu$} p_b) =
+\F{D-inv}\;p_a \F{$\lubmu$} \F{D-inv}\;p_b$. Note that the problem only arises when we are
+evaluating $p_a \F{$\lubmu$} p_b$ for $p_a$ and $p_b$ with the same cost. 
+  We do prove, however, that $\F{gdiff}\;y\;x$ and $\F{D-inv}\;(\F{gdiff}\;x\;y)$
+behave on the same way. This means that for all practical purposes, they are indistinguishible.
+We shall see what this statement means precisely in section \ref{sec:apply}.
   
 \subsubsection{The Cost Function}
 \label{sec:cost}
   
   As we mentioned earlier, the cost function is one of the key pieces of the
-diff algorithm. In fact, the definition of the cost function should allow
-one to define a non-trivial measure over the set of all elements of a datatype.
-Henceforth, the identity patch should have cost 0. If the identity patch is one
-without \IC{D-setl}, \IC{D-setr}, \IC{D$\mu$-ins} or \IC{D$\mu$-del}, this means
-every other constructor should have cost 0. Let us see now how do we attribute a
-cost to these constructors.
+diff algorithm. It should assign a natural number to patches.
 
-  \begin{TODO}
-    \item We might actually give some formal developments here...
-    \item BEGIN IGNORE
-  \end{TODO}
+  \Agda{Diffing/Patches/Diff/Cost}{cost-type}
+
+The question is, how should we do this? The cost of transforming $x$ and $y$
+intuitively leads one to think about \emph{how far is $x$ from $y$}. We see that
+the cost of a patch should not be too different from the notion of distance.
+
+\[  \F{dist}\;x\;y = \F{cost}\;(\F{gdiff}\;x\;y) \]
+
+  \vskip .5em
+
+  In order to achieve a meaningfull definition, we will impose that our \F{cost}
+function must make the distance we defined above into a metric, that is:
   
-  Unfortunately, however, formally studying the \F{cost} function turns out to
-be extremely complicated, as not only the generic nature of patches encompasses
-a plethora of cost behaviors, but the semantics of the domain one is applying
-the diff to might also require a slightly different definition.
+  \vskip -1em
+  \begin{eqnarray}
+    dist\;x\;y = 0 & \Leftrightarrow & x = y \\
+    dist\;x\;y & = & dist\;y\;x \\
+    dist\;x\;y + dist\;y\;z & \geq & dist\;x\;z
+  \end{eqnarray}
 
-  This section does not show any formal development about the \F{cost} function,
-as we leave this as future work. Nonetheless, we explain the intuition behind our
-actual definition.
+  Equation (1) tells that the cost of not changing anything must be 0, therefore
+the cost of every non-\emph{change-introduction} constructor should be 0. The
+identity patch then has cost 0 by construction, as we seen it is exactly the patch
+with no \emph{change-introcution} constrcutor.
 
-  \begin{TODO}
-    \item END IGNORE
-  \end{TODO}
+  Equation (2), on the other hand, tells that it should not matter whether we go
+from $x$ to $y$ or from $y$ to $x$, the effort is the same. In patch-space, this
+means that the inverse of a patch should preserve its cost. Well, the inverse
+operation leaves everything unchanged but flips the \emph{change-introduction}
+constructors to their dual counterpart. We will hence assign a cost $c_\oplus =
+\F{cost } \IC{D-setl} = \F{cost } \IC{D-setr}$ and $c_\mu = \F{cost }
+\IC{D$\mu$-ins} = \F{cost } \IC{D$\mu$-del}$ and guarantee this by construction
+already. 
+  Some care must be taken however, as if we define $c_\mu$ and $c_\oplus$ as constants
+we will say that inserting a tiny object has the same cost of inserting a gigantic object!
+that is not what we are looking for in a fine-tuned diff algorithm. Let us then define
+$c_\oplus\;x\;y = \F{cost }(\IC{D-setr}\;x\;y) = \F{cost }(\IC{D-setl}\;x\;y)$ and
+$c_\mu\;x = \F{cost }(\IC{D$\mu$-ins}\;x) = \F{cost }(\IC{D$\mu$-del}\;x)$ so we can
+take this fine-tunning into account.
 
-  The \F{cost} of a \F{Patch} is used only in the \F{gdiffL} function, in order
-to choose which path to follow when multiple options arise. Let us assume we
-have stoped execution at the $d_1 \Flubmu d_2 \Flubmu d_3$ expression, in
-\F{gdiffL}. Here we have:
+  Equation (3) is concerned with composition of patches. The aggregate cost of changing
+$x$ to $y$, and then $y$ to $z$ should be greater than or equal to changing
+$x$ directly to $z$. We do not have a composition operation over patches yet, but
+we can see that this is trivially satisfied. Let us denote the number of 
+\emph{change-introduction} constructors in a patch $p$ by $\# p$. In the best case scenario,
+$\# (\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z) = \# (\F{gdiff}\;x\;z)$, this is the situation
+in which the changes of $x$ to $y$ and from $y$ to $z$ are non-overlapping. If they
+are overlapping, then some changes made from $x$ to $y$ must be changed again from $y$ to $z$,
+yielding $\# (\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z) > \# (\F{gdiff}\;x\;z)$. 
+
+  \vskip .3em
+
+  From equations (1) and (2) and from our definition of the equality patch and
+the inverse of a patch we already have that:
+
+  \Agda{Diffing/Patches/Diff/Id}{gdiff-id-cost-type}
+  
+  \Agda{Diffing/Patches/Diff/Inverse}{D-inv-cost-type}
+  
+  In order to finalize our definition, we just need to find an actual value for
+$c_\oplus$ and $c_\mu$. Let us then take a look at where the difference between
+these values comes into play. Assume we have stoped execution of \F{gdiffL} at
+the $d_1 \Flubmu d_2 \Flubmu d_3$ expression. Here we have three patches to
+choose from:
 
 \newcommand{\cons}{\; :\hskip -.1em : \;}
 \newcommand{\cat}{\; + \hskip -.8em + \;}
@@ -703,8 +764,9 @@ have stoped execution at the $d_1 \Flubmu d_2 \Flubmu d_3$ expression, in
 \newcommand{\DmuDwn}{\IC{D$\mu$-dwn} \;}
 \newcommand{\ICoplus}{\; \IC{$\oplus$} \;}
 \begin{center}
+\vskip -1em
 \[
-\begin{array}{l c l}
+\begin{array}{l c l}  
   d_1 & = & \DmuIns hdY \cons \F{gdiffL}\;(x \cons xs)\;(chY \cat ys) \\
   d_2 & = & \DmuDel hdX \cons \F{gdiffL}\;(chX \cat xs)\;(y \cons ys) \\
   d_3 & = & \DmuDwn (\F{gdiff}\;hdX\;hdY) \\ 
@@ -713,67 +775,81 @@ have stoped execution at the $d_1 \Flubmu d_2 \Flubmu d_3$ expression, in
 \]
 \end{center}
 
-  If $hdX \equiv hdY$, then $d_3$ will be selected as expected. Let us now
-assume that $hdX \neq hdY$. Two possibilities arise: either they
-can come from the same coproduct injection, or they dont. That is, imagine $hdX
-, hdY : \F{ElU}\;(a \ICoplus b \ICoplus c)\;(\IC{tcons}\;\IC{u1}\;t)$, for some
-types $a, b ,c$ and telescope $t$. assuming that there are no more
-coproducts inside $a$, $b$ and $c$, unless wrapped by a \IC{$\mu$}\footnote{In
-fact, this is how types are structured in Haskell, as \emph{sums-of-products},
-which is why we make this assumptions for the following reasoning.}. Saying that
-$hdX$ and $hdY$ come from the same coproduct injection is saying that both $hdX$
-and $hdY$ come from either $a$, $b$ or $c$ wrapped in their particular
-injections, or, in Haskell's term, they come from the same constructor.
+  There is a catch here! Let us compare $d_1$ and $d_3$. By choosing $d_1$, we
+would be opting to insert $hdY$ instead of transforming $hdX$ into $hdY$, this
+is indeed preferable if we dont have to delete $hdX$ later on, in
+$\F{gdiffL}\;(x \cons xs)\;(chY \cat ys)$, as that would be a waste of information. 
+This wasteful scenario happens when $hdX \in chY \cat ys$. Now, assuming without loss
+of generality that $hdX$ is the first element in $chY \cat ys$, we have that:
+\[ d_1 = \DmuIns hdY \cons \DmuDel hdX \cons \F{tail}\;d_3 \]
 
-  If $hdX$ and $hdY$ \emph{do not} come from the same coproduct injection, then $d_3$ should
-not be selected, as in fact it would be trying to change the outer constructor of a datatype
-instead of traversing inside of it and changing its non-recursive contents. That is to
-say, in this scenario, we want that $\F{cost}\;d_3 > \F{cost}\;d_i$, for $i \in \{1 , 2\}$.
-Where $\F{cost}\;d_3 = \F{cost}\;(\IC{D-set}\;hdX\;hdY) + k$ for some $k \in \mathbb{N}$
+  Hence, \F{cost }$d_1$ is $c_\mu\;hdX + c_\mu\;hdY + w$, for some $w \in \mathbb{N}$.
+Since we want to apply this to Haskell datatypes by the end of the day, it is acceptable
+to assume that $hdX$ and $hdY$ are values of the same finitary coproduct, representing
+the constructors of the fixed-point datatype. If $hdX$ and $hdY$ comes from different 
+constructors of our fixed-point datatype in question,
+then $hdX = i_j\; x'$\footnote{
+%%%% FOOTNOTE
+We use $i_j$ to denote the $j$-th injection into a finitary coproduct. 
+%%%% FOOTNOTE
+} and $hdY = i_k\; y'$ where $j \neq k$. The patch from $hdX$ to $hdY$ will
+therefore involve a $\IC{D-setl}\;x'\;y'$ or a $\IC{D-setr}\;y'\;x'$, hence
+the cost of $d_3$ becomes $c_\oplus\;x'\;y' + w$. Remember that in this situation
+it is wise to delete and insert instead of recursively changing. Since things are comming
+from a different constructors the structure of the outermost type
+is definetely changing, we want to reflect that! This means we need to select $d_1$
+instead of $d_3$, hence:
 
-  On the other hand, if $hdX$ and $hdY$ \emph{do} come from the same coproduct injection, 
-then we want to preserve this injection and track the recursive changes, for
-we then want $\F{cost}\;d_3 < \F{cost}\;d_i$, for $i \in \{1 , 2\}$. Here,
-$\F{cost}\;d_3 = \F{cost}\;(\F{gdiff}\;(i_j\; a') \;(i_j\;b')) + k$, for some $k \in \mathbb{N}$ and
-$hdX = i_j\; a'$ and $hdY = i_j \; b'$, where $i_j$ is the injection to the $j$-th constructor.
-Diffing $hdX$ and $hdY$ will yield a sequence of \IC{D-inl} and \IC{D-inr} on top
-of $\F{gdiff}\;a'\;b'$. But \IC{D-inl} and \IC{D-inr} have cost 0, hence 
-$\F{cost}\;(\F{gdiff}\;(i_j\; a') \;(i_j\;b')) = \F{cost}\;(\F{gdiff}\;a'\;b')$. 
+\[
+\begin{array}{crcl}
+  & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w & < & c_\oplus\;(i_j\;x')\;(i_k\;y') + w \\
+  \Leftrightarrow & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') & < & c_\oplus\;(i_j\;x')\;(i_k\;y')
+\end{array}
+\]
 
-  Since cost for $d_1$ and $d_2$ involve inserting and deleting $hdX$ and $hdY$. 
-From the intuition gathered above, we can say that we want to have \IC{D-set} as the most expensive
-operation, inserting and deleting should lie in the middle and just traversing the structure
-must be very cheap.
+  If $hdX$ and $hdY$ come from the same constructor, on the other hand, the story
+is slightly different. We now have $hdX = i_j\;x'$ and $hdY = i_j\;y'$, the cost
+of $d_1$ still is $c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w$ but the cost of $d_3$ 
+is $\F{dist}\;x'\;y' + w$, since $\F{gdiff}\;hdX\;hdY$ will be $\F{gdiff}\;x'\;y'$ preceded by a sequence
+of \IC{D-inr} and \IC{D-inr} since $hdX$ and $hdY$ they come from the same coproduct injection,
+but these have cost 0. This is the situation that selecting $d_3$ might be a wise choice,
+therefore we need:
 
-  In short, we want to prevent deleting $hdX$ and inserting $hdY$ whenever there
-is information that could be preserved. With this intuition and the fact that the
-identity patch should have zero cost in mind, we then
-define the cost function as:
+\[
+\begin{array}{crcl}
+  & \F{dist}\;x'\;y' + w & < & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w \\
+  \Leftrightarrow & \F{dist}\;x'\;y' & < & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y')
+\end{array}
+\]
+
+In order to enforce this behaviour on our diffing algorithm, we need to assign
+values to $c_\mu$ and $c_\oplus$ that respects:
+
+\[ \F{dist}\;x'\;y' < c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') < c_\oplus\;(i_j\;x')\;(i_k\;y') \]
+
+Now is the time for assigning values to $c_\mu$ and $c_\oplus$ and the diffing
+algorithm is completed. In fact, we define:
 
   \Agda{Diffing/Patches/Diff/Cost}{cost-def}
   
-  Where the size of an element is defined by:
+  Where $\F{costL} = sum \cdot map\; \F{cost$\mu$}$ and the size of an element is defined by:
   
   \Agda{Diffing/Universe/Measures}{sizeEl}
 
-  We reiterate that this is an informal definition with nothing but intuition
-backing it up so far. This is, however, a central point of our current research.
-Our intention is to iterate over the design of this function until |dist = curry (cost . uncurry gdiff)|
-becomes a metric over the set of elements of a given datatype, that is:
-
-  \vskip -1em
-  \begin{eqnarray*}
-    dist\;x\;y = 0 & \Leftrightarrow & x = y \\
-    dist\;x\;y & = & dist\;y\;x \\
-    dist\;x\;y + dist\;y\;z & \leq & dist\;x\;z \\
-    0 & \leq & dist\;x\;y \\
-  \end{eqnarray*} 
-  
-    Moreover, the cost of the identity patch is in fact 0.
-
-  \Agda{Diffing/Patches/Diff/Id}{gdiff-id-cost-type}
+Note that there are an infinite amount of definitions that would fit here. This is
+indeed a central topic of future work, as the \F{cost} function is what drives
+the diffing algorithm. This is deceptively complicated, though. Since \F{$\_\lubmu\_$} is 
+not commutative nor associative, in general, we do not have much room to reason
+about the result of a \F{gdiffL}. A more careful definition of \F{$\_\lubmu\_$} that can provide
+more properties is paramount for a more careful study of the \F{cost} function.
+Defining \F{$\_\lubmu\_$} in such a way that it gives us a lattice over patches
+and still respects patch inverses is very tricky. One option would be to aim for a 
+quasi-metric $d$ instead of a metric (dropping equation (2)), this way inverses need not
+to distribute over \F{$\_\lubmu\_$} and we can still define a metric $q$, but now with codomain $\mathbb{Q}$,
+as $q\;x\;y = \frac{1}{2}(d\;x\;y - d\;y\;x)$.
 
 \subsection{Applying Patches}
+\label{sec:apply}
 
   At this stage we are able to: work generically on a suitable universe; describe
 how elements of this universe can change and compute those changes. In order to
@@ -805,6 +881,10 @@ expected result. A correctness result guarantees that. Its
 proof is too big to be shown here, however, it has type:
 
   \Agda{Diffing/Postulated}{gdiff-correctness}
+  
+  Also relevant is the fact that the inverse of a patch behaves as it should:
+  
+  \Agda{Diffing/Patches/Diff/Inverse}{D-inv-sound-type}
   
   We have given algorithms for computing and applying differences over
 elements of a generic datatype. Moreover, we proved our algorithms are correct

@@ -51,9 +51,18 @@ module Diffing.Patches.Diff.Cost where
   mutual
     {-# TERMINATING #-}
 \end{code}
-%<*cost-def>
+%<*cost-type>
 \begin{code}
     cost : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → ℕ
+\end{code}
+%</cost-type>
+\begin{code}
+    costL : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+          → Patchμ t ty → ℕ
+    costL = sum costμ
+\end{code}
+%<*cost-def>
+\begin{code}
     cost (D-A ())
     cost  D-void        = 0
     cost (D-inl d)      = cost d
@@ -66,10 +75,8 @@ module Diffing.Patches.Diff.Cost where
     cost (D-pop d) = cost d
     cost (D-mu l)  = costL l
 
-    costL : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Patchμ t ty → ℕ
-    costL = sum costμ
-
-    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ (const (const ⊥)) t ty → ℕ
+    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+          → Dμ ⊥ₚ t ty → ℕ
     costμ (Dμ-A ())
     costμ (Dμ-ins x) = 1 + sizeElU x
     costμ (Dμ-del x) = 1 + sizeElU x
