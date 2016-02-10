@@ -103,6 +103,7 @@
 \DeclareUnicodeCharacter {7522}{$_i$}
 \DeclareUnicodeCharacter {119924}{$\mathcal{M}$}
 \DeclareUnicodeCharacter {8346}{$_p$}
+\DeclareUnicodeCharacter {120028}{$\mathcal{M}$}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -409,6 +410,7 @@ parts of the CSV file.
   
 \newcommand{\CF}{\text{CF}}
 \subsection{Context Free Datatypes}
+\label{sec:cf}
 
   Although our running example, of CSV files, has type |[[Atom String]]|,
 lists of $a$ themselfes are in fact the least fixed point of the functor $X
@@ -1034,8 +1036,8 @@ in practice as we will illustrate in section \ref{sec:haskell}.
 \subsection{A remark on Type Safety}
 \label{sec:typesafety}
 
-  There is one major flaw in our approach so far. Our \F{D-mu} constructor
-admits the creation of ill-formed patches. Consider the following simple example:
+  There is one minor problem in our approach so far. Our \F{D$\mu$} type
+admits ill-formed patches. Consider the following simple example:
 
   \Agda{Diffing/Patches/IllDiff}{ill-patch-example}
   
@@ -1043,14 +1045,50 @@ admits the creation of ill-formed patches. Consider the following simple example
 argument, but then we simply end the patch. Agda realizes that this patch will
 lead nowhere in an instant.
 
-  We stress that on this model, we strive for type-safety on
-the API level, that is, if the user does not manually edit the patches, they will
-be type-safe. This is a problem that is not very hard to fix, however. We would
-just require two additional indexes on \F{D$\mu$}, expressing how many elements
-it expects, and how many it produces. Changing the whole library to handle these type-safe
-patches might require some coding efort, as many internal manipulations are gonna
-have to change. In particular, the way we handle conflicts is going to change significantly.
-The conflict type will have to receive these indexes too. We leave this is future work.   
+  Making \F{D$\mu$} type-safe by construction should be simple. The type of the functor
+is always fixed, the telescope too. These can become parameters. We just need 
+to add two \F{$\mathbb{N}$}.
+
+  \Agda{Diffing/Postulated}{Dmu-type-safe-type}
+
+  Then, $\F{D$\mu$}\;A\;t\;ty\;i\;j$ will model a patch
+over elements of type $T = \F{ElU} (\IC{$\mu$}\;ty)\;t$ and moreover, it expects a
+vector of length $i$ of $T$'s and produces a vector of length $j$ of $T$'s.
+This is very similar to how type-safety is guaranteed in \cite{Loh2009}, 
+but since we have the types fixed, we just need the arity of their elements. 
+
+  If we try to encode this in Agda, using the universe of context-free types, we
+run into a very subtle problem. In short, we can not prove that is two elements
+come from the same constructor, they have the same arity. This hinders
+\F{D$\mu$-dwn} useless. To fix this, we need to add kinds to our universe. Type
+aplication does not behave the same way as in Haskell. Consider \F{list} as
+defined in section \ref{sec:cf} and \F{ltree} as defined below.
+
+  \Agda{Diffing/Universe/Syntax}{ltree-def}
+  
+  The Haskell equivalent, with explicit recursion, would be:
+  
+\begin{code}
+data LTreeF a b x  = Leaf a | Fork b x x
+type LTree a b     = Fix (LTreeF a b)
+\end{code}
+\vskip .5em
+  
+  The kind of |LTree| is $\star \Rightarrow \star \Rightarrow \star$. Hence,
+it can only receive arguments of kind $\star$. In \CF, however, we
+can apply \F{ltree} to \F{list}:
+
+  \Agda{Diffing/Universe/Syntax}{U-monster}
+
+%format MCM = "\mathcal{M}"
+ In Haskell, this type would be defined as |type MCM a = LTree a [a]|. The
+existence of these non-intuitive types makes it extremely complicated, if not
+impossible, to formally state properties relating the arity of an element and
+the arity of its type, moreover, \CF does not differentiate between sums-of-products. 
+
+  Fixing the type-unsafety we have in our model is not very difficult. By encoding our
+algorithm in a kinded universe that more closely resemble Haskell types should do the trick.
+This is left as future work. 
   
 \section{A Category of Patches}
 

@@ -146,3 +146,16 @@ And some general purpose functions
   myList = mu (inr (pop (top void) , top (mu (inl void))))
 \end{code}
 %</U-example>
+
+%<*ltree-def>
+\begin{code}
+  ltree : {n : ℕ} → U (2 + n)
+  ltree = μ (wk (wk vl) ⊕ wk vl ⊗ vl ⊗ vl)
+\end{code}
+%</ltree-def>
+%<*U-monster>
+\begin{code}
+  𝓜 : {n : ℕ} → U (suc n)
+  𝓜 = β ltree list
+\end{code}
+%</U-monster>
