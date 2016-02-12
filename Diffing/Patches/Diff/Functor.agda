@@ -24,7 +24,6 @@ module Diffing.Patches.Diff.Functor where
           → ({m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty') 
           → D A t ty → D B t ty
     D-map f (D-A x) = D-A (f x)
-    -- D-map f D-id   = D-id
     D-map f D-void = D-void
     D-map f (D-inl d) = D-inl (D-map f d)
     D-map f (D-inr d) = D-inr (D-map f d)

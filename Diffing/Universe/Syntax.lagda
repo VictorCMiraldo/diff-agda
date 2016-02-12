@@ -136,6 +136,19 @@ And some general purpose functions
   unpop (pop el) = el
 \end{code}
 
+\begin{code}
+  data _≤-U_ : {n : ℕ} → U n → U n → Set where
+    refl : {n : ℕ}{a : U n} → a ≤-U a
+    inr  : {n : ℕ}{a b c : U n} 
+         → a ≤-U b → a ≤-U (c ⊕ b)
+    inl  : {n : ℕ}{a b c : U n} 
+         → a ≤-U b → a ≤-U (b ⊕ c)
+    fst  : {n : ℕ}{a b c : U n} 
+         → a ≤-U b → a ≤-U (b ⊗ c)
+    snd  : {n : ℕ}{a b c : U n} 
+         → a ≤-U b → a ≤-U (c ⊗ b)
+\end{code}
+
 
 %<*U-example>
 \begin{code}
