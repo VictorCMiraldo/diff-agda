@@ -412,7 +412,7 @@ parts of the CSV file.
 \subsection{Context Free Datatypes}
 \label{sec:cf}
 
-  Although our running example, of CSV files, has type |[[Atom String]]|,
+  Although our running example, of CSV files, has type |[[String]]|,
 lists of $a$ themselfes are in fact the least fixed point of the functor $X
 \mapsto 1 + a \times X$. Which is a \emph{context-free type}, in the sense of
 \cite{Altenkirch2006}. For it is constructed following the grammar $\CF$ of
@@ -420,6 +420,7 @@ context free types with a deBruijn representation for variables.
   
   \[
     \CF ::= 1 \mid 0 \mid \CF \times \CF \mid \CF + \CF \mid \mu \; \CF \mid \mathbb{N}
+              \mid (\CF \; \CF)
   \]
   
   In Agda, the $\CF$ universe is defined by:
