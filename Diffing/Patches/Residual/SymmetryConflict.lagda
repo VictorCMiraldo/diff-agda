@@ -188,6 +188,12 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
         aux* (Dμ-del x ∷ d1) (Dμ-del y ∷ d2) () | no ¬p | no ¬p₁
         ...| yes p | yes _ = aux* d1 d2 prf
+
+        aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf
+         = cool where postulate cool : ∀{a}{A : Set a} → A
+        aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf
+         = cool where postulate cool : ∀{a}{A : Set a} → A
+        {-
         aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf
           with gapply dy x
         aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) () | nothing
@@ -203,6 +209,8 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| s1 , refl , q1 with <M>-elim (aux* d1 d2 q1)
         ...| s2 , r2 , q2 rewrite q2 | forget-cast {A = C} dx 
            = cong just (cong (_∷_ _) (sym r2)) 
+        -}
+
         aux* {k = k} (Dμ-dwn dx ∷ d1) (Dμ-dwn dy ∷ d2) prf
           with <M*>-elim-full {f = _∷_ <M> (Dμ-dwn <M> (dx / dy))} {x = res d1 d2}  prf
         ...| (fa , a) , r1 , s1 , q1 with aux* d1 d2 q1

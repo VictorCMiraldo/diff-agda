@@ -160,6 +160,16 @@ And some general purpose functions
 \end{code}
 %</U-example>
 
+\begin{code}
+  CONS : {n : ℕ}{t : Tel n}{a : U n}
+       → ElU a t → ElU list (tcons a t) → ElU list (tcons a t)
+  CONS x xs = mu (inr ((pop (top x)) , (top xs)))
+
+  NIL : {n : ℕ}{t : Tel n}{a : U n}
+      → ElU list (tcons a t)
+  NIL = mu (inl void)
+\end{code}
+
 %<*ltree-def>
 \begin{code}
   ltree : {n : ℕ} → U (2 + n)

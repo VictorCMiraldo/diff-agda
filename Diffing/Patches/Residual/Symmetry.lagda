@@ -39,6 +39,10 @@ module Diffing.Patches.Residual.Symmetry where
   hd-tail f tl [] = []
   hd-tail f tl (x ∷ xs) = f x ∷ tl xs
 
+  tail : ∀{a}{A : Set a} → List A → List A
+  tail []       = []
+  tail (_ ∷ xs) = xs
+
   private
     mutual
       {-# TERMINATING #-}
@@ -200,16 +204,27 @@ module Diffing.Patches.Residual.Symmetry where
       aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf 
         with gapply dy x
       aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) () | nothing
-      ...| just y' with <M>-elim prf
-      ...| r , refl , q with aux* d1 d2 q
-      ...| op , hip = on-tail op , <M>-intro hip
+      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just y' with x ≟-U y'
+      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just y' 
+         | no  p with <M>-elim prf
+      ...| r1 , refl , r3 with aux* d1 d2 r3
+      ...| op , hip rewrite hip = on-tail op , refl
+      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just y'
+         | yes p with <M>-elim prf
+      ...| r1 , refl , r3 with aux* d1 d2 r3
+      ...| op , hip rewrite hip = op ∘ tail , refl
 
       aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf 
         with gapply dx y
       aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) () | nothing
-      ...| just x' with <M>-elim prf
-      ...| r , refl , q with aux* d1 d2 q
-      ...| op , hip = (on-tail op) , (<M>-intro hip)
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf | just x' with y ≟-U x'
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf | just x' 
+         | no  p with <M>-elim prf
+      ...| r1 , refl , r3 with aux* d1 d2 r3
+      ...| op , hip rewrite hip = on-tail op , refl
+      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf | just x'
+         | yes p with aux* d1 d2 prf
+      ...| op , hip rewrite hip = _∷_ (Dμ-del y) ∘ op , refl
 
       aux* (Dμ-dwn dx ∷ d1) (Dμ-dwn dy ∷ d2) prf 
         with <M*>-elim {x = res d1 d2} prf

@@ -121,14 +121,18 @@ module Diffing.Patches.Residual where
 
     res (Dμ-dwn dx ∷ dp) (Dμ-dwn dy ∷ dq) 
       = _∷_ <M> (Dμ-dwn <M> (dx / dy)) <M*> res dp dq
-
+\end{code}
+%<*res-dwn-del-case>
+\begin{code}
     res (Dμ-dwn dx ∷ dp) (Dμ-del y ∷ dq)
       with gapply dx y
-    ...| just y'  
-       = dec-elim (λ _ → res dp dq) 
-                  (λ _ → _∷_ (Dμ-A (UpdDel y' y)) <M> res dp dq)
-                  (y ≟-U y')
     ...| nothing = nothing
+    ...| just y' with y ≟-U y'
+    ...| yes _ = res dp dq
+    ...| no  _ = _∷_ (Dμ-A (UpdDel y' y)) <M> res dp dq    
+\end{code}
+%</res-dwn-del-case>
+\begin{code}
     res (Dμ-del y ∷ dp) (Dμ-dwn dx ∷ dq)
       with gapply dx y
     ...| just y'  

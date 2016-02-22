@@ -293,3 +293,22 @@ module Diffing.Patches.Diff where
   NF _ = Unit
 \end{code}
 %</NF-def>
+
+%<*example-apply>
+\begin{code}
+  bool : {n : ℕ} → U n
+  bool = u1 ⊕ u1
+
+  tt : {n : ℕ}{t : Tel n} → ElU bool t
+  tt = inl void
+
+  ff : {n : ℕ}{t : Tel n} → ElU bool t
+  ff = inr void
+
+  l1 : ElU list (tcons bool tnil)
+  l1 = CONS tt NIL
+
+  l2 : ElU list (tcons bool tnil)
+  l2 = CONS ff NIL
+\end{code}
+%</example-apply>
