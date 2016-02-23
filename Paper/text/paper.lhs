@@ -253,26 +253,22 @@ with algorithms for observing and combining such changes. To this end,
 this paper makes the following novel contributions:
   
 \begin{itemize}
-\item We define a \emph{type-indexed} data type for representing edits
-  to structured data.  \TODO{Explain that we do this for a universe of
-    context free types, defined in Agda}
+  \item We define a \emph{type-indexed} data type for representing edits to
+        structured data. The structure of the data closely resembles the way
+        one defines data-types in functional languages such as Haskell.
 
-\item We define generic algorithms for computing and applying a diff
-  generically and prove their correctness.
+  \item We define generic algorithms for computing and applying a diff
+        generically and prove they are correct with respect to each other.
 
-  \TODO{Can we say something here about what correctness means?  And
-    what algorithms specifically we define?}
 
-\item A notion of residual is used to propagate changes of different
-  diffs, hence providing a bare mechanism for merging and conflict
-  resolution.
+  \item A notion of residual is used to propagate changes of different diffs,
+        hence providing a bare mechanism for merging and conflict resolution.
 
-\item We illustrate how these ideas in Agda have been implemented in a
-  prototype Haskell tool, capable of automatically merging changes to
-  structured data. This tool provides the user with the ability to
-  define custom conflict resolution strategies when merging changes to
-  structured data.
-  \item \warnme{Cloning and swapping}
+  \item We illustrate how these ideas in Agda have been implemented in a
+        prototype Haskell tool, capable of automatically merging changes to
+        structured data. This tool provides the user with the ability to define
+        custom conflict resolution strategies when merging changes to structured
+        data. \warnme{Cloning and swapping}
 \end{itemize} 
 
 
