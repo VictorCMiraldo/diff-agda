@@ -187,8 +187,8 @@
 \preprintfooter{some iformation here...}
 \titlebanner{DRAFT}
 
-\title{Best Title in the Universe}
-\subtitle{42}
+\title{Structure aware version control}
+%\subtitle{42}
 
 \authorinfo{Victor Cacciari Miraldo \and Wouter Swierstra}
   {University of Utrecht}
@@ -215,103 +215,76 @@ Haskell
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Introduction}
-  The majority of version control systems handle patches in a non-structured
-way. They see a file as a list of lines that can be inserted, deleted or
-modified, with no regard to the semantics of that specific file. The immediate
-consequence of such design decision is that we, humans, have to solve a large
-number of conflicts that arise from, in fact, non conflicting edits.
-Implementing a tool that knows the semantics of any file we happen to need,
-however, is no simple task, specially given the plethora of file formats we see
-nowadays. 
-  
-  This can be seen from a simple example. Lets imagine Alice and Bob are
-iterating over a cake's recipe. They decide to use a version control system and
-an online repository to keep track of their modifications.
-  
-\begin{figure}[h]
-\begin{center}
-\csvAOBlbl{\begin{tabular}{lll}
-items & qty & unit \\
-flour & 2    & cp  \\
-eggs  & 2    & units 
-\end{tabular}}{\begin{tabular}{lll}
-items & qty & unit \\
-flour & 1   & cp   \\
-eggs  & 2   & units
-\end{tabular}}{\begin{tabular}{lll}
-items & qty & unit \\
-cakeflour & 1   & cp \\
-eggs  & 2   & units \\
-sugar & 1   & tsp
-\end{tabular}}{Alice}{Bob}
-\end{center}
-\caption{Sample CSV files}
-\label{fig:csvfiles}
-\end{figure}
 
-  Lets say that both Bob and Alice are happy with their independent changes and
-want to make a final recipe. The standard way to track differences between files
-is the \sheltt{diff3} \mcite{diff3} unis tool. Running \sheltt{diff3 Alice.csv
-O.csv Bob.csv} would result in the output presented in figure
-\ref{fig:diff3output}. Every tag \sheltt{====} marks a difference. Three
-locations follows, formatted as \sheltt{file:line type}. The change type can be
-a \emph{Change}, \emph{Append} or \emph{Delete}. The first one, says that file 1
-(\sheltt{Alice.csv}) has a change in line 2 (\sheltt{1:2c}) which is
-\sheltt{flour, 2 , cp}; and files 2 and 3 have different changes in the same
-line. The tag \sheltt{====3} indicates that there is a difference in file 3
-only. Files 1 and 2 should append what changed in file 3 (line 4). 
 
-\begin{figure}[h]
+Version control has become an indispensable tool in the development of
+modern software. There are various version control tools freely
+available, such as git or mercurial, that are used by thousands of
+developers worldwide. Collaborative repository hosting websites, such
+as GitHub and Bitbucket, haven triggered a huge growth in open source
+development. \warnme{Add citations}
+
+Yet all these tools are based on a simple, line-based diff algorithm
+to detect and merge changes made by individual developers. While such
+line-based diffs generally work well when monitoring source code, not
+all data is best represented as lines of text.
+
+Consider the following example CSV file, recording the marks and names
+three students:
 \begin{verbatim}
-====
-1:2c
-  flour, 2  , cp  
-2:2c
-  flour, 1  , cp  
-3:2c
-  cakeflour, 1  , cp  
-====3
-1:3a
-2:3a
-3:4c
-  sugar, 1  , tsp
+Student name, Student number, Mark
+Alice   , 440, 7.0
+Bob     , 593, 6.5
+Carroll , 168, 8.5
 \end{verbatim}
-\caption{Output from \sheltt{diff3}}
-\label{fig:diff3output}
-\end{figure}
+A new entry to this CSV file will not modify any existing entries and
+is unlikely to cause conflicts. Adding a new column storing the date
+of the exam, however, will change every line of the file and therefore
+will conflict with any other change to the file. Conceptually,
+however, this seems wrong: adding a column changes every line in the
+file, but leaves all the existing data unmodified. The only reason
+that this causes conflicts is that the \emph{granularity of change}
+that version control tools use is not suitable for this kind of file.
 
-  If we try to merge the changes, \sheltt{diff3} will flag a conflict and
-therefore require human interaction to solve it, as we can see by the presence
-of the \sheltt{====} indicator in its output. However, Alice's and Bob's edits,
-in figure \ref{fig:csvfiles} do \emph{not} conflict, if we take into account the
-semantics of CSV files. Although there is an overlapping edit at line 1, the
-fundamental editing unit is the cell, not the line.
-
-  We propose a structural diff that is not only generic but also able to track
-changes in a way that the user has the freedom to decide which is the
-fundamental editing unit. Our work was inspired by \cite{Loh2009} and \cite{Vassena2015}. We did extensive changes in order to handle structural merging of patches. We also propose extensions to
-this algorithm capable of detecting purely structural operations such as
-refactorings and cloning. 
-    
-  The paper begins by exploring the problem, generically, in the Agda
-\mcite{agda} language. Once we have a provably correct algorithm, the details of
-a Haskell implementation of generic diff'ing are sketched. To open ground for
-future work, we present a few extensions to our initial algorithm that could be
-able to detect semantical operations such as \emph{cloning} and \emph{swapping}. 
+This paper proposes a different approach to version control
+systems. Instead of relying on a single line-based diff algorithm, we
+will explore how to define a \emph{generic} notion of change, together
+with algorithms for observing and combining such changes. To this end,
+this paper makes the following novel contributions:
   
-\subsection*{Contributions}
-
 \begin{itemize}
-  \item We provide a type-indexed definition of a generic diff, over
-        the universe of context-free types.
-  \item We provide the base, proven to be correct, algorithms for computing
-        and applying a diff generically.
-  \item A notion of residual is used to propagate changes of different diffs,
-        hence providing a bare mechanism for merging and conflict resolution.
-  \item We provide a Haskell prototype with advanced, user defined, 
-        automatic conflict solving strategies.
+\item We define a \emph{type-indexed} data type for representing edits
+  to structured data.  \TODO{Explain that we do this for a universe of
+    context free types, defined in Agda}
+
+\item We define generic algorithms for computing and applying a diff
+  generically and prove their correctness.
+
+  \TODO{Can we say something here about what correctness means?  And
+    what algorithms specifically we define?}
+
+\item A notion of residual is used to propagate changes of different
+  diffs, hence providing a bare mechanism for merging and conflict
+  resolution.
+
+\item We illustrate how these ideas in Agda have been implemented in a
+  prototype Haskell tool, capable of automatically merging changes to
+  structured data. This tool provides the user with the ability to
+  define custom conflict resolution strategies when merging changes to
+  structured data.
+  \item \warnme{Cloning and swapping}
 \end{itemize} 
 
+
+% Move this to related work?
+%  structural diff that is not only generic but also able to
+% track changes in a way that the user has the freedom to decide which
+% is the fundamental editing unit. Our work was inspired by
+% \cite{Loh2009} and \cite{Vassena2015}. We did extensive changes in
+% order to handle structural merging of patches. We also propose
+% extensions to this algorithm capable of detecting purely structural
+% operations such as refactorings and cloning.
+    
 
 \subsection*{Background}
 
