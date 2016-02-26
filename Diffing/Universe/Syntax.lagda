@@ -170,6 +170,20 @@ And some general purpose functions
   NIL = mu (inl void)
 \end{code}
 
+%<*rt-def>
+\begin{code}
+  rt : {n : ℕ} → U (1 + n)
+  rt = μ (wk vl ⊗ β (wk list) vl)
+\end{code}
+%</rt-def>
+
+\begin{code}
+  RT : {n : ℕ}{t : Tel n}{a : U n}
+     → ElU a t → ElU list (tcons rt (tcons a t)) → ElU rt (tcons a t)
+  RT a rts = mu ((pop (top a)) , (red (pop rts)))
+\end{code}
+
+
 %<*ltree-def>
 \begin{code}
   ltree : {n : ℕ} → U (2 + n)

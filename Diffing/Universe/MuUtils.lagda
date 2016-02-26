@@ -141,3 +141,22 @@ returns the unused part of the children list.
                             (λ { (pop x) → refl }))) 
            (sym (plug-lvl-correct fz a))))
 \end{code} 
+
+
+\begin{code}
+  private
+    r₂ : ElU rt (tcons u1 tnil)
+    r₁ : ElU rt (tcons u1 tnil)
+\end{code}
+%<*rt-els-def>
+\begin{code}
+    r₁ = RT void NIL
+    r₂ = RT void (CONS r₁ NIL)
+\end{code}
+%</rt-els-def>
+%<*r-ar-lemma>
+\begin{code}
+    problem : arity (μ-hd r₁) ≡ 0 × arity (μ-hd r₂) ≡ 1
+    problem = refl , refl
+\end{code}
+%</r-ar-lemma>
