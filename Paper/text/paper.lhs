@@ -797,61 +797,9 @@ has to satisfy the constraints we imposed.
 \subsection{A Small Example}
 
 \begin{TODO}
-  \item add context
+  \item Find an example simple enough to fit here.
+  \item Maybe already align with the case study on the Haskell prototype.
 \end{TODO}
-
-\begin{enumerate}[I)]
-    \item Copy the first line;
-    \item Enter the second line;
-      \begin{enumerate}[i)]
-        \item Copy the first field;
-        \item Enter the second field;
-          \begin{itemize}
-            \item Update atom |"1"| for atom |"2"|.
-          \end{itemize}
-        \item Copy the third field;
-      \end{enumerate}
-    \item Copy the third line.
-    \item Finish.
-\end{enumerate}
-  
-In figure \ref{fig:alicespatch} we show the patch that corresponds to that.
-
-\begin{figure}[h]
-\begin{center}
-\begin{tabular}{m{.17\textwidth} m{.6\textwidth}}
-\csvABlbl{\begin{tabular}{lll}
-items & qty & unit \\
-flour & 1   & cp   \\
-eggs  & 2   & units
-\end{tabular}}{\begin{tabular}{lll}
-items & qty & unit \\
-flour & 2    & cp  \\
-eggs  & 2    & units 
-\end{tabular}}{Alice}
- &
-  $ \begin{array}{l l}
-  Cpy & | ["items" , "qty" , "unit" ] | \\
-  Dwn & \left\{ \begin{array}{l l} 
-            Cpy & |"flour"| \\ 
-            Dwn & Upd \; | "1" "2" | \\
-            Cpy & |"cp"| \\
-            End &
-         \end{array} \right. \\
-  Cpy & | ["eggs" , "2" , "units"] | \\
-  End &
- \end{array} $    
-\end{tabular}
-\end{center}
-\caption{Alice's Patch}
-\label{fig:alicespatch}
-\end{figure}
-
-  Consider now Bob's structural changes to the CSV file\footnote{Exercise to the
-reader! Clue: the last two operations are $Ins\;|["sugar" , "1" , "tsp"]|\;End$}. If you overlap
-both, you should notice that there is $Upd$ operation on top of another. This
-was in fact expected given that Alice and Bob performed changes in disjoint
-parts of the CSV file.
 
 \subsection{Applying Patches}
 \label{sec:apply}
@@ -998,15 +946,7 @@ the types they can occur on. An \emph{update-update} conflict has to happen on a
 coproduct type, whereas the rest are restricted to fixed-point types. In Agda,
   
   \Agda{Diffing/Patches/Conflicts}{C-def}
-  
-  \begin{TODO}
-    \item Pijul has this notion of handling a merge as a pushout,
-          but it uses the free co-completion of a rather simple category.
-          This doesn't give enough information for structured
-          conflict solving.
-    \item BACK THIS UP!
-  \end{TODO}
-    
+      
 \subsection{Incorporating Conflicts}
 \label{sec:conflicts}
 
@@ -1077,13 +1017,13 @@ This opens up a lot of very interesting questions and paves the road to defining
 conflict resolution combinators. Allowing for a great degree of genericity in
 the base framework.
 
-\section{A Haskell Prototype}
+\section{The Haskell Prototype}
 \label{sec:haskell}
 
   In sections \ref{sec:cf} and \ref{sec:residual} we have layed the foundations
-for creating a functional version control system. We proceed by illustrating
-these with a prototype in Haskell, with an emphasis on its extended capability
-of handling conflicts.
+for creating a generic, structure aware, version control system. We proceed by illustrating
+these ideas with a prototype in Haskell, with an emphasis on its extended capability
+of handling non-trivial conflicts.
 
   The user has access to a typeclass |Diffable a|, which gives the basic diffing
 and merging functionality for objects of type |a|:
@@ -1155,37 +1095,206 @@ instance {-# OVERLAPPABLE #-}
 As the tool is still a very young prototype, we chose to ommit implementation details
 such as memoization or explicit 
 
-\subsection{A more involved example}
+\subsection{A more involved proof of concept}
+  
+  In order to show the full potential of our approach, we will develop a simple
+example showing how one can encode and run a \emph{refactoring} conflict solver for arbitrary
+datatypes. We will first introduce some simple definitions and then explore how
+refactoring can happen there.
 
-  \begin{TODO}
-    \item Show how refactoring works
-  \end{TODO}
+  Our case study will be centered on CSV files with integers on their cells. The cannonical
+representaion of this CSV format is |T|. Moreover, we will also assume that the specific
+domain in which these files are used allows for refactors.
 
-\section{Sketching a Control Version System}
+\vskip .5em
+\begin{code}
+type T = List (List (Atom Int))
+\end{code}
+\vskip .5em
 
-  \begin{itemize}
-    \item Different views over the same datatype will give different diffs.
-    \item |newtype| annotations can provide a gread bunch of control over the algorithm.
-    \item Directories are just rosetrees...
-  \end{itemize}
+  An |Atom a| is isomorphic to |a|. The difference is that it serves as a flag
+to the diff algorithm, telling it to treat the |a|'s atomically. That is, either
+they are equal or different, no inspection of their structure is made. Our
+|List| type is then defined as follows:
+
+\vskip .5em
+%format DOTS = "\cdots"
+\begin{code}
+newtype  L a x   = L { unL :: Either () (a , x) }
+type     List a  = Fix (L a)
+\end{code}
+\vskip .5em
+
+%format k  = "\uparrow"
+%format ki = "\hskip .3em \uparrow \hskip -.3em"
+  Again, |List a| is isomorphic to |[a]|, but it uses explicit
+  recursion\footnote{ The use of explicit recursion is what forces us to define
+  |L| as a newtype, so that we can partially apply it.} and hence has a |HasAlg|
+  and |HasSOP| instance. Both of them are trivial and hence ommited. We hence
+  have that |T| is isomorphic to |[[Int]]|. We will denote |k :: [[Int]] -> T|
+  as one of the witnesses of such isomorphism.
+
+  We are now ready to go into our case study. Imagine both Alice and Bob clone
+a repository containing a single CSV file |l0 = ki [[1 , 2] , [3]]|. 
+Both Alice and Bob make their changes to |lA| and |lB| respectively.
+
+\vskip .5em
+\begin{code}
+lA = ki [[2] , [3, 1]]
+lB = ki [[12 , 2] , [3]]
+\end{code}
+\vskip .5em
+  
+  Here we see that Alice moved the cell containing the number 1 and Bob
+changed 1 to 12. Lets denote these patches by |pA| and |pB| respectively.
+In a simplified notation, they are represented by:
+
+\vskip .5em
+\begin{code}
+  pA = [  Dwn [Del 1 , Cpy 2 , Cpy [] ] 
+       ,  Dwn [Cpy 3, Ins 1, Cpy []]
+       ,  Cpy []]
+  pB = [  Dwn [Set 1 12 , Cpy 2 , Cpy [] ] 
+       ,  Cpy [3] 
+       ,  Cpy []]
+\end{code}
+\vskip .5em
+
+  We will now proceed to merge these changes automatically, following the
+approach on section \ref{sec:residual}, we want to propagate Alice's changes
+over Bob's patch and vice-versa. There will obviously be conflicts on those
+residuals. Here we illustrate a different way of traversing a patch with
+conflicts besides the free-monad multiplication, as mentioned in section
+\ref{sec:conflicts}. Computing |pA / pB| yields:
+
+\vskip .5em
+\begin{code}
+  pA / pB = [  Dwn [DelUpd 1 12 , Cpy 2 , Cpy [] ] 
+            ,  Dwn [Cpy 3, GrowL 1, Cpy []]
+            ,  Cpy []]
+\end{code}
+\vskip .5em
+
+  As we expected, there are two conflicts there! A $\IC{DelUpd}\;1\;12$ and a
+$\IC{GrowL}\;1$ conflict on |pA / pB|. Note that the \IC{GrowL}
+\emph{matches} the deleted object on \IC{DelUpd}. This is the \emph{anatomy} of
+a refactoring conflict! Someone updated something that was moved by someone else. 
+Moreover, from \F{residual-symmetry}, we know that that
+the conflicts in |pB / pA| are exactly $\IC{UpdDel}\;12\;1$ and $\IC{GrowR}\;1$.
+The grow also matches the deleted object.
+
+  By permeating Bob's changes over Alice's refactor we would expect the the
+resulting CSV to be |lR = ki [[2] , [3, 12]]|. The functorial structure of
+patches provides us with exactly what we need to do so. The idea is that we
+traverse the patch structure twice. First we make a list of the \IC{DelUpd} and
+\IC{UpdDel} conflicts, then we do a second pass, now focusing on the \emph{grow}
+conflicts and trying to match them with what was deleted. If they match, we
+either copy or insert the \emph{updated} version of the object.
+
+  Recall \ref{sec:conflicts}, where we explain that conflict solving is simply a
+traversal of the patch structure followed by a \emph{pointwise} resolution when
+we reach a conflict. In our Haskell prototype library we already provide different
+traversals and solvers. It is worth mentioning that the actual code is slightly more complicated\footnote{
+We define a \emph{subtyping} relation as a GADT, named |a :>: b|, which specifies |b| as a subtype
+of |a|. The actual Haskell code uses this proofs extensively in order to typecheck
+and cast conflicts instead of the rank 2 types shown here.
+}, as the
+generic nature of the functions require some boilerplate code to typecheck but the
+main idea is precisely the same, for we will present a simplified version. 
+
+  In the context provided by the current example, we will use a traversal
+|solvePWithCtx| with a solver |sRefactor|.
+
+%format forall = "\forall"
+%format DOT    = "\cdot"
+\vskip .5em
+\begin{code}
+sRefactor      :: Cf a -> [forall x DOT Cf x] -> Maybe (Patch a)
+solvePWithCtx  :: (Cf a -> [forall x DOT Cf x] -> Maybe (Patch a))
+               -> PatchC b -> PatchC b
+\end{code}
+\vskip .5em
+
+The |solvePWithCtx| traversal will perform the aforementioned two traversals. The first
+one records the conflicts whereas the second one applies |sRefactor| to the
+conflicts. The |sRefactor| solver, in turn, will receive the list of all
+conflicts (context) and will try to match the \emph{grows} with the
+\emph{deletions}. Note that we return a |PatchC| from the solver. This happens
+since the solver is \emph{partial}. It will leave the conflicts it cant solve
+untouched. Predicate |resolved :: PatchC a -> Maybe (Patch a)| casts it back to
+a patch if no conflict is present.
+
+  We can now compute the patches |pAR| and |pBR|, to be applied to Alice's and Bob's
+copy in order to obtain the result, by: 
+
+\vskip .5em
+\begin{code}
+  Just pAR = resolved (solvePWithCtx sRefactor (pB / pA))
+  Just pBR = resolved (solvePWithCtx sRefactor (pA / pB))
+\end{code}
+\vskip .5em
+
+  Which evaluates to:  
+  
+\vskip .5em
+\begin{code}
+  pAR = [  Cpy [2] 
+        ,  Dwn [Cpy 3 , Set 1 12 , Cpy []] 
+        ,  Cpy []]
+  pBR = [  Dwn [Del 12 , Cpy 2 , Cpy []] 
+        ,  Dwn [Cpy 3 , Ins 12 , Cpy []] 
+        ,  Cpy []]
+\end{code}
+\vskip .5em
+
+  And finally we can apply |pAR| to Alice's copy and |pBR| to Bob's copy
+and both will end up with the desired |lR = ki [[2] , [3, 12]]| as a result.
+
+  As we can see from this not so simple example, our framework allows
+for a definition of a plethora of different conflict solving strategies. This
+fits very nicely with the \emph{generic} part of the diff problem we propose to solve.
+In the future we would like to have a formal calculus of combinators for conflict
+solving, allowing different users to fully customize how their merge tool behaves.
 
 \section{Summary, Remarks and Related Work}
 
-  \begin{RESEARCH}
-  \item Check out the antidiagonal with more attention: 
-          \url{ http://blog.sigfpe.com/2007/09/type-of-distinct-pairs.html }
-        \RESEARCHAnswer{Diffing and Antidiagonals are
-          fundamentally different. The antidiagonal for
-          a type $T$ is a type $X$ such that there
-          exists $X \rightarrow T^2$. That is, $X$ produces
-          two \textbf{distinct} $T$'s, whereas
-          a diff produces a $T$ given another $T$!}
-  \end{RESEARCH}
+  On this paper we presented our approach to solving the generic diffing
+problem. We provided the theoretical foundations and created a Haskell prototype
+applying the proposed concepts. The diffing API can be made ready for all
+Haskell types, out of the box, with some simple Template Haskell, as all we need
+is the derivation of two trivial instances. We have also shown how this approach
+allows one to fully specialize conflict resolution for the domain in question.
 
-  \begin{TODO}
-    \item related work goes here!
-    \item Add some boilerplate to the shameful part of the paper...
-  \end{TODO}
+  We are not the only ones working on this problem. Below we give a short comparisson
+with some related work we came accross.
+
+  \begin{description}
+    \item[Antidiagonal] Although easy to be confused with the diff problem,
+      the antidiagonal is fundamentally different from the diff/apply
+      specification. In \cite{Piponi2007}, the antidiagonal for a type $T$ is
+      defined as a type $X$ such that there exists $X \rightarrow T^2$. That is,
+      $X$ produces two \textbf{distinct} $T$'s, whereas a diff produces a $T$
+      given another $T$. 
+    
+    \item[Loh's approach]
+      \begin{TODO}
+        \item Say something!
+      \end{TODO}
+    
+    \item[Pijul]
+      \begin{TODO}
+        \item Pijul has a of handling a merge as a pushout,
+              but it uses the free co-completion of a rather simple category.
+              This doesn't give enough information for structured
+              conflict solving.
+        \item cite and back it up
+      \end{TODO}
+  \end{description}
+  
+  Finally address some issues and their respective solutions to the
+work done so far. The implementation of these solutions and the
+consequent evaluation of how they change our theory of patches
+is left as future work.
 
 \subsection{Cost, Inverses and Lattices}
 
@@ -1227,8 +1336,8 @@ argument, but then we simply end the patch. Agda realizes that this patch will
 lead nowhere in an instant.
 
   Making \F{D$\mu$} type-safe by construction should be simple. The type of the functor
-is always fixed, the telescope too. These can become parameters. We just need 
-to add two \F{$\mathbb{N}$}.
+is always fixed, the telescope too. Hence they can become parameters. We just need 
+to add two \F{$\mathbb{N}$} as indexes.
 
   \Agda{Diffing/Postulated}{Dmu-type-safe-type}
 
@@ -1239,16 +1348,35 @@ This is very similar to how type-safety is guaranteed in \cite{Loh2009},
 but since we have the types fixed, we just need the arity of their elements. 
 
   If we try to encode this in Agda, using the universe of context-free types, we
-run into a very subtle problem. In short, we can not prove that if two elements
-come from the same constructor, they have the same arity. This hinders
-\F{D$\mu$-dwn} useless. To fix this, we need to add kinds to our universe.
-Context-free type aplication does not behave the same way as in Haskell.
-Consider \F{list} as defined in section \ref{sec:cf} and \F{ltree} as defined
-below.
+run into a very subtle problem. In short, we can not prove that if two elements of
+a recursive type come from the same constructor then they have the same arity. 
+Mainly because this does not hold! This hinders \F{D$\mu$-dwn} useless. Let us
+take a look at how one defines rose trees in \CF:
+
+  \Agda{Diffing/Universe/Syntax}{rt-def}
+  
+Rose trees of $a$ have a single constructor that takes an $a$ and a list of
+rose trees of $a$ to produce a single rose tree. Lets call its constructor $RT$. 
+However, the arity of an element of a rose tree will vary. More precisely, 
+it will be equal to the length of the
+list of recursive rose trees. We therefore can have two \emph{heads} comming from the
+same constructor, as there is only one, with different arities, as we can see in:
+
+  \AgdaI{Diffing/Universe/MuUtils}{rt-els-def}{-2.2em}
+  
+  \AgdaI{Diffing/Universe/MuUtils}{r-ar-lemma}{-2.2em}
+
+If we look at \F{rt}'s Haskell counterpart, |data RT a = RT a [RT a]|, we see that 
+its arity should be zero, as the type |RT a| does not appear immediatly on
+the constructor, but only as an argument to the List type.
+
+Although easy to describe, this problem is deeper than what meets the eye. 
+On a separate example, consider a leaf tree, \F{ltree}, as defined below:
 
   \Agda{Diffing/Universe/Syntax}{ltree-def}
   
   The Haskell equivalent, with explicit recursion, would be:
+  \vskip .2em
   
 \begin{code}
 data LTreeF a b x  = Leaf a | Fork b x x
@@ -1256,21 +1384,24 @@ type LTree a b     = Fix (LTreeF a b)
 \end{code}
 \vskip .5em
   
-  The kind of |LTree| is $\star \Rightarrow \star \Rightarrow \star$. Hence,
-it can only receive arguments of kind $\star$. In \CF, however, we
-can apply \F{ltree} to \F{list}:
+  Now consider the following reduction.
 
   \Agda{Diffing/Universe/Syntax}{U-monster}
 
 %format MCM = "\mathcal{M}"
- In Haskell, this type would be defined as |type MCM a = LTree a [a]|. The
-existence of these non-intuitive types makes it extremely complicated, if not
-impossible, to formally state properties relating the arity of an element and
-the arity of its type, moreover, \CF does not differentiate between sums-of-products. 
+ In \CF, due to the dependency introduced by the telescopes, this type of
+reduction is estabilishing a relation between the two type variables of \F{ltree}.
+Here we have the type of \F{ltree}s where the first type variable is actually
+a list of the second. In Haskell, this type would be defined as |type MCM a = LTree a [a]|. 
 
-  Fixing the type-unsafety we have in our model is not very difficult. By encoding our
-algorithm in a kinded universe that more closely resemble Haskell types does the trick.
-This is left as future work.
+To be able to encode this more delicate definition of arity we need to first
+divide our universe into sums-of-products, so that we have the notion of 
+a constructor. Then change the definition of telescope to use closed types only
+(that is, types with \IC{zero} type variables), not allowing this functional dependency
+between type variables. Fixed points will have to be interpreted by W-types
+to satisfy the termination checker. However, since now we
+have the notion of constructor and its associated arity it is fairly simple to define
+a shape and a positioning function for such. This is left as future.
   
 \section{Conclusion}
   \begin{itemize}
