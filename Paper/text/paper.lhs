@@ -188,7 +188,7 @@
 \titlebanner{DRAFT}
 
 \title{Structure aware version control}
-%\subtitle{42}
+\subtitle{A case study in Agda}
 
 \authorinfo{Victor Cacciari Miraldo \and Wouter Swierstra}
   {University of Utrecht}
@@ -231,12 +231,17 @@ all data is best represented as lines of text.
 
 Consider the following example CSV file, recording the marks and names
 three students:
-\begin{verbatim}
-Student name, Student number, Mark
-Alice   , 440, 7.0
-Bob     , 593, 6.5
-Carroll , 168, 8.5
-\end{verbatim}
+
+\begin{center}
+\begin{tabular}{l@@{ , }l@@{ , }l}
+Name & Number & Mark \\
+Alice & 440 & 7.0 \\
+Bob & 593 & 6.5 \\
+Carroll & 168 & 8.5
+\end{tabular}
+\end{center}
+
+
 A new entry to this CSV file will not modify any existing entries and
 is unlikely to cause conflicts. Adding a new column storing the date
 of the exam, however, will change every line of the file and therefore
@@ -269,45 +274,31 @@ this paper makes the following novel contributions:
         structured data. This tool provides the user with the ability to define
         custom conflict resolution strategies when merging changes to structured
         data. \warnme{Cloning and swapping}
-\end{itemize} 
-
-
-% Move this to related work?
-%  structural diff that is not only generic but also able to
-% track changes in a way that the user has the freedom to decide which
-% is the fundamental editing unit. Our work was inspired by
-% \cite{Loh2009} and \cite{Vassena2015}. We did extensive changes in
-% order to handle structural merging of patches. We also propose
-% extensions to this algorithm capable of detecting purely structural
-% operations such as refactorings and cloning.
-    
+\end{itemize}    
 
 \subsection*{Background}
 
-\begin{TODO}
-  \item Should we have this section? It cold be nice
-        to at least mention the edit distance problem and that
-        in the untyped scenario, the best running time is of $O(n^3)$.
-        Types should allow us to bring this time lower.
-\end{TODO}
+  The generic diff problem is a very special case of the \emph{edit distance} problem,
+which is concerned with computing the minimum cost of transforming an untyped tree 
+$A$ into an untyped tree $B$. Demaine provides a solution to the problem in 
+\cite{Demaine2007}, improving the work of \cite{Klein1998}. This problem
+has been popularized in the particular case where the trees in question are,
+in fact, lists, in which case we call it the \emph{least common subsequence} (LCS)
+problem \cite{Bille2005,Bergroth2000}. The popular UNIX \texttt{diff} tool provides
+a solution to the LCS problem considering the edit operations to be inserting and 
+deleting lines of text.
+
+  Our implementation follows a slightly different route, in which we choose
+not to worry too much about the \emph{minimum} cost, but the one that better reflects
+the changes which are important to the use case in question. In practice, we can see
+that the \emph{diff} tool works great. Its problem is precisely conflict resolution,
+or more generally, its older brother \emph{diff3} \cite{Khanna2007}. Conflict resolution
+is where our focus lies. We want to build a sound theory for patches that is highly customizable 
+in its conflict solving capabilities, as it can be used for arbitrarily many file formats.
+In order to build such theory, and consequently a prototype, we will turn ourselves to
+datatype-generic programming, where functional programming technology excels at.
   
 \section{Structural Diffing}  
-  
-  \begin{TODO}
-    \item Diffing and tree-edit distance are very closely related problems.
-    \item This should go on background, though.
-  \end{TODO}
-  
-  \begin{RESEARCH}
-    \item The LCS problem is closely related to diffing.
-          We want to preserve the LCS of two structures!
-          How does our diffing relate?
-          Does this imply maximum sharing?
-          \RESEARCHAnswer{No! We don't strive for
-            maximum sharing. We strive for
-            flexibility and customization.
-            See refactoring}
-  \end{RESEARCH}
   
   To make version control to be structure aware we need to define what
 structures we can handle. In our case, the structure is the universe of context
@@ -323,7 +314,7 @@ context free types with a deBruijn representation for variables.
   
   \[
     \CF ::= 1 \mid 0 \mid \CF \times \CF \mid \CF + \CF \mid \mu \; \CF \mid \mathbb{N}
-              \mid (\CF \; \CF) \mid \CF \CF
+              \mid (\CF \; \CF)
   \]
   
   In Agda, the $\CF$ universe is defined by:
@@ -382,7 +373,7 @@ lets us define an element of that type.
 and the elements that inhabit it. We are, however, interested in the operations
 can we perform on these elements. As we shall see, this choice of universe
 turns out to be very expressive, providing a plethora of interesting operations.
-The first very usefull concept is the decidability of generic 
+The first very useful concept is the decidability of generic 
 equality\cite{Altenkirch2006}.
 
   \Agda{Diffing/Universe/Equality}{equality-type}
@@ -405,7 +396,7 @@ are correct.
   
   We can even go a step further and say that every element is defined by a constructor
 and a vector of children, with the correct arity. This lets us treat generic elements as
-elements of a (typed) rose-tree, whenever thas is convenient.
+elements of a (typed) rose-tree, whenever that is convenient.
 
   \Agda{Diffing/Universe/Ops}{unplug-type}
   
@@ -418,21 +409,21 @@ a way of traversing generic trees in order to decide how to change one into the 
 We do things a bit differently, though. We linearize the trees and proceed to traverse
 the resulting list.
 
-  For the readers familiar with Haskell's \emph{Uniplate}\cite{UNIPLATE} library,
+  For the readers familiar with Haskell's \emph{Uniplate}\cite{Mitchell2008} library,
 our \F{plug} and \F{unplug} operations allow for a similar view over datatypes.
 For instance, we can define the \F{transform} function in Agda as: 
 
   \Agda{Diffing/Universe/Lab}{transform-type}
   
   Note that we first need to pattern-match on the telescope, as types with
-zero variables can not be \emph{unpluged}. 
+zero variables can not be \emph{unplugged}. 
   
   \begin{TODO}
     \item Vassena's and Loh's universe is the typed rose-tree! Correlate!!
   \end{TODO}
   
-  This repertoire of operations, and the hability to inspect an element structurally,
-according to its type, gives us the toolset we need in order to start describing
+  This repertoire of operations, and the ability to inspect an element structurally,
+according to its type, gives us the tool set we need in order to start describing
 differences between elements. That is, we can now start discussing what does it mean
 to \emph{diff} two elements or \emph{patch} an element according to some description
 of changes.  
@@ -454,7 +445,7 @@ it also has a parameter $A$, this will be addressed later.
 
   \Agda{Diffing/Patches/Diff/D}{D-type}
   
-  As we mentioned earlier, we are interested in analizing the set of possible
+  As we mentioned earlier, we are interested in analyzing the set of possible
 changes that can be made to objects of a type $T$. These changes depend on
 the structure of $T$, for the definition follows by induction on it.
 
@@ -467,7 +458,7 @@ its components.
 
   \Agda{Diffing/Patches/Diff/D}{D-pair-def}
   
-  If $T$ is a coproduct, things become slighlty more interesting. There
+  If $T$ is a coproduct, things become slightly more interesting. There
 are four possible ways of modifying a coproduct, which are defined by:
 
   \Agda{Diffing/Patches/Diff/D}{D-sum-def}
@@ -489,9 +480,9 @@ discuss them in detail later on.
 
   \Agda{Diffing/Patches/Diff/D}{D-mu-def}
   
-  The aforementioned parameter $A$ goes is used in a single consrtuctor,
+  The aforementioned parameter $A$ goes is used in a single constructor,
 allowing us to have a free-monad structure over \F{D}'s. This shows to be
-very usefull for adding extra information, as we shall discuss, on section 
+very useful for adding extra information, as we shall discuss, on section 
 \ref{sec:conflicts}, for adding conflicts.
 
   \Agda{Diffing/Patches/Diff/D}{D-A-def} 
@@ -504,7 +495,7 @@ Meaning that a \F{Patch} is a \F{D} with \emph{no} extra information.
   Given a generic definition of possible changes, the primary goal is to produce
 an instance of this possible changes, for two specific elements of a type $T$.
 We shall call this process \emph{diffing}. It is important to note that
-our \F{gdiff} function expects two elements of the same type! This constrasts
+our \F{gdiff} function expects two elements of the same type! This contrasts
 with the work done by Vassena\cite{Vassena2015} and Lempsink\cite{Loh2009}, where
 their diff takes objects of two different types. 
   
@@ -541,7 +532,7 @@ ignored in the case of \F{Patches}.
   The edit operations we allow are very simple. We can add or remove parts
 of a fixed-point or we can modify non-recursive parts of it.
 and instead of copying, we introduce a new constructor, \IC{D$\mu$-dwn}, which
-is responsible for traversing down the type-structure. Copying is modelled by
+is responsible for traversing down the type-structure. Copying is modeled by
 $\IC{D$\mu$-dwn}\;(\F{gdiff}\; x \; x)$. The intuition is that for every object
 $x$ there is a diff that does not change $x$, we will look into this on
 section \ref{sec:id}.
@@ -562,8 +553,8 @@ open and close fixed point values.
   Although the \F{plug} and \F{unplug} uses vectors, to remain total functions,
 we drop that restriction and switch to lists instead, this way we can easily
 construct a fixed-point with the beginning of the list of children, and return
-the unused children, this will be very conveient when defining how patches are applied. 
-Nevertheless, a soundness lemma guarantees the correct behaviour.
+the unused children, this will be very convenient when defining how patches are applied. 
+Nevertheless, a soundness lemma guarantees the correct behavior.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
   
@@ -619,7 +610,7 @@ of a patch.
   As one would expect, $\F{gdiff}\;y\;x$ or $\F{D-inv}\;(\F{gdiff}\;x\;y)$
 should be the same patch. In fact, we have that $\F{gdiff}\;y\;x \approx \F{D-inv}\;(\F{gdiff}\;x\;y)$.
 That is to say $\F{gdiff}\;y\;x$ behaves the same as $\F{D-inv}\;(\F{gdiff}\;x\;y)$,
-but may not be identitcal. In the presence of equal cost alternatives they may make
+but may not be identical. In the presence of equal cost alternatives they may make
 different choices.
   
 \subsubsection{The Cost Function}
@@ -653,7 +644,7 @@ that we call a function \emph{dist} a \emph{metric} iff:
   Equation (1) tells that the cost of not changing anything must be 0, therefore
 the cost of every non-\emph{change-introduction} constructor should be 0. The
 identity patch then has cost 0 by construction, as we seen it is exactly the patch
-with no \emph{change-introcution} constrcutor.
+with no \emph{change-introduction} constructor.
 
   Equation (2), on the other hand, tells that it should not matter whether we go
 from $x$ to $y$ or from $y$ to $x$, the effort is the same. In patch-space, this
@@ -717,7 +708,7 @@ choose from:
 \end{center}
 
   We will only compare $d_1$ and $d_3$, as the cost of
-inserting and deleting should be the same, the analisys for $d_2$ is analogous.
+inserting and deleting should be the same, the analysis for $d_2$ is analogous.
 By choosing $d_1$, we would be opting to insert $hdY$ instead of transforming
 $hdX$ into $hdY$, this is preferable only when we do not have to delete $hdX$
 later on, in $\F{gdiffL}\;(x \cons xs)\;(chY \cat ys)$, as that would be a waste
@@ -734,7 +725,7 @@ step, we have:
 \end{eqnarray*}
 
   Hence, \F{cost }$d_1$ is $c_\mu\;hdX + c_\mu\;hdY + w$, for $w = \F{cost}\;(\F{tail}\;d_3)$.
-Obviously, $hdX$ and $hdY$ are values of the same type. Namelly $hdX , hdY : \F{ElU}\;ty\;(\IC{tcons}\;\IC{u1}\;t)$. Since we want to apply this to Haskell datatypes by the end of the day, it is acceptable
+Obviously, $hdX$ and $hdY$ are values of the same type. Namely $hdX , hdY : \F{ElU}\;ty\;(\IC{tcons}\;\IC{u1}\;t)$. Since we want to apply this to Haskell datatypes by the end of the day, it is acceptable
 to assume that $ty$ is a coproduct of constructors. 
 Hence $hdX$ and $hdY$ are values of the same finitary coproduct, representing
 the constructors of the fixed-point datatype. If $hdX$ and $hdY$ comes from different 
@@ -746,9 +737,9 @@ We use $i_j$ to denote the $j$-th injection into a finitary coproduct.
 } $hdX = i_j\; x'$ and $hdY = i_k\; y'$ where $j \neq k$. The patch from $hdX$ to $hdY$ will
 therefore involve a $\IC{D-setl}\;x'\;y'$ or a $\IC{D-setr}\;y'\;x'$, hence
 the cost of $d_3$ becomes $c_\oplus\;x'\;y' + w$. Remember that in this situation
-it is wise to delete and insert instead of recursively changing. Since things are comming
+it is wise to delete and insert instead of recursively changing. Since things are coming
 from a different constructors the structure of the outermost type
-is definetely changing, we want to reflect that! This means we need to select $d_1$
+is definitely changing, we want to reflect that! This means we need to select $d_1$
 instead of $d_3$, hence:
 
 \[
@@ -773,7 +764,7 @@ therefore we need:
 \end{array}
 \]
 
-In order to enforce this behaviour on our diffing algorithm, we need to assign
+In order to enforce this behavior on our diffing algorithm, we need to assign
 values to $c_\mu$ and $c_\oplus$ that respects:
 
 \[ \F{dist}\;x'\;y' < c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') < c_\oplus\;(i_j\;x')\;(i_k\;y') \]
@@ -796,10 +787,53 @@ has to satisfy the constraints we imposed.
 
 \subsection{A Small Example}
 
-\begin{TODO}
-  \item Find an example simple enough to fit here.
-  \item Maybe already align with the case study on the Haskell prototype.
-\end{TODO}
+Let us consider a simple edit to a file containing students name, number and
+mark, as in figure \ref{fig:samplepatch}. Assume that John, the responsible for
+the marks now knows that Carroll did drop out and that there was a mistake in
+Alice's mark. He then proceeds to edit the CSV file in order to reflect these
+changes.
+
+\begin{figure}[h]
+\begin{center}
+\csvABlbl{\begin{tabular}{l@@{ , }l@@{ , }l}
+Name & Number & Mark \\
+Alice & 440 & 7.0 \\
+Bob & 593 & 6.5 \\
+Carroll & 168 & 8.5
+\end{tabular}}{\begin{tabular}{l@@{ , }l@@{ , }l}
+Name & Number & Mark \\
+Alice & 440 & 8.0 \\
+Bob & 593 & 6.5
+\end{tabular}}{$p_{John}$}
+\end{center}
+\caption{Sample Patch}
+\label{fig:samplepatch}
+\end{figure}
+
+For readability purposes, we will omit the boilerplate \F{Patch} constructors.
+When diffing both versions of the CSV file, we get the patch that reflect John's
+changes over the initial file. Remember that $(\DmuDwn (\F{gdiff-id}\;a))$ is merely
+copying $a$.
+
+\begin{eqnarray*}
+  p_{John} & = & \DmuDwn \; (\F{gdiff-id} \; "Name , ...") \\
+           & \cons & \begin{array}{r l}
+                      \DmuDwn ( & \DmuDwn \; (\F{gdiff-id}\;Alice) \\
+                      \cons   & \DmuDwn \; (\F{gdiff-id}\; 440) \\
+                      \cons   & \DmuDwn \; (\F{gdiff}\;7.0\;8.0) \\
+                      \cons & \DmuDwn (\F{gdiff-id} {[} {]}) \\
+                      {[}  {]}      & )
+                    \end{array} \\
+           & \cons & \DmuDwn \; (\F{gdiff-id}\; "Bob , ...") \\
+           & \cons & \DmuDel \; "Carroll, ..." \\
+           & \cons & \DmuDwn (\F{gdiff-id} {[} {]}) \\
+           & {[} {]} &
+\end{eqnarray*}
+
+Note how the patch closely follow the structure of the changes. There is a
+single change, which happens at \emph{Alice's mark} and a single deletion. Note
+also that we have to copy the end of both the inner and outer lists, this should
+not be confused with the list of edit operations.
 
 \subsection{Applying Patches}
 \label{sec:apply}
@@ -808,7 +842,7 @@ has to satisfy the constraints we imposed.
 how elements of this universe can change and compute those changes. In order to
 make our framework useful, though, we need to be able to apply the patches we
 compute. The application of patches is easy, for we will only
-show the implementation for coproducts and fixedpoints here. The rest is very
+show the implementation for coproducts and fixed points here. The rest is very
 straightforward.
 
   \begin{agdacode}
@@ -860,7 +894,7 @@ a version control system, but it is by no means sufficient!
 need to be able to produce and apply patches and (B) we need to be able to merge
 different, concurrent, changes make to the same object. We have taken care
 of task (A) in the previous sections, and even though current VCS tools
-already excel at it, there is a big lack of tools exceling at (B). 
+already excel at it, there is a big lack of tools excelling at (B). 
 All the structural information we are using in task (A) is, in fact,
 providing a lot more to help us at task (B), as we shall discuss in this section.
 
@@ -868,12 +902,12 @@ providing a lot more to help us at task (B), as we shall discuss in this section
   The task of merging changes arise when we have multiple users changing the same file
 at the same time. Imagine Bob and Alice perform concurrent edits in an object $A_0$, which are captured by
 patches $p$ and $q$. The center of the repository needs to keep only one copy
-of that object, but upon receiving the changeset of both Bob and Alice we have:
+of that object, but upon receiving the changes of both Bob and Alice we have:
 
   \[ \xymatrix{ A_1 & A_0 \ar[l]_{p} \ar[r]^{q} & A_2} \]
 
-  Our idea is to imcorporate the changes expressed by $p$ into a new patch,
-namelly one that is aimed at being applied somewhere already changed by $q$,
+  Our idea is to incorporate the changes expressed by $p$ into a new patch,
+namely one that is aimed at being applied somewhere already changed by $q$,
 and vice-versa, in such a way that they converge. We call this the residual patch. 
 The diagram in figure \ref{fig:residual} illustrates the result of merging $p$ and $q$
 through propagation.
@@ -935,9 +969,9 @@ conflicts as \emph{update} conflicts.
 corresponds to the \emph{alignment table} that \emph{diff3}
 calculates \cite{Khanna2007} before deciding which changes go where. The idea is
 that if Bob adds new information to a file, it is impossible that Alice changed
-it in any way, as it was not in the file when Alice was eiditing it, we then flag
+it in any way, as it was not in the file when Alice was editing it, we then flag
 it as a conflict. The \emph{grow-left} and \emph{grow-right} are easy to handle,
-if the context allows, we could simply transform them into atual insertions or copies.
+if the context allows, we could simply transform them into actual insertions or copies.
 They represent insertions made by Bob and Alice in \emph{disjoint} places of the structure.
 A \emph{grow-left-right} is more complex, as it corresponds to a overlap and we
 can not know for sure which should come first unless more information is provided.
@@ -953,7 +987,7 @@ coproduct type, whereas the rest are restricted to fixed-point types. In Agda,
   In order to track down these conflicts we need a more expressive patch data
 structure. We exploit $D$'s parameter for that matter. This approach has the
 advantage of separating conflicting from conflict-free patches on the type level,
-guaranteing that we can only \emph{apply} conflict-free patches.
+guaranteeing that we can only \emph{apply} conflict-free patches.
 
   The final type of our residual\footnote{Our residual operation does not form a
 residual as in the Term Rewriting System sense\cite{Bezem2003}. It might,
@@ -995,9 +1029,9 @@ it is purely structural.
   \Agda{Diffing/Patches/Residual/SymmetryConflict}{residual-sym-stable-type}
   
   Here \F{$\downarrow-map-\downarrow$} takes care of hiding type indexes and
-\F{forget} is the cannonical function with type $\F{D}\;A\;t\;ty \rightarrow
+\F{forget} is the canonical function with type $\F{D}\;A\;t\;ty \rightarrow
 \F{List}\;(\F{$\downarrow$}\; A)$, \F{$\downarrow\_$} encapsulates the type indexes of
-the different $A$'s we might come accross.
+the different $A$'s we might come across.
     
   Now, we can compute both $p / q$ and $q / p$ at the same time. It also
 backs up the intuition that using residuals or patch commutation (as in darcs) is
@@ -1020,7 +1054,7 @@ the base framework.
 \section{The Haskell Prototype}
 \label{sec:haskell}
 
-  In sections \ref{sec:cf} and \ref{sec:residual} we have layed the foundations
+  In sections \ref{sec:cf} and \ref{sec:residual} we have layered the foundations
 for creating a generic, structure aware, version control system. We proceed by illustrating
 these ideas with a prototype in Haskell, with an emphasis on its extended capability
 of handling non-trivial conflicts.
@@ -1039,9 +1073,9 @@ class (Sized a) => Diffable a where
 \vskip .5em
 
 Where |Sized a| is a class providing the \F{sizeElU} function, presented in
-section \ref{sec:cost}; |Patch| is a GADT\cite{GATS} reflecting our \F{Patch}
+section \ref{sec:cost}; |Patch| is a GADT\cite{PeytonJones2006} reflecting our \F{Patch}
 type in Agda. We then proceed to provide instances by induction on the structure
-of |a|. Products and coproducs are trivial and follow immediatly from the Agda code.
+of |a|. Products and coproducts are trivial and follow immediately from the Agda code.
 
 \vskip .5em
 \begin{code}
@@ -1092,7 +1126,7 @@ instance {-# OVERLAPPABLE #-}
 \end{code}
 \vskip .5em
 
-As the tool is still a very young prototype, we chose to ommit implementation details
+As the tool is still a very young prototype, we chose to omit implementation details
 such as memoization or explicit 
 
 \subsection{A more involved proof of concept}
@@ -1102,9 +1136,9 @@ example showing how one can encode and run a \emph{refactoring} conflict solver 
 datatypes. We will first introduce some simple definitions and then explore how
 refactoring can happen there.
 
-  Our case study will be centered on CSV files with integers on their cells. The cannonical
-representaion of this CSV format is |T|. Moreover, we will also assume that the specific
-domain in which these files are used allows for refactors.
+  Our case study will be centered on CSV files with integers on their cells. The canonical
+representation of this CSV format is |T|. Moreover, we will also assume that the specific
+domain in which these files are used allows for refactorings.
 
 \vskip .5em
 \begin{code}
@@ -1130,7 +1164,7 @@ type     List a  = Fix (L a)
   Again, |List a| is isomorphic to |[a]|, but it uses explicit
   recursion\footnote{ The use of explicit recursion is what forces us to define
   |L| as a newtype, so that we can partially apply it.} and hence has a |HasAlg|
-  and |HasSOP| instance. Both of them are trivial and hence ommited. We hence
+  and |HasSOP| instance. Both of them are trivial and hence omitted. We hence
   have that |T| is isomorphic to |[[Int]]|. We will denote |k :: [[Int]] -> T|
   as one of the witnesses of such isomorphism.
 
@@ -1264,9 +1298,11 @@ applying the proposed concepts. The diffing API can be made ready for all
 Haskell types, out of the box, with some simple Template Haskell, as all we need
 is the derivation of two trivial instances. We have also shown how this approach
 allows one to fully specialize conflict resolution for the domain in question.
+The work of L\"{o}h\cite{Loh2009} and Vassena\cite{Vassena2015} are the most similar
+to our. We use a drastically different definition of patches, in order to
+have room for experimenting with conflict resolution.
 
-  We are not the only ones working on this problem. Below we give a short comparisson
-with some related work we came accross.
+  Below we give a short comparison with other related work.
 
   \begin{description}
     \item[Antidiagonal] Although easy to be confused with the diff problem,
@@ -1276,23 +1312,28 @@ with some related work we came accross.
       $X$ produces two \textbf{distinct} $T$'s, whereas a diff produces a $T$
       given another $T$. 
     
-    \item[Loh's approach]
-      \begin{TODO}
-        \item Say something!
-      \end{TODO}
-    
     \item[Pijul]
-      \begin{TODO}
-        \item Pijul has a of handling a merge as a pushout,
-              but it uses the free co-completion of a rather simple category.
-              This doesn't give enough information for structured
-              conflict solving.
-        \item cite and back it up
-      \end{TODO}
+      The VCS Pijul is inspired by \cite{Mimram2013}, where they use the 
+      free co-completion of a category to be able to treat merges as
+      pushouts. In a categorical setting, the residual square (figure \ref{fig:residual})
+      looks like a pushout. The free co-completion is used to make sure that for
+      every objects $A_i$, $i \in \{0 , 1 , 2 \}$ the pushout exists. Still, the base
+      category from which they build their results still handles files as a list
+      of lines, thus providing an approach that does not take the file structure
+      into account. 
+      
+    \item[Darcs]
+      The canonical example of a \emph{formal} VCS is Darcs \cite{Darcs}. The
+      system itself is built around the \emph{theory of patches} developed by
+      the same team. A formalization of such theory using inverse semigroups can
+      be found in \cite{Jacobson2009}. They use auxiliary objects, called
+      \emph{Conflictors} to handle conflicting patches, however, it has the same
+      shortcoming for it handles files as lines of text and disregards their
+      structure. 
   \end{description}
   
-  Finally address some issues and their respective solutions to the
-work done so far. The implementation of these solutions and the
+  Finally, we address some issues and their respective solutions to the
+work done so far before concluding. The implementation of these solutions and the
 consequent evaluation of how they change our theory of patches
 is left as future work.
 
@@ -1359,7 +1400,7 @@ Rose trees of $a$ have a single constructor that takes an $a$ and a list of
 rose trees of $a$ to produce a single rose tree. Lets call its constructor $RT$. 
 However, the arity of an element of a rose tree will vary. More precisely, 
 it will be equal to the length of the
-list of recursive rose trees. We therefore can have two \emph{heads} comming from the
+list of recursive rose trees. We therefore can have two \emph{heads} coming from the
 same constructor, as there is only one, with different arities, as we can see in:
 
   \AgdaI{Diffing/Universe/MuUtils}{rt-els-def}{-2.2em}
@@ -1367,7 +1408,7 @@ same constructor, as there is only one, with different arities, as we can see in
   \AgdaI{Diffing/Universe/MuUtils}{r-ar-lemma}{-2.2em}
 
 If we look at \F{rt}'s Haskell counterpart, |data RT a = RT a [RT a]|, we see that 
-its arity should be zero, as the type |RT a| does not appear immediatly on
+its arity should be zero, as the type |RT a| does not appear immediately on
 the constructor, but only as an argument to the List type.
 
 Although easy to describe, this problem is deeper than what meets the eye. 
@@ -1390,7 +1431,7 @@ type LTree a b     = Fix (LTreeF a b)
 
 %format MCM = "\mathcal{M}"
  In \CF, due to the dependency introduced by the telescopes, this type of
-reduction is estabilishing a relation between the two type variables of \F{ltree}.
+reduction is establishing a relation between the two type variables of \F{ltree}.
 Here we have the type of \F{ltree}s where the first type variable is actually
 a list of the second. In Haskell, this type would be defined as |type MCM a = LTree a [a]|. 
 
