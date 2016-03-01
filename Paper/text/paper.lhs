@@ -394,6 +394,8 @@ are correct.
   
   \Agda{Diffing/Universe/Ops}{children-arity-lemma-type}
   
+  Intuitively, the list of children of an element $\F{ElU}\;ty\;(\IC{tcons}\;a\;t)$
+contains one $\F{ElU}\;a\;t$ for every occurence of $\IC{vl}$ in $ty$.  
   We can even go a step further and say that every element is defined by a constructor
 and a vector of children, with the correct arity. This lets us treat generic elements as
 elements of a (typed) rose-tree, whenever that is convenient.
