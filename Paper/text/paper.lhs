@@ -185,7 +185,7 @@
 %\copyrightyear{2016}
 %\copyrightdata{...}
 %\copyrightdoi{nnnnnn.nnnnnn}
-\preprintfooter{some iformation here...}
+\preprintfooter{some information here...}
 \titlebanner{DRAFT}
 
 \title{Structure aware version control}
@@ -239,8 +239,8 @@ Yet all these tools are based on a simple, line-based diff algorithm
 to detect and merge changes made by individual developers. While such
 line-based diffs generally work well when monitoring small repositories,
 with small development teams, they tend to behave sub-optimally in many
-real life scenarios. A classical instance is identation conflicts in source-code
-files. This conflicts happen precisely because source-code can be better modelled
+real life scenarios. A classical instance is indentation conflicts in source-code
+files. This conflicts happen precisely because source-code can be better modeled
 using other objects other than lists of lines. 
 
 Consider the following example CSV file, recording the marks and names
@@ -275,7 +275,7 @@ this paper makes the following novel contributions:
   \item We define a universe representation for data and a 
         \emph{type-indexed} data type for representing edits to this
         structured data. The structure of the data closely resembles the way
-        one defines data-types in functional languages such as Haskell.
+        one defines datatypes in functional languages such as Haskell.
 
   \item We define generic algorithms for computing and applying a diff
         generically and prove they are correct with respect to each other.
@@ -415,7 +415,7 @@ are correct.
   \Agda{Diffing/Universe/Ops}{children-arity-lemma-type}
   
   Intuitively, the list of children of an element $\F{ElU}\;ty\;(\IC{tcons}\;a\;t)$
-contains one $\F{ElU}\;a\;t$ for every occurence of $\IC{vl}$ in $ty$.  
+contains one $\F{ElU}\;a\;t$ for every occurrence of $\IC{vl}$ in $ty$.  
   We can even go a step further and say that every element is defined by a constructor
 and a vector of children, with the correct arity. This lets us treat generic elements as
 elements of a (typed) rose-tree, whenever that is convenient.
@@ -473,7 +473,7 @@ are four possible ways of modifying a coproduct, which are defined by:
 
   \Agda{Diffing/Patches/Diff/D}{D-sum-def}
   
-  Let us take a closer look at the diffs of a coproduct. There are four possiblities
+  Let us take a closer look at the diffs of a coproduct. There are four possibilities
 when modifying a coproduct $a\;\IC{$\oplus$}\;b$. Given some 
 diff $p$ over $a$, we can always modify things that inhabit the left
 of the coproduct by $\IC{D-inl}\; p$. Or we can change some given value
@@ -537,7 +537,7 @@ operations}.
   
   But the interesting bits are the \emph{edit operations} we allow.
 We define $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$ as the 
-elements of type $a$ where the recursive occurences of \IC{$\mu$ }$a$ are erased.
+elements of type $a$ where the recursive occurrences of \IC{$\mu$ }$a$ are erased.
   
   \Agda{Diffing/Patches/Diff/D}{Dmu-def}
   
@@ -577,7 +577,7 @@ Nevertheless, a soundness lemma guarantees the correct behavior.
   
   We denote the first component of an \emph{opened} fixed point by its
 \emph{value}, or \emph{head}; whereas the second component by its children. These
-lemmas sugest that we handle fixed points in a serialized fashion. Since we never
+lemmas suggest that we handle fixed points in a serialized fashion. Since we never
 really know how many children will need to be handled in each step, we make \F{gdiffL}
 handle lists of elements or, forests, since every element is in fact a tree.
 Our algorithm, which was heavily inspired by \cite{Loh2009}, is then
@@ -1004,7 +1004,7 @@ have to chose which value to use in the final, merged, version.
   
   For this illustration, we will consider the conflicts that can arise from
 propagating the changes Alice made over the changes already made by Bob, that
-is, $p_{alice} / p_{bob}$.
+is, $p_{Alice} / p_{Bob}$.
   
   \begin{itemize}
     \item If Alice changes $a_1$ to $a_2$ and Bob changed $a_1$ to $a_3$,
@@ -1100,7 +1100,7 @@ readability.
 the different $A$'s we might come across.
     
   Now, we can compute both $p / q$ and $q / p$ at the same time. It also backs
-up the intuition that using residuals or patch commutation (as in darcs) is not
+up the intuition that using residuals or patch commutation (as in Darcs) is not
 significantly different. This means that $p / q$ and $q / p$, although
 different, have the same conflicts (up to conflict symmetry).
 
@@ -1232,7 +1232,7 @@ All the other types can also be seen as sums-of-products. We then define
 a class and some template Haskell functionality to generate instances of |SOP a|.
 The \emph{overlappable} pragma makes sure that Haskell's instance search
 will give preference to the other \emph{Diffable} instances, whenever the term head
-matches a product, coproduct atom or fixpoint.
+matches a product, coproduct atom or fixed-point.
 
 \vskip .5em
 \begin{code}
@@ -1396,7 +1396,7 @@ conflict is present. We stress that the maximum we can do is provide the user
 with \emph{merge strategies} and \emph{mergers}, but since different domains
 will have different conflicts, it is up to the user to program the best
 strategy for that particular case. We leave as future work the development
-of an actual calculus os \emph{mergers}, allowing one to actually prove
+of an actual calculus of \emph{mergers}, allowing one to actually prove
 their strategy will behave the way one expects.  
 
   We can now compute the patches |pAR| and |pBR|, to be applied to Alice's and Bob's
