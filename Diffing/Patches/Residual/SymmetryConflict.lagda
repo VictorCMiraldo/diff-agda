@@ -29,7 +29,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
   residual-sym-stable : {n : ℕ}{t : Tel n}{ty : U n}{k : D C t ty}
     → (d1 d2 : Patch t ty) 
     → d1 / d2 ≡ just k
-    → forget <M> (d2 / d1) ≡ just (map (↓-map-↓ C-sym) (forget k)) 
+    → forget <$> (d2 / d1) ≡ just (map (↓-map-↓ C-sym) (forget k)) 
 \end{code}
 %</residual-sym-stable-type>
 \begin{code}

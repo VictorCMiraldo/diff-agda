@@ -63,6 +63,12 @@ module Diffing.Patches.Diff where
   open import Diffing.Utils.Monads
   open Monad {{...}}
 
+  _<$>_ : ∀{a b}{A : Set a}{B : Set b} 
+        → (A → B) → Maybe A → Maybe B
+  _<$>_ = _<M>_
+
+  infixl 20 _<$>_
+
   mutual
 \end{code}
 %<*gapply-type>
@@ -78,8 +84,8 @@ module Diffing.Patches.Diff where
 \end{code}
 %<*gapply-sum-def>
 \begin{code}
-    gapply (D-inl diff) (inl el) = inl <M> gapply diff el
-    gapply (D-inr diff) (inr el) = inr <M> gapply diff el
+    gapply (D-inl diff) (inl el) = inl <$> gapply diff el
+    gapply (D-inr diff) (inr el) = inr <$> gapply diff el
     gapply (D-setl x y) (inl el) with x ≟-U el
     ...| yes _ = just (inr y)
     ...| no  _ = nothing
@@ -95,11 +101,11 @@ module Diffing.Patches.Diff where
 \begin{code}
     gapply (D-pair da db) (a , b) with gapply da a
     ...| nothing = nothing
-    ...| just ra = _,_ ra <M> gapply db b
+    ...| just ra = _,_ ra <$> gapply db b
 
-    gapply (D-β diff) (red el) = red <M> gapply diff el
-    gapply (D-top diff) (top el) = top <M> gapply diff el
-    gapply (D-pop diff) (pop el) = pop <M> gapply diff el
+    gapply (D-β diff) (red el) = red <$> gapply diff el
+    gapply (D-top diff) (top el) = top <$> gapply diff el
+    gapply (D-pop diff) (pop el) = pop <$> gapply diff el
 \end{code}
 %<*gapply-mu-def>
 \begin{code}

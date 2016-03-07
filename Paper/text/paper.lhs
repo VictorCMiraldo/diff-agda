@@ -10,6 +10,7 @@
 \usepackage[all]{xypic}
 \usepackage{tikz}
 \usepackage{enumerate}
+\usepackage{mathtools}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% WORKFLOW ENVS
@@ -197,16 +198,26 @@
 \maketitle
 
 \begin{abstract}
-stuff
+  The widespread UNIX \texttt{diff3} program is the programmers worst nightmare
+for merging non-trivial edits of a given file. The problems with \texttt{diff3}
+arise from its unified view over files; all non-binary files are just lines of text.
+In the real world, however, we see that most data is much more than just lines of text,
+they have a great bunch of structure into it. This paper describes an approach,
+generic on the file structure, to obtain and merge changes in a much more elegant way.
+We use Agda to prototype and prove properties of our algorithms and Haskell
+to implement it. Moreover, we show how our approach scales, allowing programmers
+to easily define complex automatic conflict solvers.
 \end{abstract}
 
-\category{D.1.1}{look}{for}[this]
+\category{D.1.1}{Programming Techniques}{Applicative (Functional) Programming}
+\category{D.2.7}{Distribution, Maintenance, and Enhancement}{Version control}
+\category{D.3.3}{Language Constructs and Features}{Data types and structures}
 
 \terms
-Haskell
+Algorithms, Version Control, Agda, Haskell
 
 \keywords
-Haskell
+Dependent types, Generic Programming, Edit distance, Patches
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -226,8 +237,11 @@ development. \warnme{Add citations}
 
 Yet all these tools are based on a simple, line-based diff algorithm
 to detect and merge changes made by individual developers. While such
-line-based diffs generally work well when monitoring source code, not
-all data is best represented as lines of text.
+line-based diffs generally work well when monitoring small repositories,
+with small development teams, they tend to behave sub-optimally in many
+real life scenarios. A classical instance is identation conflicts in source-code
+files. This conflicts happen precisely because source-code can be better modelled
+using other objects other than lists of lines. 
 
 Consider the following example CSV file, recording the marks and names
 three students:
@@ -242,7 +256,7 @@ Carroll & 168 & 8.5
 \end{center}
 
 
-A new entry to this CSV file will not modify any existing entries and
+Adding a new line to this CSV file will not modify any existing entries and
 is unlikely to cause conflicts. Adding a new column storing the date
 of the exam, however, will change every line of the file and therefore
 will conflict with any other change to the file. Conceptually,
@@ -258,7 +272,8 @@ with algorithms for observing and combining such changes. To this end,
 this paper makes the following novel contributions:
   
 \begin{itemize}
-  \item We define a \emph{type-indexed} data type for representing edits to
+  \item We define a universe representation for data and a 
+        \emph{type-indexed} data type for representing edits to this
         structured data. The structure of the data closely resembles the way
         one defines data-types in functional languages such as Haskell.
 
@@ -269,11 +284,11 @@ this paper makes the following novel contributions:
   \item A notion of residual is used to propagate changes of different diffs,
         hence providing a bare mechanism for merging and conflict resolution.
 
-  \item We illustrate how these ideas in Agda have been implemented in a
+  \item We illustrate how these ideas in Agda\cite{norell2009} have been implemented in a
         prototype Haskell tool, capable of automatically merging changes to
         structured data. This tool provides the user with the ability to define
         custom conflict resolution strategies when merging changes to structured
-        data. \warnme{Cloning and swapping}
+        data. For instance, we can automatically resolve refactoring conflicts.
 \end{itemize}    
 
 \subsection*{Background}
@@ -310,12 +325,16 @@ free types, patching will be defined for its inhabitants.
 
   The universe of \emph{context-free types}, in the sense of
 \cite{Altenkirch2006}, is constructed following the grammar $\CF$ of
-context free types with a deBruijn representation for variables.
+context free types with a deBruijn representation for variables, figure \ref{fig:cfgrammar}.
   
+  \begin{figure}[h]
   \[
     \CF ::= 1 \mid 0 \mid \CF \times \CF \mid \CF + \CF \mid \mu \; \CF \mid \mathbb{N}
               \mid (\CF \; \CF)
   \]
+  \caption{BNF for $\CF$ terms}
+  \label{fig:cfgrammar}
+  \end{figure}
   
   In Agda, the $\CF$ universe is defined by:
   
@@ -357,7 +376,7 @@ in $\F{U}\;n$.  In Agda, the elements of \F{U} are defined by:
   \Agda{Diffing/Universe/Syntax}{ElU-def}
   
   The set \F{ElU} of the elements of \F{U} is straight forward. We begin with some simple
-constructor to handle finite types: \IC{void}, \IC{inl}, \IC{inr} and \IC{$\_,\_$}.
+constructors to handle finite types: \IC{void}, \IC{inl}, \IC{inr} and \IC{$\_,\_$}.
 Next, we define how to reference variables using \IC{pop} and \IC{top}. Finally,
 \IC{mu} and \IC{red} specify how to handle recursive types and type applications.
   
@@ -372,7 +391,8 @@ lets us define an element of that type.
   Up until now we showed how to define the universe of context free types
 and the elements that inhabit it. We are, however, interested in the operations
 can we perform on these elements. As we shall see, this choice of universe
-turns out to be very expressive, providing a plethora of interesting operations.
+turns out to be very expressive, providing a plethora of interesting operations that
+can be defined by induction on \F{U}.
 The first very useful concept is the decidability of generic 
 equality\cite{Altenkirch2006}.
 
@@ -420,10 +440,6 @@ For instance, we can define the \F{transform} function in Agda as:
   Note that we first need to pattern-match on the telescope, as types with
 zero variables can not be \emph{unplugged}. 
   
-  \begin{TODO}
-    \item Vassena's and Loh's universe is the typed rose-tree! Correlate!!
-  \end{TODO}
-  
   This repertoire of operations, and the ability to inspect an element structurally,
 according to its type, gives us the tool set we need in order to start describing
 differences between elements. That is, we can now start discussing what does it mean
@@ -431,14 +447,6 @@ to \emph{diff} two elements or \emph{patch} an element according to some descrip
 of changes.  
   
 \subsection{Patches over a Context Free Type}
-
-  A patch over $T$ is an object that describe possible changes that can
-be made to objects of type $T$. The high-level idea is that diffing two
-objects $t_1 , t_2 : T$ will produce a patch over $T$, whereas applying
-a patch over $T$ to an object will produce a $Maybe\;T$. It is interesting
-to note that application can not be made total. Let's consider $T = X + Y$,
-and now consider a patch $(Left\; x) \xrightarrow{p} (Left\; x')$. 
-What should be the result of applying $p$ to a $(Right\; y)$? It is undefined!
 
   The type of \emph{diff}'s is defined by \F{D}. It is indexed by a type
 and a telescope, which is the same as saying that we only define \emph{diff}'s for
@@ -465,8 +473,8 @@ are four possible ways of modifying a coproduct, which are defined by:
 
   \Agda{Diffing/Patches/Diff/D}{D-sum-def}
   
-  Let us take a closer look at the diffs of a coproduct. There are two options
-we can take when modifying a coproduct $a\;\IC{$\oplus$}\;b$. Given some 
+  Let us take a closer look at the diffs of a coproduct. There are four possiblities
+when modifying a coproduct $a\;\IC{$\oplus$}\;b$. Given some 
 diff $p$ over $a$, we can always modify things that inhabit the left
 of the coproduct by $\IC{D-inl}\; p$. Or we can change some given value
 $\IC{left}\;x$ into a $\IC{right}\;y$, this is captured by $\IC{D-setl}\;x\;y$.
@@ -482,13 +490,19 @@ discuss them in detail later on.
 
   \Agda{Diffing/Patches/Diff/D}{D-mu-def}
   
-  The aforementioned parameter $A$ goes is used in a single constructor,
-allowing us to have a free-monad structure over \F{D}'s. This shows to be
+  The aforementioned parameter $A$ is used in a single constructor,
+allowing us to have a free-monad structure over \F{D}'s. This technique shows to be
 very useful for adding extra information, as we shall discuss, on section 
 \ref{sec:conflicts}, for adding conflicts.
 
   \Agda{Diffing/Patches/Diff/D}{D-A-def} 
- 
+  
+  If \F{D} is a free-monad it is also, in particular, a functor. For we
+have the equivalent mapping of a function on a \F{D}-structure, denoted by $\F{D-map}$.
+Moreover, we can also ignore the \F{D}-structure and fetch only the $A$'s inside,
+we call this $\F{forget}\; : \: \forall A\;t\;ty \; . \; \F{D}\;A\;t\;ty \rightarrow \F{List}\;A$.
+It is worth mentioning that all the indexes involved make the actual Agda type
+much more complicated. The intuition and the functionality stays the same, however.
   Finally, we define $\Patchtty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
 Meaning that a \F{Patch} is a \F{D} with \emph{no} extra information.
 
@@ -521,8 +535,9 @@ operations}.
   
   \Agda{Diffing/Patches/Diff/D}{Dmu-type}
   
-  But the interesting bits are the \emph{edit operations} we allow,
-where $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$:
+  But the interesting bits are the \emph{edit operations} we allow.
+We define $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$ as the 
+elements of type $a$ where the recursive occurences of \IC{$\mu$ }$a$ are erased.
   
   \Agda{Diffing/Patches/Diff/D}{Dmu-def}
   
@@ -552,17 +567,20 @@ open and close fixed point values.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-type}
   
-  Although the \F{plug} and \F{unplug} uses vectors, to remain total functions,
-we drop that restriction and switch to lists instead, this way we can easily
+  Although the \F{plug} and \F{unplug} uses vectors,
+here we switch to lists instead, this way we can easily
 construct a fixed-point with the beginning of the list of children, and return
-the unused children, this will be very convenient when defining how patches are applied. 
+the unused children. The only reason being convenience when defining how patches are applied. 
 Nevertheless, a soundness lemma guarantees the correct behavior.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
   
   We denote the first component of an \emph{opened} fixed point by its
-\emph{value}, or \emph{head}; whereas the second component by its children. The
-diffing of fixed points, which was heavily inspired by \cite{Loh2009}, is then
+\emph{value}, or \emph{head}; whereas the second component by its children. These
+lemmas sugest that we handle fixed points in a serialized fashion. Since we never
+really know how many children will need to be handled in each step, we make \F{gdiffL}
+handle lists of elements or, forests, since every element is in fact a tree.
+Our algorithm, which was heavily inspired by \cite{Loh2009}, is then
 defined by:
   
   \Agda{Diffing/Patches/Diff}{gdiffL-def}  
@@ -571,34 +589,45 @@ defined by:
 \newcommand{\Flubmu}{\; \F{$\lubmu$} \;}
   The first three branches are simple. To transform |[]| into |[]|, we do not
 need to perform any action; to transform |[]| into |y : ys|, we need to insert
-the respective values; and to transform |x : xs| into |[]| we need to delete the
-respective values. The interesting case happens when we want to transform |x:xs|
-into |y:ys|. Here we have three possible diffs that perform the required transformation. 
-We want to choose the diff with the least \emph{cost}, for
-we introduce an operator to do exactly that:
+the respective head and add the children to the \emph{forest}; and to transform
+|x : xs| into |[]| we need to delete the respective values. The interesting case
+happens when we want to transform |x:xs| into |y:ys|. Here we have three
+possible diffs that perform the required transformation. We want to choose the
+diff with the least \emph{cost}, for we introduce an operator to do exactly
+that:
 
   \Agda{Diffing/Patches/Diff/Cost}{lubmu-def}
 
-As we shall see in section \ref{sec:cost},
-this notion of cost is very delicate. The idea, however, is simple. If the heads
-are equal we have $d3 = \IC{D$\mu$-dwn}\; (\F{gdiff}\; hdX\; hdX) \cdots$, which
-is how copy is implemented. We want to copy as much as possible, so we will ensure 
-that for all $a$, $\F{gdiff}\;a\;a$, that is, the identity patch for $a$, has cost 0 whereas \IC{D$\mu$-ins} and \IC{D$\mu$-del} will have strictly positive cost.
+  As we shall see in section \ref{sec:cost}, this notion of cost is very
+delicate. The idea, however, is simple. If the heads are equal we have $d3 =
+\IC{D$\mu$-dwn}\; (\F{gdiff}\; hdX\; hdX) \cdots$, which is how the copying
+instruction is encoded. It is clear that we want to copy as much as possible, so
+we will ensure that for all $a$, $\F{gdiff}\;a\;a$ has cost 0 whereas
+\IC{D$\mu$-ins} and \IC{D$\mu$-del} will have strictly positive cost. Therefore,
+we want to use the cost of a diff to drive the algorithm.
 
-Since we mentioned \emph{the identity patch} for an object, we might already introduce 
-the two \emph{special} patches that we need before talking about \F{cost}.
+  Note, however, that $\F{gdiff}\;a\;a$ is the patch that changes $a$ into $a$.
+Well, but there are no changes to be made whatsoever. As it turns out, we do
+have some special patches that deserve some attention. They are the
+\emph{identity patch} and the \emph{inverse patch}. As we shall see later, the
+intuition from these two special patches will greatly influence how \F{cost} is
+defined.
 
 \paragraph*{The Identity Patch}
 \label{sec:id}
 
   Given the definition of \F{gdiff}, it is not hard to see that whenever
 $x \equiv y$, we produce a patch without any \IC{D-setl}, \IC{D-setr},
-\IC{D$\mu$-ins} or \IC{D$\mu$-del}, let us call these the \emph{change-introduction} constructors. 
-Well, one can spare the comparisons made by \F{gdiff} and trivially define the
+\IC{D$\mu$-ins} or \IC{D$\mu$-del}, as they are the only constructors of \F{D} that
+introduce \emph{new information}. Hence we call these the \emph{change-introduction} constructors. 
+One can then spare the comparisons made by \F{gdiff} and trivially define the
 identity patch for an object $x$, $\F{gdiff-id}\; x$, by induction on $x$. A
 good sanity check, however, is to prove that this intuition is in fact correct:
   
   \Agda{Diffing/Patches/Diff/Id}{gdiff-id-correct-type}
+  
+  Later on we will talk about applying patches, for we will see that this is
+in fact the identity for $x$ in \emph{patch-space}.
   
 \paragraph*{The Inverse Patch} 
 
@@ -611,7 +640,7 @@ of a patch.
   
   As one would expect, $\F{gdiff}\;y\;x$ or $\F{D-inv}\;(\F{gdiff}\;x\;y)$
 should be the same patch. In fact, we have that $\F{gdiff}\;y\;x \approx \F{D-inv}\;(\F{gdiff}\;x\;y)$.
-That is to say $\F{gdiff}\;y\;x$ behaves the same as $\F{D-inv}\;(\F{gdiff}\;x\;y)$,
+That is to say $\F{gdiff}\;y\;x$ is \emph{observationally} the same as $\F{D-inv}\;(\F{gdiff}\;x\;y)$,
 but may not be identical. In the presence of equal cost alternatives they may make
 different choices.
   
@@ -666,7 +695,7 @@ take this fine-tuning into account.
   Equation (3) is concerned with composition of patches. The aggregate cost of changing
 $x$ to $y$, and then $y$ to $z$ should be greater than or equal to changing
 $x$ directly to $z$. We do not have a composition operation over patches yet, but
-we can see that this is trivially satisfied. Let us denote the number of 
+we can see that this is already trivially satisfied. Let us denote the number of 
 \emph{change-introduction} constructors in a patch $p$ by $\# p$. In the best case scenario,
 $\# (\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z) = \# (\F{gdiff}\;x\;z)$, this is the situation
 in which the changes of $x$ to $y$ and from $y$ to $z$ are non-overlapping. If they
@@ -675,7 +704,7 @@ yielding $\# (\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z) > \# (\F{gdiff}\;x\;z)$.
 
   \vskip .3em
 
-  From equations (1) and (2) and from our definition of the equality patch and
+  From equations (1) and (2) and from our definition of the identity patch and
 the inverse of a patch we already have that:
 
   \Agda{Diffing/Patches/Diff/Id}{gdiff-id-cost-type}
@@ -683,13 +712,20 @@ the inverse of a patch we already have that:
   \Agda{Diffing/Patches/Diff/Inverse}{D-inv-cost-type}
   
   In order to finalize our definition, we just need to find an actual value for
-$c_\oplus$ and $c_\mu$. Note that we have a lot of freedom to choose these values.
-And in fact, they are what is going to drive the diff algorithm to prefer some
-changes over others. Let us then take a look at where the difference between
-these values comes into play, and calculate from there. 
-Assume we have stopped execution of \F{gdiffL} at
-the $d_1 \Flubmu d_2 \Flubmu d_3$ expression. Here we have three patches to
-choose from:
+$c_\oplus$ and $c_\mu$. We have a lot of freedom to choose these values, however,
+yet, they are a critical part of the diff algorithm, since they will drive it to prefer some
+changes over others. 
+
+  We will now calculate a relation that $c_\mu$ and $c_\oplus$ need to satisfy
+for the diff algorithm to weight changes in a top-down manner. That is, we want
+the changes made to the outermost structure to be \emph{more expensive} than the
+changes made to the innermost parts.
+
+  Let us then take a look at where the difference between $c_\mu$ and $c_\oplus$ comes
+into play, and calculate from there. Assume we have stopped execution of
+\F{gdiffL} at the $d_1 \Flubmu d_2 \Flubmu d_3$ expression. Here we have three
+patches, that perform the same changes in different ways, and we have to choose
+one of them.
 
 \newcommand{\cons}{\; :\hskip -.1em : \;}
 \newcommand{\cat}{\; + \hskip -.8em + \;}
@@ -726,23 +762,26 @@ step, we have:
       & = & \DmuIns hdY \cons \DmuDel hdX \cons \F{tail }d_3
 \end{eqnarray*}
 
-  Hence, \F{cost }$d_1$ is $c_\mu\;hdX + c_\mu\;hdY + w$, for $w = \F{cost}\;(\F{tail}\;d_3)$.
-Obviously, $hdX$ and $hdY$ are values of the same type. Namely $hdX , hdY : \F{ElU}\;ty\;(\IC{tcons}\;\IC{u1}\;t)$. Since we want to apply this to Haskell datatypes by the end of the day, it is acceptable
-to assume that $ty$ is a coproduct of constructors. 
-Hence $hdX$ and $hdY$ are values of the same finitary coproduct, representing
-the constructors of the fixed-point datatype. If $hdX$ and $hdY$ comes from different 
-constructors of our fixed-point datatype in question,
+  Hence, \F{cost }$d_1$ is $c_\mu\;hdX + c_\mu\;hdY + w$, for $w =
+\F{cost}\;(\F{tail}\;d_3)$. Obviously, $hdX$ and $hdY$ are values of the same
+type. Namely $hdX , hdY : \F{ElU}\;ty\;(\IC{tcons}\;\IC{u1}\;t)$. Since we want
+to apply this to Haskell datatypes by the end of the day, it is acceptable to
+assume that $ty$ is a coproduct of constructors. Hence $hdX$ and $hdY$ are
+values of the same finitary coproduct, representing the constructors of the
+fixed-point datatype. If $hdX$ and $hdY$ comes from different constructors,
 then\footnote{
 %%%% FOOTNOTE
 We use $i_j$ to denote the $j$-th injection into a finitary coproduct. 
 %%%% FOOTNOTE
-} $hdX = i_j\; x'$ and $hdY = i_k\; y'$ where $j \neq k$. The patch from $hdX$ to $hdY$ will
-therefore involve a $\IC{D-setl}\;x'\;y'$ or a $\IC{D-setr}\;y'\;x'$, hence
-the cost of $d_3$ becomes $c_\oplus\;x'\;y' + w$. Remember that in this situation
-it is wise to delete and insert instead of recursively changing. Since things are coming
-from a different constructors the structure of the outermost type
-is definitely changing, we want to reflect that! This means we need to select $d_1$
-instead of $d_3$, hence:
+} $hdX = i_j\; x'$ and $hdY = i_k\; y'$ where $j \neq k$. The patch from $hdX$
+to $hdY$ will therefore involve a $\IC{D-setl}\;x'\;y'$ or a
+$\IC{D-setr}\;y'\;x'$, hence the cost of $d_3$ becomes $c_\oplus\;x'\;y' + w$.
+Remember that we are still in the situation where it is wise to delete and
+insert instead of recursively changing. The reasoning behind it is simple: since
+things are coming from a different constructors the structure of the outermost
+type is definitely changing, we want to reflect that! This means we need to
+select $d_1$ instead of $d_3$, that is, we need to attribute a cost to $d_1$
+that is strictly lower than the cost of $d_3$:
 
 \[
 \begin{array}{crcl}
@@ -751,13 +790,14 @@ instead of $d_3$, hence:
 \end{array}
 \]
 
-  If $hdX$ and $hdY$ come from the same constructor, on the other hand, the story
-is slightly different. We now have $hdX = i_j\;x'$ and $hdY = i_j\;y'$, the cost
-of $d_1$ still is $c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w$ but the cost of $d_3$ 
-is $\F{dist}\;x'\;y' + w$, since $\F{gdiff}\;hdX\;hdY$ will be $\F{gdiff}\;x'\;y'$ preceded by a sequence
-of \IC{D-inr} and \IC{D-inr} since $hdX$ and $hdY$ they come from the same coproduct injection,
-but these have cost 0. This is the situation that selecting $d_3$ might be a wise choice,
-therefore we need:
+  If $hdX$ and $hdY$ come from the same constructor, on the other hand, the
+story is slightly different. We now have $hdX = i_j\;x'$ and $hdY = i_j\;y'$,
+the cost of $d_1$ still is $c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w$ but the
+cost of $d_3$ is $\F{dist}\;x'\;y' + w$, since $\F{gdiff}\;hdX\;hdY$ will be
+$\F{gdiff}\;x'\;y'$ preceded by a sequence of \IC{D-inr} and \IC{D-inr}, for
+$hdX$ and $hdY$ they come from the same coproduct injection, and these have cost
+0. This is the situation that selecting $d_3$ is the best option, therefore we
+need:
 
 \[
 \begin{array}{crcl}
@@ -771,28 +811,30 @@ values to $c_\mu$ and $c_\oplus$ that respects:
 
 \[ \F{dist}\;x'\;y' < c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') < c_\oplus\;(i_j\;x')\;(i_k\;y') \]
 
-Note that there are an infinite amount of definitions that would fit here. This is
-indeed a central topic of future work, as the \F{cost} function is what drives
-the diffing algorithm. So far we have calculated a relation between $c_\mu$ and $c_\oplus$ that
-will make the diff algorithm match in a top-down manner. That is, the outermost
-type is seen as the heaviest change. Different domains may require a different
-relation. For a first generic implementation, however, this relation does make sense.
-Now is the time for assigning values to $c_\mu$ and $c_\oplus$ and the diffing
-algorithm is completed. We simply define the cost function in such a way that it
-has to satisfy the constraints we imposed.
+  Note that there are an infinite amount of definitions that would fit here.
+This is indeed a central topic of future work, as the \F{cost} function is what
+drives the diffing algorithm. So far we have calculated a relation between
+$c_\mu$ and $c_\oplus$ that will make the diff algorithm match in a top-down
+manner. That is, changes to the outermost type are seen as the heaviest changes.
+Different domains may require different relations. For a first generic
+implementation, however, this relation does make sense. Now is the time for
+finally assigning values to $c_\mu$ and $c_\oplus$ and the diffing algorithm is
+completed. We simply define the cost function in such a way that it has to
+satisfy the imposed constraints.
 
   \Agda{Diffing/Patches/Diff/Cost}{cost-def}
   
-  Where $\F{costL} = sum \cdot map\; \F{cost$\mu$}$ and the size of an element is defined by:
+  Where $\F{costL} = sum \cdot map\; \F{cost$\mu$}$ and the size of an element
+is defined by:
   
   \Agda{Diffing/Universe/Measures}{sizeEl}
 
 \subsection{A Small Example}
 
-Let us consider a simple edit to a file containing students name, number and
-mark, as in figure \ref{fig:samplepatch}. Assume that John, the responsible for
-the marks now knows that Carroll did drop out and that there was a mistake in
-Alice's mark. He then proceeds to edit the CSV file in order to reflect these
+  Let us consider a simple edit to a file containing students name, number and
+grade, as in figure \ref{fig:samplepatch}. Assume that John, the responsible for
+the grades now knows that Carroll did drop out and that there was a mistake in
+Alice's grade. He then proceeds to edit the CSV file in order to reflect these
 changes.
 
 \begin{figure}[h]
@@ -812,10 +854,12 @@ Bob & 593 & 6.5
 \label{fig:samplepatch}
 \end{figure}
 
-For readability purposes, we will omit the boilerplate \F{Patch} constructors.
+  For readability purposes, we will omit the boilerplate \F{Patch} constructors.
 When diffing both versions of the CSV file, we get the patch that reflect John's
-changes over the initial file. Remember that $(\DmuDwn (\F{gdiff-id}\;a))$ is merely
-copying $a$.
+changes over the initial file. Remember that $(\DmuDwn (\F{gdiff-id}\;a))$ is
+merely copying $a$. The CSV structure is easily definable in \F{U} as $CSV =
+\IC{$\beta$}\; \F{list}\; (\IC{$\beta$}\; \F{list}\; X)$, for some appropriate atomic
+type $X$ 
 
 \begin{eqnarray*}
   p_{John} & = & \DmuDwn \; (\F{gdiff-id} \; "Name , ...") \\
@@ -832,7 +876,7 @@ copying $a$.
            & {[} {]} &
 \end{eqnarray*}
 
-Note how the patch closely follow the structure of the changes. There is a
+  Note how the patch closely follow the structure of the changes. There is a
 single change, which happens at \emph{Alice's mark} and a single deletion. Note
 also that we have to copy the end of both the inner and outer lists, this should
 not be confused with the list of edit operations.
@@ -843,9 +887,18 @@ not be confused with the list of edit operations.
   At this stage we are able to: work generically on a suitable universe; describe
 how elements of this universe can change and compute those changes. In order to
 make our framework useful, though, we need to be able to apply the patches we
-compute. The application of patches is easy, for we will only
+compute. The application of patches is easy, thus we only
 show the implementation for coproducts and fixed points here. The rest is very
 straightforward.
+
+  Patch application is a partial operation, however. A patch over $T$ is an object that
+describe possible changes that can be made to objects of type $T$. The
+high-level idea is that diffing two objects $t_1 , t_2 : T$ will produce a patch
+over $T$, whereas applying a patch over $T$ to an object will produce a
+$Maybe\;T$. It is interesting to note that application can not be made total.
+Let's consider $T = X + Y$, and now consider a patch $(Left\; x) \xrightarrow{p}
+(Left\; x')$. What should be the result of applying $p$ to a $(Right\; y)$? It
+is undefined!
 
   \begin{agdacode}
   \AgdaRaw{Diffing/Patches/Diff}{gapply-type}
@@ -856,14 +909,15 @@ straightforward.
   
   \Agda{Diffing/Patches/Diff}{gapplyL-def}
   
-  Where \F{<M>} is the applicative-style application for the \emph{Maybe} monad;
+  Where \F{<\$>} is the applicative-style application for the \emph{Maybe} monad;
 \RF{>>=} is the usual bind for the \emph{Maybe} monad and \F{safeHead} is the 
 partial head function with type |[a] -> Maybe a|. In \F{gapplyL}, we have
-a \F{gIns} function, which will get a head and a list of children of a
+a \F{gIns} function, which will get a value and a list of children of a
 fixed point, will try to \F{$\mu$-close} it and add the result to the
 head of the remaining list. On the other hand, \F{gDel} will \F{$\mu$-open}
-the first element of the received list, compare it with the current head
-and return the tail of the input list appended to its children. 
+the head of the received list and compare its value with the received value,
+if they are equal it returns the tail of the input list appended to its children,
+if they are not equal it returns \IC{nothing}.
 
   Instead of presenting an example, lets provide some intuition for our \F{gapply} function.
 Looking at the \IC{D-setl} case, for instance. $\F{gapply}\;(\IC{D-setl}\;x\;y)$ is expecting
@@ -880,7 +934,10 @@ proof is too big to be shown here but it has type:
 
   \Agda{Diffing/Postulated}{gdiff-correctness}
   
-  Also relevant is the fact that the inverse of a patch behaves as it should:
+  Combining \F{correctness} and $\F{gdiff-id}\;a \equiv \F{gdiff}\;a\;a$ lemma,
+by transitivity, we see that our identity patch is in fact the identity. The
+\emph{observational} equality of a patch and its inverse is obtained by
+transitivity with \F{correctness} and the following lemma:
   
   \Agda{Diffing/Patches/Diff/Inverse}{D-inv-sound-type}
   
@@ -894,25 +951,27 @@ a version control system, but it is by no means sufficient!
 
   In a nutshell, any version control system must accomplish two tasks: (A) we
 need to be able to produce and apply patches and (B) we need to be able to merge
-different, concurrent, changes make to the same object. We have taken care
-of task (A) in the previous sections, and even though current VCS tools
-already excel at it, there is a big lack of tools excelling at (B). 
-All the structural information we are using in task (A) is, in fact,
-providing a lot more to help us at task (B), as we shall discuss in this section.
+different, concurrent, changes made to the same object. We have taken care of
+task (A) in the previous sections, and even though current VCS tools already
+excel at obtaining patches, there is a big lack of tools excelling at (B), that
+is, merging patches. All the structural information we are using in task (A) is,
+in fact, providing a lot more to help us at task (B), as we shall discuss in
+this section.
 
-  
-  The task of merging changes arise when we have multiple users changing the same file
-at the same time. Imagine Bob and Alice perform concurrent edits in an object $A_0$, which are captured by
-patches $p$ and $q$. The center of the repository needs to keep only one copy
-of that object, but upon receiving the changes of both Bob and Alice we have:
+  The task of merging changes arise when we have multiple users changing the
+same file at the same time. Imagine Bob and Alice perform concurrent edits in an
+object $A_0$, which are captured by patches $p$ and $q$. The center of the
+repository needs to keep only one copy of that object, but upon receiving the
+changes of both Bob and Alice we have:
 
   \[ \xymatrix{ A_1 & A_0 \ar[l]_{p} \ar[r]^{q} & A_2} \]
 
-  Our idea is to incorporate the changes expressed by $p$ into a new patch,
-namely one that is aimed at being applied somewhere already changed by $q$,
-and vice-versa, in such a way that they converge. We call this the residual patch. 
-The diagram in figure \ref{fig:residual} illustrates the result of merging $p$ and $q$
-through propagation.
+  Our idea, inspired by \cite{Tieleman2006}, is to incorporate the changes
+expressed by $p$ into a new patch, namely one that is aimed at being applied
+somewhere already changed by $q$, and vice-versa, in such a way that they
+converge. We call this the residual patch. The diagram in figure
+\ref{fig:residual} illustrates the result of merging $p$ and $q$ through
+propagation.
   
   \begin{figure}[h]
   \begin{displaymath}
@@ -979,7 +1038,8 @@ A \emph{grow-left-right} is more complex, as it corresponds to a overlap and we
 can not know for sure which should come first unless more information is provided.
   From the structure in our patch-space, we can already separate conflicts by
 the types they can occur on. An \emph{update-update} conflict has to happen on a
-coproduct type, whereas the rest are restricted to fixed-point types. In Agda,
+coproduct type, for it is the only type which \F{Patch}es over it can have
+multiple different options, whereas the rest are restricted to fixed-point types. In Agda,
   
   \Agda{Diffing/Patches/Conflicts}{C-def}
       
@@ -1019,12 +1079,16 @@ be applied to the object were $y$ was deleted we simply suppress the $\DmuDel$ a
 continue recursively. The remaining cases follow a similar reasoning process.  
 
   The attentive reader might have noticed a symmetric structure on conflicts.
-This is not at all by chance. In fact, we can prove that the residual of
-$p / q$ have the same (modulo symmetry) conflicts as $q / p$. This proof
-goes in two steps. Firstly, \F{residual-symmetry} proves that the symmetric
-of the conflicts of $p / q$ appear in $q / p$, but this happens modulo
-a function. We then prove that this function does not introduce any new conflicts,
-it is purely structural. 
+This is not at all by chance. In fact, we can prove that the residual of $p / q$
+have the same (modulo symmetry) conflicts as $q / p$. This proof goes in two
+steps. Firstly, \F{residual-symmetry} proves that if $p$ and $q$ are aligned,
+that is, $p / q \equiv \IC{just}\;k$ for some $k$, then there exists a function
+$op$ such that $q / p \equiv \IC{just}\;(\F{D-map}\;\F{C-sym}\; (op\;k))$. We
+then prove, in \F{residual-sym-stable} that this function $op$ does not
+introduce any new conflicts, it is purely structural. This could be made into a
+single result by proving that the type of $op$ actually is $\forall A\; .\;
+\F{D}\;A\;t\;ty \rightarrow \F{D}\;A\;t\;ty$, we chose to split it for improved
+readability.
   
   \Agda{Diffing/Patches/Residual/Symmetry}{residual-symmetry-type}
   
@@ -1035,23 +1099,76 @@ it is purely structural.
 \F{List}\;(\F{$\downarrow$}\; A)$, \F{$\downarrow\_$} encapsulates the type indexes of
 the different $A$'s we might come across.
     
-  Now, we can compute both $p / q$ and $q / p$ at the same time. It also
-backs up the intuition that using residuals or patch commutation (as in darcs) is
-not significantly different.
-  
-  This means that $p / q$ and $q / p$, although different, have the same conflicts
-(up to symmetry). Hence, we can (informally) define a \emph{merge strategy} as a function 
-$m : \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$, which can
-now be mapped over $\DCtty$ pointwise on its conflicts. We end up
-with an object of type $\F{D}\;(\F{D}\;\F{$\bot_p$})\;t\;ty$. This is not
-a problem, however, since the free-monad structure on \F{D} provides
-us with a multiplication $\mu_D : \F{D}\;(\F{D}\;A)\;t\;ty \rightarrow \F{D}\;A\;t\;ty$.
-Therefore, $merge_1\;m : \DCtty \xrightarrow{\mu_D \cdot D\; m} \Patchtty$ is one possible \emph{merge tool}
-for removing the conflicts of a patch. Mapping $m$ over the conflicting patch is
-by far not the only possible way of walking the tree, as we shall see in section \ref{sec:haskell}.
-This opens up a lot of very interesting questions and paves the road to defining
-conflict resolution combinators. Allowing for a great degree of genericity in
-the base framework.
+  Now, we can compute both $p / q$ and $q / p$ at the same time. It also backs
+up the intuition that using residuals or patch commutation (as in darcs) is not
+significantly different. This means that $p / q$ and $q / p$, although
+different, have the same conflicts (up to conflict symmetry).
+
+\paragraph*{Merge Strategies}
+
+  By looking at the type of \emph{residual} we see that figure
+\ref{fig:residual} does not really reflect what really happens with residuals. A
+more accurate picture is given in figure \ref{fig:residualreal}, where $op$ is
+the function obtained by \F{residual-symmetry} and $e$ is a special patch, lets
+call it a \emph{merge strategy} for now.
+
+  \begin{figure}[h]
+  \begin{displaymath}
+    \xymatrix{
+         & A_0 \ar[dl]_{p} \ar[dr]^{q} &  \\
+         A_1 \ar[d]_{q / p} & & A_2 \ar[d]^{p / q} \\
+         P_{1/2} \ar@@{=}[rr]^{op} \ar[dr]_{e} & & P_{2/1} \ar[dl]^{e} \\
+         & A_3 &      
+      }
+  \end{displaymath}
+  \caption{Residual patch square}
+  \label{fig:residualreal}
+  \end{figure}
+    
+  Note that $P_{1/2}$ and $P_{2/1}$ are not really objects, as we can not apply
+a patch with conflicts. They are patches with conflicts. In order to more clearly
+discuss what is going on let us take a closer look at the types of the left path
+from $A_0$ to $A_3$. We assume that $p , q : \F{Patch} A$ and $hip : q / p \equiv
+\IC{just}\; k$ for some $k$, for the rest of this section. 
+
+  In order to merge things, that is, to compute patches $p'$ and $q'$ that can be
+applied to $A_1$ and $A_2$ and produce the same $A_3$ we need to figure out what
+the aforementioned \emph{merge strategy} actually is. Playing around with the types of
+our already defined functions we have:
+
+\newcommand{\marr}[1]{\xrightarrow{\mathmakebox[6em]{#1}}}
+\begin{eqnarray*}
+  A & \marr{\text{flip}\; \F{gdiff}\; A_1} & \F{Patch}\;A \\
+    & \marr{(q /)} & \F{Maybe}\;(\F{PathC}\; A) \\
+    & \marr{\F{fromJust}\;hip} & \F{PatchC}\;A \\
+    & \marr{e} & \F{B}\;(\F{Patch}\;A)    
+\end{eqnarray*}
+
+  By assumption and the types above, we see that a suitable type for the
+\emph{merge strategy} $e$ would be $\F{PatchC}\;A \rightarrow
+\F{B}\;(\F{Patch}\;A)$ for some behavior monad \F{B}. An interactive merge
+strategy would have $\F{B} = |IO|$, a partial merge strategy would have $\F{B} =
+\F{Maybe}$, etc. We can see that the design space is huge in order to define how
+to merge patches. Ideally we would like to have a library of \emph{mergers} and
+a calculus for them, such that we can prove lemmas about the behavior of some
+\emph{merge strategies}, that is, a bunch of \emph{mergers} combined using
+different operators.
+
+  A simple pointwise \emph{merge strategy} can be defined for a \emph{merger} $m
+: \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$, which can now be
+mapped over $\DCtty$ pointwise on its conflicts. We end up with an object of
+type $\F{D}\;(\F{D}\;\F{$\bot_p$})\;t\;ty$. This is not a problem, however,
+since the free-monad structure on \F{D} provides us with a multiplication $\mu_D
+: \F{D}\;(\F{D}\;A)\;t\;ty \rightarrow \F{D}\;A\;t\;ty$. Therefore, 
+\[
+merge_{pw}\;m : \DCtty \xrightarrow{\mu_D \cdot \F{D-map}\; m} \Patchtty 
+\]
+would be one possible \emph{merge strategy} using the \emph{merger} $m$ for
+removing the conflicts of a patch. Mapping a \emph{merger} over the conflicting
+patch is by far not the only possible way of walking the tree, as we shall see
+in section \ref{sec:haskell}. This opens up a lot of very interesting questions
+and paves the road to defining conflict resolution combinators. Allowing for a
+great degree of genericity in the base framework.
 
 \section{The Haskell Prototype}
 \label{sec:haskell}
@@ -1059,7 +1176,8 @@ the base framework.
   In sections \ref{sec:cf} and \ref{sec:residual} we have layered the foundations
 for creating a generic, structure aware, version control system. We proceed by illustrating
 these ideas with a prototype in Haskell, with an emphasis on its extended capability
-of handling non-trivial conflicts.
+of handling non-trivial conflicts. A great advantage of using $\CF$ as a universe is
+that we are able to do generic-programming via typeclasses in Haskell.
 
   The user has access to a typeclass |Diffable a|, which gives the basic diffing
 and merging functionality for objects of type |a|:
@@ -1113,7 +1231,8 @@ instance (HasAlg (a :: * -> *) , Diffable (a ()))
 All the other types can also be seen as sums-of-products. We then define
 a class and some template Haskell functionality to generate instances of |SOP a|.
 The \emph{overlappable} pragma makes sure that Haskell's instance search
-will give preference to the other instances.
+will give preference to the other \emph{Diffable} instances, whenever the term head
+matches a product, coproduct atom or fixpoint.
 
 \vskip .5em
 \begin{code}
@@ -1128,15 +1247,32 @@ instance {-# OVERLAPPABLE #-}
 \end{code}
 \vskip .5em
 
-As the tool is still a very young prototype, we chose to omit implementation details
-such as memoization or explicit 
+  As the tool is still a very young prototype, we chose to omit implementation
+details. For those who wish to see these details, the code is available
+online\footnote{\warnme{HASKELL REPOSITORY}}. There is, however, one extension we need
+to be able to handle built-in types. We have two additional constructors to |Patch| 
+to handle atomic types:
+
+\vskip .5em
+\begin{code}
+newtype Atom a = Atom { unAtom :: a }
+
+instance (Eq a) => Diffable (Atom a)
+\end{code}
+\vskip .5em
+
+  An |Atom a| is isomorphic to |a|. The difference is that it serves as a flag
+to the diff algorithm, telling it to treat the |a|'s atomically. That is, either
+they are equal or different, no inspection of their structure is made. As a
+result, there are only two possible ways to change an |Atom a|. We can either
+copy it, or change one |x :: a| into a |y :: a|. 
 
 \subsection{A more involved proof of concept}
   
   In order to show the full potential of our approach, we will develop a simple
 example showing how one can encode and run a \emph{refactoring} conflict solver for arbitrary
 datatypes. We will first introduce some simple definitions and then explore how
-refactoring can happen there.
+refactoring can happen there. We 
 
   Our case study will be centered on CSV files with integers on their cells. The canonical
 representation of this CSV format is |T|. Moreover, we will also assume that the specific
@@ -1148,10 +1284,7 @@ type T = List (List (Atom Int))
 \end{code}
 \vskip .5em
 
-  An |Atom a| is isomorphic to |a|. The difference is that it serves as a flag
-to the diff algorithm, telling it to treat the |a|'s atomically. That is, either
-they are equal or different, no inspection of their structure is made. Our
-|List| type is then defined as follows:
+  Our |List| type is then defined as follows:
 
 \vskip .5em
 %format DOTS = "\cdots"
@@ -1227,10 +1360,10 @@ traverse the patch structure twice. First we make a list of the \IC{DelUpd} and
 conflicts and trying to match them with what was deleted. If they match, we
 either copy or insert the \emph{updated} version of the object.
 
-  Recall \ref{sec:conflicts}, where we explain that conflict solving is simply a
-traversal of the patch structure followed by a \emph{pointwise} resolution when
-we reach a conflict. In our Haskell prototype library we already provide different
-traversals and solvers. It is worth mentioning that the actual code is slightly more complicated\footnote{
+  Recall \ref{sec:conflicts}, where we explain that conflict solving is comprised
+of a \emph{merge strategy} combining different \emph{mergers}. Although still
+not formulated in Agda, our Haskell prototype library already provides different
+\emph{merge strategies} and \emph{mergers}. It is worth mentioning that the actual code is slightly more complicated\footnote{
 We define a \emph{subtyping} relation as a GADT, named |a :>: b|, which specifies |b| as a subtype
 of |a|. The actual Haskell code uses this proofs extensively in order to typecheck
 and cast conflicts instead of the rank 2 types shown here.
@@ -1238,8 +1371,8 @@ and cast conflicts instead of the rank 2 types shown here.
 generic nature of the functions require some boilerplate code to typecheck but the
 main idea is precisely the same, for we will present a simplified version. 
 
-  In the context provided by the current example, we will use a traversal
-|solvePWithCtx| with a solver |sRefactor|.
+  In the context provided by the current example, we will use a \emph{merge strategy}
+|solvePWithCtx| with a \emph{merger} |sRefactor|.
 
 %format forall = "\forall"
 %format DOT    = "\cdot"
@@ -1251,14 +1384,20 @@ solvePWithCtx  :: (Cf a -> [forall x DOT Cf x] -> Maybe (Patch a))
 \end{code}
 \vskip .5em
 
-The |solvePWithCtx| traversal will perform the aforementioned two traversals. The first
-one records the conflicts whereas the second one applies |sRefactor| to the
-conflicts. The |sRefactor| solver, in turn, will receive the list of all
-conflicts (context) and will try to match the \emph{grows} with the
-\emph{deletions}. Note that we return a |PatchC| from the solver. This happens
-since the solver is \emph{partial}. It will leave the conflicts it cant solve
-untouched. Predicate |resolved :: PatchC a -> Maybe (Patch a)| casts it back to
-a patch if no conflict is present.
+  The |solvePWithCtx| \emph{merge strategy} will perform the aforementioned two
+traversals. The first one records the conflicts whereas the second one applies
+|sRefactor| to the conflicts. The |sRefactor| \emph{merger}, in turn, will
+receive the list of all conflicts (context) and will try to match the
+\emph{growths} with the \emph{deletions}. Note that we return a |PatchC| from
+the \emph{merge strategy}. This happens since the \emph{merge strategy} is
+\emph{partial}. It will leave the conflicts it cant solve untouched. Predicate
+|resolved :: PatchC a -> Maybe (Patch a)| casts it back to a patch if no
+conflict is present. We stress that the maximum we can do is provide the user
+with \emph{merge strategies} and \emph{mergers}, but since different domains
+will have different conflicts, it is up to the user to program the best
+strategy for that particular case. We leave as future work the development
+of an actual calculus os \emph{mergers}, allowing one to actually prove
+their strategy will behave the way one expects.  
 
   We can now compute the patches |pAR| and |pBR|, to be applied to Alice's and Bob's
 copy in order to obtain the result, by: 
@@ -1286,11 +1425,12 @@ copy in order to obtain the result, by:
   And finally we can apply |pAR| to Alice's copy and |pBR| to Bob's copy
 and both will end up with the desired |lR = ki [[2] , [3, 12]]| as a result.
 
-  As we can see from this not so simple example, our framework allows
-for a definition of a plethora of different conflict solving strategies. This
-fits very nicely with the \emph{generic} part of the diff problem we propose to solve.
-In the future we would like to have a formal calculus of combinators for conflict
-solving, allowing different users to fully customize how their merge tool behaves.
+  As we can see from this not so simple example, our framework allows for a
+definition of a plethora of different conflict solving strategies. This fits
+very nicely with the \emph{generic} part of the diff problem we propose to
+solve. In the future we would like to have a formal calculus of combinators for
+conflict solving, allowing different users to fully customize how their merge
+tool behaves.
 
 \section{Summary, Remarks and Related Work}
 
@@ -1300,9 +1440,9 @@ applying the proposed concepts. The diffing API can be made ready for all
 Haskell types, out of the box, with some simple Template Haskell, as all we need
 is the derivation of two trivial instances. We have also shown how this approach
 allows one to fully specialize conflict resolution for the domain in question.
-The work of L\"{o}h\cite{Loh2009} and Vassena\cite{Vassena2015} are the most similar
-to our. We use a drastically different definition of patches, in order to
-have room for experimenting with conflict resolution.
+The work of L\"{o}h\cite{Loh2009} and Vassena\cite{Vassena2015} are the most
+similar to our. We use a drastically different definition of patches, in order
+to have room for experimenting with conflict resolution.
 
   Below we give a short comparison with other related work.
 
@@ -1340,6 +1480,7 @@ consequent evaluation of how they change our theory of patches
 is left as future work.
 
 \subsection{Cost, Inverses and Lattices}
+\label{sec:costremarks}
 
   Back in section \ref{sec:cost}, where we calculated our cost function from a
 specification, we did not provide a formal proof that our definitions
@@ -1347,30 +1488,31 @@ did in fact satisfy the relation we stated:
 
 \[ \F{dist}\;x'\;y' < c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') < c_\oplus\;(i_j\;x')\;(i_k\;y') \]
 
-  This is, in fact, deceptively complicated. Since \F{$\_\lubmu\_$} is 
-not commutative nor associative, in general, we do not have much room to reason
-about the result of a \F{gdiffL}. A more careful definition of \F{$\_\lubmu\_$} that can provide
-more properties is paramount for a more careful study of the \F{cost} function.
-Defining \F{$\_\lubmu\_$} in such a way that it gives us a lattice over patches
-and still respects patch inverses is very tricky, as for making it preserve inverses
-we need to have $\F{D-inv}(d_1 \F{$\lubmu$} d_2) \equiv \F{D-inv}\;d_1 \F{$\lubmu$} \F{D-inv}\;d_2$. 
-A simpler option would be to aim for a 
-quasi-metric $d$ instead of a metric (dropping symmetry; equation (2)), this way inverses need not
-to distribute over \F{$\_\lubmu\_$} and we can still define a metric $q$, but now with codomain $\mathbb{Q}$,
-as $q\;x\;y = \frac{1}{2}(d\;x\;y - d\;y\;x)$.
+  This is, in fact, deceptively complicated. Since \F{$\_\lubmu\_$} is not
+commutative nor associative, in general, we do not have much room to reason
+about the result of a \F{gdiffL}. A more careful definition of \F{$\_\lubmu\_$}
+that can provide more properties is paramount for a more careful study of the
+\F{cost} function. Defining \F{$\_\lubmu\_$} in such a way that it gives us a
+lattice over patches and still respects patch inverses is very tricky, as for
+making it preserve inverses we need to have $\F{D-inv}(d_1 \F{$\lubmu$} d_2)
+\equiv \F{D-inv}\;d_1 \F{$\lubmu$} \F{D-inv}\;d_2$. A simpler option would be to
+aim for a quasi-metric $d$ instead of a metric (dropping symmetry; equation
+(2)), this way inverses need not to distribute over \F{$\_\lubmu\_$} and we can
+still define a metric $q$, but now with codomain $\mathbb{Q}$, as $q\;x\;y =
+\frac{1}{2}(d\;x\;y - d\;y\;x)$.
 
 \subsection{A remark on Type Safety}
 \label{sec:typesafety}
 
-  The main objectives of this project is to release a 
-solid diffing and merging tool, that can provide formal guarantees, written in Haskell.
-The universe of user-defined Haskell types is smaller than context free types;
-in fact, we have fixed-points of sums-of-products. Therefore, we should be able
-to apply the knowledge acquired in Agda directly in Haskell. In fact, we did so!
-With a few adaptations here and there, to make the type-checker happy, the
-Haskell code is almost a direct translation. There is one minor detail we would
-like to point out in our approach so far. Our \F{D$\mu$} type
-admits ill-formed patches. Consider the following simple example:
+  The main objectives of this project is to release a solid diffing and merging
+tool, that can provide formal guarantees, written in Haskell. The universe of
+user-defined Haskell types is smaller than context free types; in fact, we have
+fixed-points of sums-of-products. Therefore, we should be able to apply the
+knowledge acquired in Agda directly in Haskell. In fact, we did so! With a few
+adaptations here and there, to make the type-checker happy, the Haskell code is
+almost a direct translation. There is one minor detail we would like to point
+out in our approach so far. Our \F{D$\mu$} type admits ill-formed patches.
+Consider the following simple example:
 
   \Agda{Diffing/Patches/IllDiff}{ill-patch-example}
   
@@ -1441,15 +1583,31 @@ To be able to encode this more delicate definition of arity we need to first
 divide our universe into sums-of-products, so that we have the notion of 
 a constructor. Then change the definition of telescope to use closed types only
 (that is, types with \IC{zero} type variables), not allowing this functional dependency
-between type variables. Fixed points will have to be interpreted by W-types
-to satisfy the termination checker. However, since now we
-have the notion of constructor and its associated arity it is fairly simple to define
-a shape and a positioning function for such. This is left as future.
+between type variables. There are multiple ways to achieve this, we leave
+the exploration of these techniques as future work.
   
 \section{Conclusion}
-  \begin{itemize}
-    \item This is what we take out of it.
-  \end{itemize}
+
+  We believe that by incorporating the changes proposed in sections
+\ref{sec:costremarks} and \ref{sec:typesafety}, we will be able to prove further
+results about our constructions. In particular we conjecture that our
+\emph{residual} operation, section \ref{sec:residual}, constitutes, in fact, a
+residual system as in \cite{Tieleman2006,Bezem2003}. Moreover, we expect to be
+able to formulate more accurate properties about which conditions a \emph{merge
+strategy}, section \ref{sec:residual}, must satisfy in order to converge.
+Moreover, we would like to have a formal categorical framework to speak about
+diffs. 
+  
+  From our proposals, we see that it is already possible to have much better
+merge tools to help automate the management of structured data. The applications
+are multiple. We can use our algorithms to create specialized merge tools for
+virtually every structured file format, as we just need a Haskell representation
+of this data to be able to diff it. This approach is easy to integrate on the
+already existing software version control systems but also allows us to develop
+one from scratch, for files and directories can also be represented in Haskell.
+Besides actual version control, we can also use the notion of \F{cost} we
+developed for a range of topics, given that we can always compute a non-trivial
+distance between values of an arbitrary datatype. 
   
   %% WARNING: Do NOT change the next comment, it's a tag for sed to
   %% glue the bibliography.
