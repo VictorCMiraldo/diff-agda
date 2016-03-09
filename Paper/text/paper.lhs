@@ -91,6 +91,7 @@
 \newcommand{\textsigma}{$\sigma$}
 \newcommand{\textSigma}{$\Sigma$}
 \newcommand{\texteta}{$\eta$}
+\renewcommand{\textbeta}{$\beta$}
 
 % And some others that actually require the unicode declaration
 \DeclareUnicodeCharacter {10627}{\{\hspace {-.2em}[}
@@ -175,6 +176,12 @@
 \newcommand{\DCtty}{\F{D}\;\F{C}\;t\;ty}
 \newcommand{\Patchtty}{\F{Patch}\;t\;ty}
 \newcommand{\Ctty}{\F{C}\;t\;ty}
+\newcommand{\cons}{\; :\hskip -.1em : \;}
+\newcommand{\cat}{\; + \hskip -.8em + \;}
+\newcommand{\DmuIns}{\IC{D$\mu$-ins} \;}
+\newcommand{\DmuDel}{\IC{D$\mu$-del} \;}
+\newcommand{\DmuDwn}{\IC{D$\mu$-dwn} \;}
+\newcommand{\ICoplus}{\; \IC{$\oplus$} \;}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Title, etc...
@@ -198,7 +205,7 @@
 \maketitle
 
 \begin{abstract}
-  The widespread UNIX \texttt{diff3} program is the programmers worst nightmare
+  The widespread UNIX \texttt{diff3} program is a counterproductive tool
 for merging non-trivial edits of a given file. The problems with \texttt{diff3}
 arise from its unified view over files; all non-binary files are just lines of text.
 In the real world, however, we see that most data is much more than just lines of text,
@@ -240,8 +247,8 @@ to detect and merge changes made by individual developers. While such
 line-based diffs generally work well when monitoring small repositories,
 with small development teams, they tend to behave sub-optimally in many
 real life scenarios. A classical instance is indentation conflicts in source-code
-files. This conflicts happen precisely because source-code can be better modeled
-using other objects other than lists of lines. 
+files. These conflicts happen precisely by comparing two files, line against
+line, will not reveal the real intent of an indentation. 
 
 Consider the following example CSV file, recording the marks and names
 three students:
@@ -295,8 +302,8 @@ this paper makes the following novel contributions:
 
   The generic diff problem is a very special case of the \emph{edit distance} problem,
 which is concerned with computing the minimum cost of transforming an untyped tree 
-$A$ into an untyped tree $B$. Demaine provides a solution to the problem in 
-\cite{Demaine2007}, improving the work of \cite{Klein1998}. This problem
+$A$ into an untyped tree $B$. Demaine provides a solution to the problem 
+\cite{Demaine2007}, improving the work of Klein \cite{Klein1998}. This problem
 has been popularized in the particular case where the trees in question are,
 in fact, lists, in which case we call it the \emph{least common subsequence} (LCS)
 problem \cite{Bille2005,Bergroth2000}. The popular UNIX \texttt{diff} tool provides
@@ -310,14 +317,15 @@ that the \emph{diff} tool works great. Its problem is precisely conflict resolut
 or more generally, its older brother \emph{diff3} \cite{Khanna2007}. Conflict resolution
 is where our focus lies. We want to build a sound theory for patches that is highly customizable 
 in its conflict solving capabilities, as it can be used for arbitrarily many file formats.
-In order to build such theory, and consequently a prototype, we will turn ourselves to
-datatype-generic programming, where functional programming technology excels at.
   
 \section{Structural Diffing}  
   
   To make version control to be structure aware we need to define what
 structures we can handle. In our case, the structure is the universe of context
-free types, patching will be defined for its inhabitants.
+free types, patching will be defined for its inhabitants. Our choice of universe
+has to do with how close to the universe of Haskell types we can get. This makes a 
+the translation from Agda to Haskell very simple, when we reach the point of implementing
+and running our algorihms, in section \ref{sec:haskell}.
   
 \newcommand{\CF}{\text{CF}}
 \subsection{Context Free Datatypes}
@@ -341,29 +349,32 @@ context free types with a deBruijn representation for variables, figure \ref{fig
   \Agda{Diffing/Universe/Syntax}{U-def}
   
   In order to make life easier we use a deBruijn indexing for our type variables.
-an element of $\F{U}\;n$ reads as a type with $n$ free type variables. \IC{$u0$}
-and \IC{$u1$} represent the empty type and unit, respectively. Products
+an element of $\F{U}\;n$ reads as a type with $n$ free type variables. \IC{u0}
+and \IC{u1} represent the empty type and unit, respectively. Products
 and coproducts are represented by \IC{$\_\otimes\_$} and \IC{$\_\oplus\_$}. 
 Recursive types are created through \IC{$\mu$}. Type application is 
 denoted by \IC{$\beta$}. To control and select variables we use constructors
-that retrieve the \emph{top} of the variable stack, \IC{$vl$}, and that
-\emph{pop} the variable stack, ignoring the top-most variable, \IC{$wk$}.
-We could have used a \F{Fin} to identify variables, and have one instead of 
-two constructors for variables, but that would trigger more complicated 
-definitions later on.
+that retrieve the \emph{value} on top of the variable stack, \IC{vl}, and that
+pop the variable stack, ignoring the top-most variable, \IC{wk}.
+We decouple weakening \IC{wk} from the variable occurences \IC{vl} and
+allow it anywhere in the code. This allows slightly more compact definitions
+later on.
   
   Stating the language of our types is not enough. We need to specify its
 elements too, after all, they are the domain which we seek to define our
 algorithms for! Defining elements of fixed-point types make things a bit more
 complicated, check \cite{Altenkirch2006} for a more in-depth explanation of
-these details. We need a decreasing \F{Tel}escope of types in order to specify
-the elements of \F{U} and still pass the termination checker. The reason for
-having this telescope is simple. Imagine we want to describe the 
+these details. The main idea, however, is that we need to take care of the free
+variables. For this need a \F{Tel}escope of types in order to specify
+the elements of \F{U} and still pass the termination checker. Hence, we define
+the elements of \F{U} with repsect to a \emph{closing substituition}.
+Imagine we want to describe the 
 elements of a type with $n$ variables, $ty : \F{U}\;n$. We can only speak about
 this type once all $n$ variables are bound to correspond to a given type. 
-We need then $t_1, t_2, \cdots, t_n$ to pass as \emph{arguments} to $ty$. 
-Moreover, these types have to have less free variables then $ty$ itself,
-otherwise this will never finish. This list of types with decreasing
+We need, then, $t_1, t_2, \cdots, t_n$ to pass as \emph{arguments} to $ty$. 
+Moreover, these types must have less free variables then $ty$ itself,
+otherwise Agda can not check this substitution terminates. 
+This list of types with decreasing
 type variables is defined through \F{Tel}:
 
   \Agda{Diffing/Universe/Syntax}{Tel-def}
@@ -371,87 +382,135 @@ type variables is defined through \F{Tel}:
  A value $(v\; :\; \F{ElU}\; \{n\}\; ty\; t)$ reads roughly
 as: a value of type $ty$ with $n$ variables, applied to telescope $t$. 
 At this point we can define the actual $v$'s that inhabit every code
-in $\F{U}\;n$.  In Agda, the elements of \F{U} are defined by:
+in $\F{U}\;n$. In Agda, the elements of \F{U} are defined by:
   
   \Agda{Diffing/Universe/Syntax}{ElU-def}
   
   The set \F{ElU} of the elements of \F{U} is straight forward. We begin with some simple
-constructors to handle finite types: \IC{void}, \IC{inl}, \IC{inr} and \IC{$\_,\_$}.
+constructors to handle finite types: \IC{unit}, \IC{inl}, \IC{inr} and \IC{$\_,\_$}.
 Next, we define how to reference variables using \IC{pop} and \IC{top}. Finally,
 \IC{mu} and \IC{red} specify how to handle recursive types and type applications.
-  
-  Let us see a simple example of how types and elements are defined in this
-framework. Consider that we want to encode the list |(u : []) :: [U]|, for
-|U| being the unit type with the single constructor |u|. We start by defining
-the type of lists, this is an element of $\F{U}\;(\IC{suc}\;n)$, which later
-lets us define an element of that type.
+We now have all the machinery we need to start defining types and their constructors
+inside Agda. Figure \ref{fig:uexample} shows the encoding of polymorphic lists and
+its constructors.
 
+  \begin{figure}[h]
   \Agda{Diffing/Universe/Syntax}{U-example}
+  \caption{The type of polymorphic lists and its constructors}
+  \label{fig:uexample}
+  \end{figure}
   
-  Up until now we showed how to define the universe of context free types
-and the elements that inhabit it. We are, however, interested in the operations
-can we perform on these elements. As we shall see, this choice of universe
-turns out to be very expressive, providing a plethora of interesting operations that
-can be defined by induction on \F{U}.
-The first very useful concept is the decidability of generic 
-equality\cite{Altenkirch2006}.
+  Remember that our main objective is to speak about \emph{how to track
+differences between elements of a given type}. So far we showed how to define
+the universe of context free types and the elements that inhabit it. With this
+definition, in Agda, we also get recursion principles for the elements
+of \F{U} and \F{ElU}, which will let us define some generic operations over
+them. Finally, we define our diffing algorithms using only these (generic) operations,
+completely abstracting over types that can be defined in \F{U} and hence making
+them generic.
 
-  \Agda{Diffing/Universe/Equality}{equality-type}
+\paragraph*{Some Generic Operations}
+
+  We can always view an element $\F{ElU}\;ty\;t$ as a tree, this will
+be particularly usefull in section \ref{sec:fixedpoints}. The idea is that the
+telescope indicates how many levels our tree has, and which is the shape (type)
+of each subtree in each of those levels. Figure \ref{fig:arity} illustrates this
+view for an element $\F{ElU}\;ty\;(\IC{tcons}\; t_1\;(\IC{tcons}\;t_2\;\IC{tnil})$. 
+Note how we use \IC{vl} to reference to the immediate children and
+\IC{wk} to go one level deeper.
+
+  \begin{figure}[h]
+  \begin{displaymath}
+      \xymatrix{
+        ty & & a \ar[dl]_{\IC{vl}} \ar[dd]_{\IC{wk}\;\IC{vl}} \ar[dr]_{\IC{vl}} \ar@@{.>}[rr]^{\F{arity}} 
+            \ar@@{.>}[drr]^{\F{children}} & & 2 \\
+        t_1 & x &  & z \ar[d]_{\IC{vl}} \ar@@{.>}[dr]^{\F{children}} & |[x , z]| \\
+        t_2 &   & y & z' & |[z']|
+      }  
+  \end{displaymath}
+  \caption{Children and Arity concepts illustrated}
+  \label{fig:arity}
+  \end{figure}
   
-  But only comparing things will not get us very far. We need to be able to
-inspect our elements generically. A very natural way to do so is to see an element 
-of a given type as a tree. We can define operations like getting the list of immediate children,
-or computing their arity, that is, how many children do they have. Such operations,
-coupled with generic decidable equality, allows us to traverse and compare two arbitrary
-trees.
+  The intuition is that the children of an element is the list of immediate subtrees of
+that element, whereas its arity is how many such immediate subtrees are there.
+The actual Agda code of those operations is fairly complex, for it will
+be ommited. Their type is given by:
 
   \Agda{Diffing/Universe/Ops}{children-type}
   
   \Agda{Diffing/Universe/Ops}{arity-type}
   
-  The advantage of doing so in Agda, is that we can prove that our definitions 
-are correct.
-  
-  \Agda{Diffing/Universe/Ops}{children-arity-lemma-type}
-  
-  Intuitively, the list of children of an element $\F{ElU}\;ty\;(\IC{tcons}\;a\;t)$
-contains one $\F{ElU}\;a\;t$ for every occurrence of $\IC{vl}$ in $ty$.  
-  We can even go a step further and say that every element is defined by a constructor
-and a vector of children, with the correct arity. This lets us treat generic elements as
-elements of a (typed) rose-tree, whenever that is convenient.
+  A good advantage of Agda is that we can prove properties over our definitions: 
+\[ \F{length}\;(\F{children}\;x) \equiv \F{arity}\;x \]
+The unsuspecting reader might ask, then, why not \emph{define} arity in this way?
+If we did define arity as $\F{length} \cdot \F{children}$ we would run into problems
+when writing types that \emph{depend} on the arity of an element.
+Hence, we want \F{arity} to be defined directly by induction on its argument, 
+making it structurally compatible with all other functions also defined by induction
+on \F{ElU}.
 
-  \Agda{Diffing/Universe/Ops}{unplug-type}
-  
-  \Agda{Diffing/Universe/Ops}{plug-type}
-  
-  \Agda{Diffing/Universe/Ops}{plug-correct-type}
-  
-  These operations are central to solving the diffing problem, for we need
-a way of traversing generic trees in order to decide how to change one into the other.
-We do things a bit differently, though. We linearize the trees and proceed to traverse
-the resulting list.
+  We can define many more operations over elements of \F{U}, but this is outside the scope
+of this paper. We refer the interested reader to the work of Altenkirch et al 
+\cite{Altenkirch2009} for more. Our focus will now start shifting to our real objective:
+describing differences in the elements of \F{U}.
 
-  For the readers familiar with Haskell's \emph{Uniplate}\cite{Mitchell2008} library,
-our \F{plug} and \F{unplug} operations allow for a similar view over datatypes.
-For instance, we can define the \F{transform} function in Agda as: 
-
-  \Agda{Diffing/Universe/Lab}{transform-type}
-  
-  Note that we first need to pattern-match on the telescope, as types with
-zero variables can not be \emph{unplugged}. 
-  
-  This repertoire of operations, and the ability to inspect an element structurally,
-according to its type, gives us the tool set we need in order to start describing
-differences between elements. That is, we can now start discussing what does it mean
-to \emph{diff} two elements or \emph{patch} an element according to some description
-of changes.  
-  
 \subsection{Patches over a Context Free Type}
 
-  The type of \emph{diff}'s is defined by \F{D}. It is indexed by a type
-and a telescope, which is the same as saying that we only define \emph{diff}'s for
-closed types\footnote{Types that do not have any free type-variables}. However,
-it also has a parameter $A$, this will be addressed later.
+  Let us consider a simple edit to a file containing students name, number and
+grade, as in figure \ref{fig:samplepatch}. Assume that John, the responsible for
+the grades now knows that Carroll did drop out and that there was a mistake in
+Alice's grade. He then proceeds to edit the CSV file in order to reflect these
+changes.
+
+\begin{figure}[h]
+\begin{center}
+\csvABlbl{\begin{tabular}{l@@{ , }l@@{ , }l}
+Name & Number & Mark \\
+Alice & 440 & 7.0 \\
+Bob & 593 & 6.5 \\
+Carroll & 168 & 8.5
+\end{tabular}}{\begin{tabular}{l@@{ , }l@@{ , }l}
+Name & Number & Mark \\
+Alice & 440 & 8.0 \\
+Bob & 593 & 6.5
+\end{tabular}}{$p_{John}$}
+\end{center}
+\caption{Sample Patch}
+\label{fig:samplepatch}
+\end{figure}
+
+  Remember that a CSV structure is defined as a list of lists of cells. Let us
+assume that we have operations \emph{enter}, \emph{copy}, \emph{change} and
+\emph{del} that will: enter inside a structure; copy the structure contents;
+change the contents or delete the structure, respectively. The patch $p_{John}$
+will then look like:
+
+\vskip .5em
+%format PJOHN = "p_{John}"
+\begin{code}
+  PJOHN =  [ enter  [ copy , copy , copy , copy ]
+           , enter  [ copy , copy , change 7.0 8.0 , copy ]
+           , enter  [ copy , copy , copy , copy ]
+           , del    ["Carroll" , "168" , "8.5"]
+           , copy
+           ]
+\end{code}
+\vskip .5em
+
+  Note how the patch closely follow the structure of the changes, which is
+exactly what we want! There is a single change, which happens at \emph{Alice's
+mark} and a single deletion. Note also that we have to copy the end of both the
+inner and outer lists, this should not be confused with the list of \emph{edit
+operations} describing the change.
+
+  Obviously, however, diffing CSV files is just the beginning. We shall now
+describe, formally, the actual \emph{edit operations} that one can perform, by
+induction on the structure of \F{U}. The type of \emph{diff}'s is defined by
+\F{D}. It is indexed by a type and a telescope, which is the same as saying that
+we only define \emph{diff}'s for closed types\footnote{Types that do not have
+any free type-variables}. However, it also has a parameter $A$, this will be
+addressed later.
 
   \Agda{Diffing/Patches/Diff/D}{D-type}
   
@@ -461,7 +520,7 @@ the structure of $T$, for the definition follows by induction on it.
 
   If $T$ is the Unit type, we can not modify it.
 
-  \Agda{Diffing/Patches/Diff/D}{D-void-def}
+  \Agda{Diffing/Patches/Diff/D}{D-unit-def}
   
   If $T$ is a product, we need to provide \emph{diffs} for both
 its components.
@@ -526,6 +585,7 @@ elements. This is due to the fact that the children of a fixed point element
 is a (possibly empty) list of fixed point elements. 
 
 \paragraph{Recursion}
+\label{sec:fixedpoints}
 
   Fixed-point types have a fundamental difference over the other type
 constructors in our universe. They can grow or shrink arbitrarily. We have to
@@ -558,8 +618,8 @@ section \ref{sec:id}.
 of our generic operations for fixed points. Given that $\mu X . F\; X \approx
 F\;1 \times \F{List}\;(\mu X . F\; X)$, that is, any inhabitant of a fixed-point type can
 be seen as a non-recursive head and a list of recursive children. We then make
-a specialized version of the \F{plug} and \F{unplug} functions, which lets us
-open and close fixed point values.
+a specialized version of the \F{children} and \F{arity} functions, which lets us
+open and close fixed point values according to that \emph{head and children} view.
   
   \Agda{Diffing/Universe/MuUtils}{Openmu-def}
   
@@ -567,11 +627,10 @@ open and close fixed point values.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-type}
   
-  Although the \F{plug} and \F{unplug} uses vectors,
-here we switch to lists instead, this way we can easily
-construct a fixed-point with the beginning of the list of children, and return
-the unused children. The only reason being convenience when defining how patches are applied. 
-Nevertheless, a soundness lemma guarantees the correct behavior.
+  Although not explicit here, the list returned by $\F{$\mu$-open}\;x$ has length
+$\F{arity}\;x$. This is important since \F{$\mu$-close} will consume exactly the $\F{arity}\;x$
+first elements of its input list. If the input list has less elements than $\F{arity}\;x$,
+we return \IC{nothing}. A soundness lemma guarantees the correct behavior.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
   
@@ -583,7 +642,7 @@ handle lists of elements or, forests, since every element is in fact a tree.
 Our algorithm, which was heavily inspired by \cite{Loh2009}, is then
 defined by:
   
-  \Agda{Diffing/Patches/Diff}{gdiffL-def}  
+  \AgdaI{Diffing/Patches/Diff}{gdiffL-def}{-3em}
   
 \newcommand{\lubmu}{\sqcup_{\mu} \;}
 \newcommand{\Flubmu}{\; \F{$\lubmu$} \;}
@@ -643,6 +702,34 @@ should be the same patch. In fact, we have that $\F{gdiff}\;y\;x \approx \F{D-in
 That is to say $\F{gdiff}\;y\;x$ is \emph{observationally} the same as $\F{D-inv}\;(\F{gdiff}\;x\;y)$,
 but may not be identical. In the presence of equal cost alternatives they may make
 different choices.
+  
+\paragraph*{Revisiting John's patch}
+
+  Recall the example given in figure \label{fig:samplepatch}. We can now write
+$p_{John}$ with the actual result of diffing the CSV file before and after
+John makes his changes. 
+  
+    For readability purposes, we will omit the boilerplate \F{Patch} constructors.
+When diffing both versions of the CSV file, we get the patch that reflect John's
+changes over the initial file. Remember that $(\DmuDwn (\F{gdiff-id}\;a))$ is
+merely copying $a$. The CSV structure is easily definable in \F{U} as $CSV =
+\IC{$\beta$}\; \F{list}\; (\IC{$\beta$}\; \F{list}\; X)$, for some appropriate atomic
+type $X$ and $p_{John}$ is then defined by:
+
+\begin{eqnarray*}
+  p_{John} & = & \DmuDwn \; (\F{gdiff-id} \; "Name , ...") \\
+           & \cons & \begin{array}{r l}
+                      \DmuDwn ( & \DmuDwn \; (\F{gdiff-id}\;Alice) \\
+                      \cons   & \DmuDwn \; (\F{gdiff-id}\; 440) \\
+                      \cons   & \DmuDwn \; (\F{gdiff}\;7.0\;8.0) \\
+                      \cons & \DmuDwn (\F{gdiff-id} {[} {]}) \\
+                      {[}  {]}      & )
+                    \end{array} \\
+           & \cons & \DmuDwn \; (\F{gdiff-id}\; "Bob , ...") \\
+           & \cons & \DmuDel \; "Carroll, ..." \\
+           & \cons & \DmuDwn (\F{gdiff-id} {[} {]}) \\
+           & {[} {]} &
+\end{eqnarray*}
   
 \subsubsection{The Cost Function}
 \label{sec:cost}
@@ -727,12 +814,6 @@ into play, and calculate from there. Assume we have stopped execution of
 patches, that perform the same changes in different ways, and we have to choose
 one of them.
 
-\newcommand{\cons}{\; :\hskip -.1em : \;}
-\newcommand{\cat}{\; + \hskip -.8em + \;}
-\newcommand{\DmuIns}{\IC{D$\mu$-ins} \;}
-\newcommand{\DmuDel}{\IC{D$\mu$-del} \;}
-\newcommand{\DmuDwn}{\IC{D$\mu$-dwn} \;}
-\newcommand{\ICoplus}{\; \IC{$\oplus$} \;}
 \begin{center}
 \vskip -1em
 \[
@@ -820,66 +901,16 @@ Different domains may require different relations. For a first generic
 implementation, however, this relation does make sense. Now is the time for
 finally assigning values to $c_\mu$ and $c_\oplus$ and the diffing algorithm is
 completed. We simply define the cost function in such a way that it has to
-satisfy the imposed constraints.
+satisfy the imposed constraints. Firstly we define the size of an element:
+
+  \Agda{Diffing/Universe/Measures}{sizeEl}
+
+  Finally, with $\F{costL} = sum \cdot map\; \F{cost$\mu$}$, we finish
+our \F{cost} function.
 
   \Agda{Diffing/Patches/Diff/Cost}{cost-def}
   
-  Where $\F{costL} = sum \cdot map\; \F{cost$\mu$}$ and the size of an element
-is defined by:
-  
-  \Agda{Diffing/Universe/Measures}{sizeEl}
-
-\subsection{A Small Example}
-
-  Let us consider a simple edit to a file containing students name, number and
-grade, as in figure \ref{fig:samplepatch}. Assume that John, the responsible for
-the grades now knows that Carroll did drop out and that there was a mistake in
-Alice's grade. He then proceeds to edit the CSV file in order to reflect these
-changes.
-
-\begin{figure}[h]
-\begin{center}
-\csvABlbl{\begin{tabular}{l@@{ , }l@@{ , }l}
-Name & Number & Mark \\
-Alice & 440 & 7.0 \\
-Bob & 593 & 6.5 \\
-Carroll & 168 & 8.5
-\end{tabular}}{\begin{tabular}{l@@{ , }l@@{ , }l}
-Name & Number & Mark \\
-Alice & 440 & 8.0 \\
-Bob & 593 & 6.5
-\end{tabular}}{$p_{John}$}
-\end{center}
-\caption{Sample Patch}
-\label{fig:samplepatch}
-\end{figure}
-
-  For readability purposes, we will omit the boilerplate \F{Patch} constructors.
-When diffing both versions of the CSV file, we get the patch that reflect John's
-changes over the initial file. Remember that $(\DmuDwn (\F{gdiff-id}\;a))$ is
-merely copying $a$. The CSV structure is easily definable in \F{U} as $CSV =
-\IC{$\beta$}\; \F{list}\; (\IC{$\beta$}\; \F{list}\; X)$, for some appropriate atomic
-type $X$ 
-
-\begin{eqnarray*}
-  p_{John} & = & \DmuDwn \; (\F{gdiff-id} \; "Name , ...") \\
-           & \cons & \begin{array}{r l}
-                      \DmuDwn ( & \DmuDwn \; (\F{gdiff-id}\;Alice) \\
-                      \cons   & \DmuDwn \; (\F{gdiff-id}\; 440) \\
-                      \cons   & \DmuDwn \; (\F{gdiff}\;7.0\;8.0) \\
-                      \cons & \DmuDwn (\F{gdiff-id} {[} {]}) \\
-                      {[}  {]}      & )
-                    \end{array} \\
-           & \cons & \DmuDwn \; (\F{gdiff-id}\; "Bob , ...") \\
-           & \cons & \DmuDel \; "Carroll, ..." \\
-           & \cons & \DmuDwn (\F{gdiff-id} {[} {]}) \\
-           & {[} {]} &
-\end{eqnarray*}
-
-  Note how the patch closely follow the structure of the changes. There is a
-single change, which happens at \emph{Alice's mark} and a single deletion. Note
-also that we have to copy the end of both the inner and outer lists, this should
-not be confused with the list of edit operations.
+  \Agda{Diffing/Patches/Diff/Cost}{costmu-def}
 
 \subsection{Applying Patches}
 \label{sec:apply}
