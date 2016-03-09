@@ -167,7 +167,7 @@ module Diffing.Patches.Conflicts where
             → D (Fewer A) t ty → D A t ty
         aux (D-A (i1 x)) = cast x
         aux (D-A (i2 y)) = D-A y
-        aux D-void = D-void
+        aux D-unit = D-unit
         aux (D-inl d) = D-inl (aux d)
         aux (D-inr d) = D-inr (aux d)
         aux (D-setl x x₁) = D-setl x x₁

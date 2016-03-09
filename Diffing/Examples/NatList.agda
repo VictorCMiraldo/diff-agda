@@ -13,7 +13,7 @@ module Diffing.Examples.NatList where
   nat = μ (u1 ⊕ vl)
 
   -- Z : {n : ℕ}{t : Tel n} → ElU nat t
-  pattern Z = mu (inl void)
+  pattern Z = mu (inl unit)
 
   -- S : {n : ℕ}{t : Tel n} → ElU nat t → ElU nat t
   pattern S n = mu (inr (top n))
@@ -39,7 +39,7 @@ module Diffing.Examples.NatList where
   list = μ (u1 ⊕ (wk vl) ⊗ vl)
 
   -- NIL : {n : ℕ}{t : Tel (suc n)} → ElU list t
-  pattern NIL = mu (inl void)
+  pattern NIL = mu (inl unit)
 
   -- CONS : {n : ℕ}{a : U n}{t : Tel n} 
   --     → ElU a t → ElU list (tcons a t) → ElU list (tcons a t)
@@ -77,8 +77,8 @@ module Diffing.Examples.NatList where
   bool : {n : ℕ} → U n
   bool = u1 ⊕ u1
 
-  pattern TRUE = inl void
-  pattern FALSE = inr void
+  pattern TRUE = inl unit
+  pattern FALSE = inr unit
 
  -- quantum booleans
 
@@ -87,7 +87,7 @@ module Diffing.Examples.NatList where
 
   pattern QTRUE  = inl TRUE
   pattern QFALSE = inl FALSE
-  pattern QBOTH  = inr void
+  pattern QBOTH  = inr unit
 
   Δ : {n : ℕ} → U (suc n)
   Δ = vl ⊗ vl

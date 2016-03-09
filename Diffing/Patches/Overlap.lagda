@@ -25,8 +25,8 @@ module Diffing.Patches.Overlap where
     -- NoOverlap D-id _ = Unit
     -- NoOverlap _ D-id = Unit
 
-    -- neither do voids.
-    NoOverlap D-void D-void = Unit
+    -- neither do units.
+    NoOverlap D-unit D-unit = Unit
 
     -- Coproducts are the hardest.
     NoOverlap (D-inl d1)   (D-inl d2) = NoOverlap d1 d2

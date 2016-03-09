@@ -46,7 +46,7 @@ module Diffing.Universe.Measures where
 %<*sizeEl>
 \begin{code}
   sizeElU : {n : ℕ}{t : Tel n}{u : U n} → ElU u t → ℕ
-  sizeElU void        = 1
+  sizeElU unit        = 1
   sizeElU (inl el)    = 1 + sizeElU el
   sizeElU (inr el)    = 1 + sizeElU el
   sizeElU (ela , elb) = sizeElU ela + sizeElU elb

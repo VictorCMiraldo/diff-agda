@@ -49,7 +49,7 @@ module Diffing.Patches.Residual where
 \end{code}
 %</residual-type>
 \begin{code}
-    _/_ {ty = u1} p q = just D-void
+    _/_ {ty = u1} p q = just D-unit
 
     _/_ {ty = a ⊕ b} (D-inl p) (D-inl q) = D-inl <M> (p / q)
     _/_ {ty = a ⊕ b} (D-inr p) (D-inr q) = D-inr <M> (p / q)

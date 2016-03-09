@@ -35,7 +35,7 @@ This definition is entirely from McBride.
 \begin{code}
   gmap : {n : ℕ}{t : U n}{as bs : Tel n} 
        → Map as bs → ElU t as → ElU t bs
-  gmap m void       = void
+  gmap m unit       = unit
   gmap m (inl el)   = inl (gmap m el)
   gmap m (inr el)   = inr (gmap m el)
   gmap m (el , elb) = gmap m el , gmap m elb

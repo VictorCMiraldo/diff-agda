@@ -28,7 +28,7 @@ module Diffing.Patches.Diff.Id where
 %</Is-diff-id-type>
 \begin{code}
     Is-diff-id (D-A ())
-    Is-diff-id D-void = Unit
+    Is-diff-id D-unit = Unit
     Is-diff-id (D-inl p) = Is-diff-id p
     Is-diff-id (D-inr p) = Is-diff-id p
     Is-diff-id (D-setl x x₁) = ⊥
@@ -61,7 +61,7 @@ module Diffing.Patches.Diff.Id where
   mutual
     gdiff-id : {n : ℕ}{t : Tel n}{ty : U n}
              → (a : ElU ty t) → Patch t ty
-    gdiff-id void = D-void
+    gdiff-id unit = D-unit
     gdiff-id (inl a) = D-inl (gdiff-id a)
     gdiff-id (inr a) = D-inr (gdiff-id a)
     gdiff-id (a1 , a2) = D-pair (gdiff-id a1) (gdiff-id a2)
@@ -91,7 +91,7 @@ module Diffing.Patches.Diff.Id where
 \end{code}
 %</gdiff-id-cost-type>
 \begin{code}
-    gdiff-id-cost void = refl
+    gdiff-id-cost unit = refl
     gdiff-id-cost (inl a) = gdiff-id-cost a
     gdiff-id-cost (inr a) = gdiff-id-cost a
     gdiff-id-cost (a1 , a2) 
@@ -125,7 +125,7 @@ module Diffing.Patches.Diff.Id where
 \end{code}
 %</gdiff-id-correct-type>
 \begin{code}
-    gdiff-id-correct void = refl
+    gdiff-id-correct unit = refl
     gdiff-id-correct (inl a) = cong D-inl (gdiff-id-correct a)
     gdiff-id-correct (inr a) = cong D-inr (gdiff-id-correct a)
     gdiff-id-correct (a1 , a2) 

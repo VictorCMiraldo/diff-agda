@@ -73,7 +73,7 @@ Now, we define a 'free-monad' like datatype for elements.
 %<*ElU-def>
 \begin{code}
   data ElU : {n : ℕ} → U n → Tel n → Set where
-    void : {n : ℕ}{t : Tel n} 
+    unit : {n : ℕ}{t : Tel n} 
          → ElU u1 t
     inl  : {n : ℕ}{t : Tel n}{a b : U n}
          (x : ElU a t) → ElU (a ⊕ b) t
@@ -155,20 +155,16 @@ And some general purpose functions
   list : {n : ℕ} → U (suc n)
   list = μ (u1 ⊕ wk vl ⊗ vl)
 
-  myList : {n : ℕ}{t : Tel n} → ElU list (tcons u1 t)
-  myList = mu (inr (pop (top void) , top (mu (inl void))))
-\end{code}
-%</U-example>
-
-\begin{code}
   CONS : {n : ℕ}{t : Tel n}{a : U n}
-       → ElU a t → ElU list (tcons a t) → ElU list (tcons a t)
+       → ElU a t → ElU list (tcons a t) 
+       → ElU list (tcons a t)
   CONS x xs = mu (inr ((pop (top x)) , (top xs)))
 
   NIL : {n : ℕ}{t : Tel n}{a : U n}
       → ElU list (tcons a t)
-  NIL = mu (inl void)
+  NIL = mu (inl unit)
 \end{code}
+%</U-example>
 
 %<*rt-def>
 \begin{code}

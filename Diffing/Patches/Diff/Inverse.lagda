@@ -27,7 +27,7 @@ module Diffing.Patches.Diff.Inverse where
 %</D-inv-type>
 \begin{code}
     D-inv (D-A ())
-    D-inv D-void = D-void
+    D-inv D-unit = D-unit
     D-inv (D-inl p) = D-inl (D-inv p)
     D-inv (D-inr p) = D-inr (D-inv p)
     D-inv (D-setl x y) = D-setr y x
@@ -63,7 +63,7 @@ module Diffing.Patches.Diff.Inverse where
 %</D-inv-cost-type>
 \begin{code}
     D-inv-cost (D-A ())
-    D-inv-cost D-void = refl
+    D-inv-cost D-unit = refl
     D-inv-cost (D-inl d) = D-inv-cost d
     D-inv-cost (D-inr d) = D-inv-cost d
     D-inv-cost (D-setl x x₁) = cong₂ _+_ (+-comm (sizeElU x) (sizeElU x₁)) 
@@ -116,7 +116,7 @@ module Diffing.Patches.Diff.Inverse where
 \end{code}
 %</D-inv-sound-type>
 \begin{code}
-    D-inv-sound void void = refl
+    D-inv-sound unit unit = refl
     D-inv-sound (inl a) (inl b) 
       rewrite D-inv-sound a b = refl
     D-inv-sound (inl a) (inr b) 

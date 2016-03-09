@@ -25,7 +25,7 @@ module Diffing.Patches.Diff where
     gdiff {ty = vl} (top a) (top b)    = D-top (gdiff a b)
     gdiff {ty = wk u} (pop a) (pop b)  = D-pop (gdiff a b)
     gdiff {ty = β F x} (red a) (red b) = D-β (gdiff a b)
-    gdiff {ty = u1} void void = D-void
+    gdiff {ty = u1} unit unit = D-unit
     gdiff {ty = ty ⊗ tv} (ay , av) (by , bv) 
       = D-pair (gdiff ay by) (gdiff av bv)
     gdiff {ty = ty ⊕ tv} (inl ay) (inl by) = D-inl (gdiff ay by)
@@ -80,7 +80,7 @@ module Diffing.Patches.Diff where
 \begin{code}
     gapply (D-A ())
 
-    gapply D-void void = just void
+    gapply D-unit unit = just unit
 \end{code}
 %<*gapply-sum-def>
 \begin{code}
@@ -306,10 +306,10 @@ module Diffing.Patches.Diff where
   bool = u1 ⊕ u1
 
   tt : {n : ℕ}{t : Tel n} → ElU bool t
-  tt = inl void
+  tt = inl unit
 
   ff : {n : ℕ}{t : Tel n} → ElU bool t
-  ff = inr void
+  ff = inr unit
 
   l1 : ElU list (tcons bool tnil)
   l1 = CONS tt NIL

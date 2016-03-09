@@ -12,7 +12,7 @@ module Diffing.Universe.Equality where
 %</equality-type>
 %<*equality-def>
 \begin{code}
-  _≟-U_ {u = u1} void void = yes refl
+  _≟-U_ {u = u1} unit unit = yes refl
 
   _≟-U_ {u = a ⊕ b} (inl a1) (inl a2) with a1 ≟-U a2
   ...| yes p = yes (cong inl p)

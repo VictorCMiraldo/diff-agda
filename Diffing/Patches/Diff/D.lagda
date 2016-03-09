@@ -29,11 +29,11 @@ module Diffing.Patches.Diff.D where
 \end{code}
 %</D-A-def>
 
-%<*D-void-def>
+%<*D-unit-def>
 \begin{code}
-      D-void : {n : ℕ}{t : Tel n} → D A t u1
+      D-unit : {n : ℕ}{t : Tel n} → D A t u1
 \end{code}
-%</D-void-def>
+%</D-unit-def>
 
 %<*D-sum-def>
 \begin{code}

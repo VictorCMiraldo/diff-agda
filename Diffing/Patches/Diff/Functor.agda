@@ -24,7 +24,7 @@ module Diffing.Patches.Diff.Functor where
           → ({m : ℕ}{t' : Tel m}{ty' : U m} → A t' ty' → B t' ty') 
           → D A t ty → D B t ty
     D-map f (D-A x) = D-A (f x)
-    D-map f D-void = D-void
+    D-map f D-unit = D-unit
     D-map f (D-inl d) = D-inl (D-map f d)
     D-map f (D-inr d) = D-inr (D-map f d)
     D-map f (D-setl x x₁) = D-setl x x₁
@@ -61,7 +61,7 @@ module Diffing.Patches.Diff.Functor where
                → D-map f (D-map g d) ≡ D-map (f ∘ g) d
     D-map-join f g (D-A x) = refl
     -- D-map-join f g D-id   = refl
-    D-map-join f g D-void = refl
+    D-map-join f g D-unit = refl
     D-map-join f g (D-inl d) = cong D-inl (D-map-join f g d)
     D-map-join f g (D-inr d) = cong D-inr (D-map-join f g d)
     D-map-join f g (D-setl x y) = refl
@@ -98,7 +98,7 @@ module Diffing.Patches.Diff.Functor where
              → D-map id d ≡ d
     D-map-id (D-A x) = refl
     -- D-map-id D-id   = refl
-    D-map-id D-void = refl
+    D-map-id D-unit = refl
     D-map-id (D-inl d) = cong D-inl (D-map-id d)
     D-map-id (D-inr d) = cong D-inr (D-map-id d)
     D-map-id (D-setl x y) = refl
@@ -164,7 +164,7 @@ module Diffing.Patches.Diff.Functor where
            → D A t ty → List (↓ A)
     forget (D-A {n} {t} {ty} x) = unIdx x ∷ []
     -- forget D-id   = []
-    forget D-void = []
+    forget D-unit = []
     forget (D-inl d) = forget d
     forget (D-inr d) = forget d
     forget (D-setl x x₁) = []
@@ -229,7 +229,7 @@ module Diffing.Patches.Diff.Functor where
            → Patch t ty
     uncast (D-A x) ()
     -- uncast D-id prf = D-id
-    uncast D-void prf = D-void
+    uncast D-unit prf = D-unit
     uncast (D-inl d) prf = D-inl (uncast d prf)
     uncast (D-inr d) prf = D-inr (uncast d prf)
     uncast (D-setl x x₁) prf = D-setl x x₁
@@ -290,7 +290,7 @@ module Diffing.Patches.Diff.Functor where
              {A : {k : ℕ} → Tel k → U k → Set a}
            → D (D A) t ty → D A t ty
     D-mult (D-A d) = d
-    D-mult D-void = D-void
+    D-mult D-unit = D-unit
     D-mult (D-inl d) = D-inl (D-mult d)
     D-mult (D-inr d) = D-inr (D-mult d)
     D-mult (D-setl x x₁) = D-setl x x₁

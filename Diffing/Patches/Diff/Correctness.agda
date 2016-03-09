@@ -24,7 +24,7 @@ module Diffing.Patches.Diff.Correctness where
     {-# TERMINATING #-}
     correctness : {n : ℕ}{t : Tel n}{ty : U n}(a b : ElU ty t)
                 → gapply (gdiff a b) a ≡ just b
-    correctness {ty = u1} void void = refl
+    correctness {ty = u1} unit unit = refl
 
     correctness {ty = ty ⊕ tv} (inl a) (inl b) 
       rewrite (correctness a b) = refl

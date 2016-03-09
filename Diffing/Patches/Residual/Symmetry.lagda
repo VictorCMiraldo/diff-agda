@@ -54,7 +54,7 @@ module Diffing.Patches.Residual.Symmetry where
       aux (D-A ()) _ _
       aux _ (D-A ()) _
 
-      aux D-void D-void refl = id , refl
+      aux D-unit D-unit refl = id , refl
 
       aux (D-inl d1) (D-inl d2) prf with <M>-elim prf
       ...| r , refl , q with aux d1 d2 q

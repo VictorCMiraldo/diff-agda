@@ -21,7 +21,7 @@ Now we can start defining a few generic operations on terms.
   children-lvl : {n : ℕ}{t : Tel n}{a : U n} 
                → (i : Fin n) → ElU a t 
                → List (ElU (tel-lkup i t) t)
-  children-lvl i void          = []
+  children-lvl i unit          = []
   children-lvl i (inl el)      = children-lvl i el
   children-lvl i (inr el)      = children-lvl i el
   children-lvl i (ela , elb)   = children-lvl i ela ++ children-lvl i elb
@@ -47,7 +47,7 @@ Now we can start defining a few generic operations on terms.
 \end{code}
 
   (forget i) takes a term and ignores the terms at level i,
-  substituting them for void.
+  substituting them for unit.
 
 %<*value>
 \begin{code}
@@ -55,11 +55,11 @@ Now we can start defining a few generic operations on terms.
          → (i : Fin n)
          → ElU a t
          → ElU a (tel-forget i t)
-  forget i void = void
+  forget i unit = unit
   forget i (inl el) = inl (forget i el)
   forget i (inr el) = inr (forget i el)
   forget i (ela , elb) = forget i ela , forget i elb
-  forget fz (top el) = top void
+  forget fz (top el) = top unit
   forget (fs i) (top el) = top (forget i el)
   forget fz (pop el) = pop el
   forget (fs i) (pop el) = pop (forget i el)
@@ -74,7 +74,7 @@ Now we can start defining a few generic operations on terms.
 \begin{code}
   arity-lvl : {n : ℕ}{t : Tel n}{a : U n}
             → Fin n → ElU a t → ℕ
-  arity-lvl i void = 0
+  arity-lvl i unit = 0
   arity-lvl i (inl el) = arity-lvl i el
   arity-lvl i (inr el) = arity-lvl i el
   arity-lvl i (ela , elb) = arity-lvl i ela + arity-lvl i elb
@@ -106,7 +106,7 @@ Now we can start defining a few generic operations on terms.
   ch-ar-lemma-lvl : {n : ℕ}{t : Tel n}{a : U n}
           → (i : Fin n)(x : ElU a t)
           → length (children-lvl i x) ≡ arity-lvl i x
-  ch-ar-lemma-lvl i void = refl
+  ch-ar-lemma-lvl i unit = refl
   ch-ar-lemma-lvl i (inl x) = ch-ar-lemma-lvl i x
   ch-ar-lemma-lvl i (inr x) = ch-ar-lemma-lvl i x
   ch-ar-lemma-lvl i (xa , xb) = trans (length-++ (children-lvl i xa)) 
@@ -154,7 +154,7 @@ Now we can start defining a few generic operations on terms.
 \end{code}
 %</forget-arity-lemma-type>
 \begin{code}
-  forget-arity-lemma i void = refl
+  forget-arity-lemma i unit = refl
   forget-arity-lemma i (inl el) = forget-arity-lemma i el
   forget-arity-lemma i (inr el) = forget-arity-lemma i el
   forget-arity-lemma i (ela , elb) 
@@ -215,7 +215,7 @@ Now we can start defining a few generic operations on terms.
       → Vec (ElU (tel-lkup i t) t) (arity-lvl i el)
       → ElU a t
   plug-lvl {a = u0} i () v
-  plug-lvl {a = u1} i void v = void
+  plug-lvl {a = u1} i unit v = unit
   plug-lvl {a = a ⊕ b} i (inl el) v = inl (plug-lvl i el v)
   plug-lvl {a = a ⊕ b} i (inr el) v = inr (plug-lvl i el v)
   plug-lvl {a = a ⊗ b} i (ela , elb) v 
@@ -335,7 +335,7 @@ Now we can start defining a few generic operations on terms.
     → (i : Fin n)
     → (el : ElU a t)
     → el ≡ plug-lvl i (p1 (unplug-lvl i el)) (p2 (unplug-lvl i el))
-  plug-lvl-correct i void 
+  plug-lvl-correct i unit 
     = refl
   plug-lvl-correct i (inl el) 
     = cong inl (plug-lvl-correct i el)

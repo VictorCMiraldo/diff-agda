@@ -64,7 +64,7 @@ module Diffing.Patches.Diff.Cost where
 %<*cost-def>
 \begin{code}
     cost (D-A ())
-    cost  D-void        = 0
+    cost  D-unit        = 0
     cost (D-inl d)      = cost d
     cost (D-inr d)      = cost d
     cost (D-setl xa xb) = 2 * (sizeElU xa + sizeElU xb)
@@ -74,15 +74,24 @@ module Diffing.Patches.Diff.Cost where
     cost (D-top d) = cost d
     cost (D-pop d) = cost d
     cost (D-mu l)  = costL l
+\end{code}
+%</cost-def>
 
+
+%<*costmu-type>
+\begin{code}
     costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
           → Dμ ⊥ₚ t ty → ℕ
+\end{code}
+%</costmu-type>
+%<*costmu-def>
+\begin{code}
     costμ (Dμ-A ())
     costμ (Dμ-ins x) = 1 + sizeElU x
     costμ (Dμ-del x) = 1 + sizeElU x
     costμ (Dμ-dwn x) = cost x
 \end{code}
-%</cost-def>
+%</costmu-def>
 
 \begin{code}
   infixr 20 _⊔_

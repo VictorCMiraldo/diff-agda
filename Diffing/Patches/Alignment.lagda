@@ -59,7 +59,7 @@ begin{code}
       -- A-id-l : {n : ℕ}{t : Tel n}{a : U n}{d : Patch t a} → A D-id d
       -- A-id-r : {n : ℕ}{t : Tel n}{a : U n}{d : Patch t a} → A d D-id
 
-      A-unit : {n : ℕ}{t : Tel n} → A {n} {t} D-void D-void
+      A-unit : {n : ℕ}{t : Tel n} → A {n} {t} D-unit D-unit
 
       A-inl  : {n : ℕ}{t : Tel n}{a b : U n}{p1 p2 : Patch t a}
              → A p1 p2 → A {ty = a ⊕ b} (D-inl p1) (D-inl p2)
@@ -192,7 +192,7 @@ begin{code}
     aligned-correct _ (D-A ()) _ _ _
     -- aligned-correct D-id d2 x p1 p2 = A-id-l
     -- aligned-correct d1 D-id x p1 p2 = A-id-r
-    aligned-correct D-void D-void x p1 p2 = A-unit
+    aligned-correct D-unit D-unit x p1 p2 = A-unit
     aligned-correct (D-inl d1) (D-inl d2) (inl x) p1 p2 
       = A-inl (aligned-correct d1 d2 x (<M>-Is-Just p1) (<M>-Is-Just p2))
     aligned-correct (D-inl d1) (D-setl x y) (inl k) p1 p2

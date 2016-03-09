@@ -16,16 +16,16 @@ module Diffing.Patches.Metric where
 
   nil : {n : ℕ}{t : Tel (suc n)}
       → ElU list t
-  nil = mu (inl void)
+  nil = mu (inl unit)
 
   bool : {n : ℕ} → U n
   bool = u1 ⊕ u1
 
   bT : {n : ℕ}{t : Tel n} → ElU bool t
-  bT = inl void
+  bT = inl unit
 
   bF : {n : ℕ}{t : Tel n} → ElU bool t
-  bF = inr void
+  bF = inr unit
 
   l1 : ElU list (tcons list (tcons bool tnil))
   l1 = cons (cons bF nil) nil

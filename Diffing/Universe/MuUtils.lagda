@@ -150,8 +150,8 @@ returns the unused part of the children list.
 \end{code}
 %<*rt-els-def>
 \begin{code}
-    r₁ = RT void NIL
-    r₂ = RT void (CONS r₁ NIL)
+    r₁ = RT unit NIL
+    r₂ = RT unit (CONS r₁ NIL)
 \end{code}
 %</rt-els-def>
 %<*r-ar-lemma>

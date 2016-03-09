@@ -39,7 +39,7 @@ module Diffing.Patches.Merging.Grow where
     rewrite /-id p | forget-cast {A = C} p
       = []
   -}
-  merge-sufficient-1 D-void D-void prf = []
+  merge-sufficient-1 D-unit D-unit prf = []
 
   merge-sufficient-1 (D-inl d1) (D-inl d2) prf
     with d1 / d2 | inspect (_/_ d1) d2
