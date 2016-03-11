@@ -205,15 +205,16 @@
 \maketitle
 
 \begin{abstract}
-  The widespread UNIX \texttt{diff3} program is a counterproductive tool
-for merging non-trivial edits of a given file. The problems with \texttt{diff3}
-arise from its unified view over files; all non-binary files are just lines of text.
-In the real world, however, we see that most data is much more than just lines of text,
-they have a great bunch of structure into it. This paper describes an approach,
-generic on the file structure, to obtain and merge changes in a much more elegant way.
-We use Agda to prototype and prove properties of our algorithms and Haskell
-to implement it. Moreover, we show how our approach scales, allowing programmers
-to easily define complex automatic conflict solvers.
+  Modern version control systems are largely based on the UNIX
+  \texttt{diff3} program for merging line-based edits on a given
+  file. Unfortunately, this bias towards line-based edits does not
+  work well for all file formats, leading to unnecessary conflicts.
+  This paper describes a data type generic approach to version control that
+  exploits a file's structure to create more precise diff and merge
+  algorithms.  We prototype and prove properties of these algorithms
+  using the functional language in Agda; transcribing these
+  definitions to Haskell yields a more scalable implementation.
+  %Wouter I've rewritten the abstract a bit.
 \end{abstract}
 
 \category{D.1.1}{Programming Techniques}{Applicative (Functional) Programming}
@@ -244,24 +245,38 @@ development. \warnme{Add citations}
 
 Yet all these tools are based on a simple, line-based diff algorithm
 to detect and merge changes made by individual developers. While such
-line-based diffs generally work well when monitoring small repositories,
-with small development teams, they tend to behave sub-optimally in many
-real life scenarios. A classical instance is indentation conflicts in source-code
-files. These conflicts happen precisely by comparing two files, line against
-line, will not reveal the real intent of an indentation. 
+line-based diffs generally work well when monitoring source code in
+most programming languages, they tend observe unnecessary conflicts in
+many situations.
 
-Consider the following example CSV file, recording the marks and names
-three students:
+% . A classical instance is indentation conflicts in source-code
+% files. These conflicts happen precisely by comparing two files, line
+% against line, will not reveal the real intent of an indentation.
+% Wouter: I'm removing this for now -- it's too abstract at this
+% point. I'd follow with a concrete example to drive home the issue
+% we're addressing.
 
-\begin{center}
-\begin{tabular}{l@@{ , }l@@{ , }l}
-Name & Number & Mark \\
-Alice & 440 & 7.0 \\
-Bob & 593 & 6.5 \\
-Carroll & 168 & 8.5
-\end{tabular}
-\end{center}
+For exampl, consider the following example CSV file that records the
+marks, unique identification numbers, and names three students:
 
+% \begin{center}
+% \begin{tabular}{l@@{ , }l@@{ , }l}
+% Name & Number & Mark \\
+% Alice & 440 & 7.0 \\
+% Bob & 593 & 6.5 \\
+% Carroll & 168 & 8.5
+% \end{tabular}
+% \end{center}
+
+\begin{verbatim}
+Name   ,   Number, Mark
+Alice  ,   440   , 7.0
+Bob    ,   593   , 6.5
+Carroll,   168   , 8.5 
+\end{verbatim}
+% Wouter: I know verbatim is ugly, but in this way we can clearly
+% visually distinguish between text in a file (verbatim), text in the
+% paper (roman), and source code.
 
 Adding a new line to this CSV file will not modify any existing entries and
 is unlikely to cause conflicts. Adding a new column storing the date
@@ -269,8 +284,8 @@ of the exam, however, will change every line of the file and therefore
 will conflict with any other change to the file. Conceptually,
 however, this seems wrong: adding a column changes every line in the
 file, but leaves all the existing data unmodified. The only reason
-that this causes conflicts is that the \emph{granularity of change}
-that version control tools use is not suitable for this kind of file.
+that this causes conflicts is the \emph{granularity of change}
+that version control tools use is unsuitable for these files.
 
 This paper proposes a different approach to version control
 systems. Instead of relying on a single line-based diff algorithm, we
@@ -279,24 +294,33 @@ with algorithms for observing and combining such changes. To this end,
 this paper makes the following novel contributions:
   
 \begin{itemize}
-  \item We define a universe representation for data and a 
-        \emph{type-indexed} data type for representing edits to this
-        structured data. The structure of the data closely resembles the way
-        one defines datatypes in functional languages such as Haskell.
 
-  \item We define generic algorithms for computing and applying a diff
-        generically and prove they are correct with respect to each other.
+\item We define a universe representation for data and a
+  \emph{type-indexed} data type for representing edits to this
+  structured data in Agda~\cite{norell2009}. We have chosen a universe that closely
+  resembles the algebraic data types that are definable in functional
+  languages such as Haskell.
+
+      \item We define generic algorithms for computing and applying a
+        diff and prove that these algorithms satisfy several basic
+        correctness properties.
 
 
-  \item A notion of residual is used to propagate changes of different diffs,
-        hence providing a bare mechanism for merging and conflict resolution.
+      \item We define a notion of residual to propagate changes of
+        different diffs on the same structure. This provides a basic
+        mechanism for merging changes and resolving conflicts.
 
-  \item We illustrate how these ideas in Agda\cite{norell2009} have been implemented in a
+  \item We illustrate how our definitions in Agda may be used to implement a
         prototype Haskell tool, capable of automatically merging changes to
         structured data. This tool provides the user with the ability to define
         custom conflict resolution strategies when merging changes to structured
-        data. For instance, we can automatically resolve refactoring conflicts.
+        data. 
+        % For instance, we can automatically resolve refactoring conflicts.
+        % Wouter: removed this last sentence, as it doesn't mean anything to the reader yet.
+        % + lots of edits to text
 \end{itemize}    
+
+\TODO{Add forward references in contributions to concrete subsections}
 
 \subsection*{Background}
 
@@ -304,36 +328,42 @@ this paper makes the following novel contributions:
 which is concerned with computing the minimum cost of transforming an untyped tree 
 $A$ into an untyped tree $B$. Demaine provides a solution to the problem 
 \cite{Demaine2007}, improving the work of Klein \cite{Klein1998}. This problem
-has been popularized in the particular case where the trees in question are,
-in fact, lists, in which case we call it the \emph{least common subsequence} (LCS)
+has been popularized in the particular case where the trees in question are
+in fact lists, when it is referred to the \emph{least common subsequence} (LCS)
 problem \cite{Bille2005,Bergroth2000}. The popular UNIX \texttt{diff} tool provides
 a solution to the LCS problem considering the edit operations to be inserting and 
 deleting lines of text.
+%Wouter: What do you mean by 'untyped tree' here?
 
-  Our implementation follows a slightly different route, in which we choose
-not to worry too much about the \emph{minimum} cost, but the one that better reflects
-the changes which are important to the use case in question. In practice, we can see
-that the \emph{diff} tool works great. Its problem is precisely conflict resolution,
-or more generally, its older brother \emph{diff3} \cite{Khanna2007}. Conflict resolution
-is where our focus lies. We want to build a sound theory for patches that is highly customizable 
-in its conflict solving capabilities, as it can be used for arbitrarily many file formats.
+
+Our implementation follows a slightly different route, in which we
+choose not to worry too much about the \emph{minimum} cost, but
+instead choose a cost model one that more accurately captures which
+the changes are important to the specific data type in question. In
+practice, the \emph{diff} tool works accurately manages to create
+patches by observing changes on a line-by-line basis. It is precisely
+when different changes must be merged, using tools such as
+\emph{diff3}~\cite{Khanna2007}, that there is room for improvement.
+%Wouter Some of the writing was a bit informal here...
   
 \section{Structural Diffing}  
   
-  To make version control to be structure aware we need to define what
-structures we can handle. In our case, the structure is the universe of context
-free types, patching will be defined for its inhabitants. Our choice of universe
-has to do with how close to the universe of Haskell types we can get. This makes a 
-the translation from Agda to Haskell very simple, when we reach the point of implementing
-and running our algorihms, in section \ref{sec:haskell}.
+To make version control systems aware of the \emph{types} of data they
+manage, we need to collection of data types that may be
+versioned. More specifically, we will define a universe of context
+free types~\cite{Altenkirch2006}, whose values may be diffed and
+patched. Our choice of universe is intended to closely resemble the
+algebraic data types used by familiar functional languages. This will
+ease transition from Agda to a more scalable implementation in Haskell
+(Section \ref{sec:haskell}).
+%Wouter add refs to OCaml/Haskell language def?
   
 \newcommand{\CF}{\text{CF}}
 \subsection{Context Free Datatypes}
 \label{sec:cf}
 
-  The universe of \emph{context-free types}, in the sense of
-\cite{Altenkirch2006}, is constructed following the grammar $\CF$ of
-context free types with a deBruijn representation for variables, figure \ref{fig:cfgrammar}.
+The universe of \emph{context-free types}~\cite{Altenkirch2006},
+$\CF$, is defined by the by the grammar in Figure~\ref{fig:cfgrammar}.
   
   \begin{figure}[h]
   \[
@@ -344,12 +374,16 @@ context free types with a deBruijn representation for variables, figure \ref{fig
   \label{fig:cfgrammar}
   \end{figure}
   
+  % Wouter: should we write \mathbb{N} for variables or the more
+  % common $x$ (and mu X . CF) -- I personally prefer the latter -- de
+  % Bruijn is just an implementation technique.
+
   In Agda, the $\CF$ universe is defined by:
   
   \Agda{Diffing/Universe/Syntax}{U-def}
   
-  In order to make life easier we use a deBruijn indexing for our type variables.
-an element of $\F{U}\;n$ reads as a type with $n$ free type variables. \IC{u0}
+  In order to make life easier we will represent variables by De Bruijn indices;
+an element of $\F{U}\;n$ reads as a type with $n$ free type variables. The constructors \IC{u0}
 and \IC{u1} represent the empty type and unit, respectively. Products
 and coproducts are represented by \IC{$\_\otimes\_$} and \IC{$\_\oplus\_$}. 
 Recursive types are created through \IC{$\mu$}. Type application is 
@@ -359,23 +393,25 @@ pop the variable stack, ignoring the top-most variable, \IC{wk}.
 We decouple weakening \IC{wk} from the variable occurences \IC{vl} and
 allow it anywhere in the code. This allows slightly more compact definitions
 later on.
+
+%Wouter: Like Andres, I prefer app/def to beta
   
-  Stating the language of our types is not enough. We need to specify its
-elements too, after all, they are the domain which we seek to define our
-algorithms for! Defining elements of fixed-point types make things a bit more
-complicated, check \cite{Altenkirch2006} for a more in-depth explanation of
-these details. The main idea, however, is that we need to take care of the free
-variables. For this need a \F{Tel}escope of types in order to specify
-the elements of \F{U} and still pass the termination checker. Hence, we define
-the elements of \F{U} with repsect to a \emph{closing substituition}.
-Imagine we want to describe the 
-elements of a type with $n$ variables, $ty : \F{U}\;n$. We can only speak about
-this type once all $n$ variables are bound to correspond to a given type. 
-We need, then, $t_1, t_2, \cdots, t_n$ to pass as \emph{arguments} to $ty$. 
+Stating the language of our types is not enough. We need to specify
+its elements too, after all, they are the domain which we seek to
+define our algorithms for! Defining elements of fixed-point types make
+things a bit more complicated. The main idea, however, is that we need
+to take define a suitable environment that captures the meaning of
+free variables. More specifically, we will use a \F{Tel}escope of
+types to specify the elements of \F{U}, while still satisfying Agda's
+termination checker. Hence, we define the elements of \F{U} with
+repsect to a \emph{closing substitution}.  Imagine we want to
+describe the elements of a type with $n$ variables, $ty :
+\F{U}\;n$. We can only speak about this type once all $n$ variables
+are bound to correspond to a given type.  We need, then,
+$t_1, t_2, \cdots, t_n$ to pass as \emph{arguments} to $ty$.
 Moreover, these types must have less free variables then $ty$ itself,
-otherwise Agda can not check this substitution terminates. 
-This list of types with decreasing
-type variables is defined through \F{Tel}:
+otherwise Agda can not check this substitution terminates.  This list
+of types with decreasing type variables is defined through \F{Tel}:
 
   \Agda{Diffing/Universe/Syntax}{Tel-def}
 
@@ -386,13 +422,13 @@ in $\F{U}\;n$. In Agda, the elements of \F{U} are defined by:
   
   \Agda{Diffing/Universe/Syntax}{ElU-def}
   
-  The set \F{ElU} of the elements of \F{U} is straight forward. We begin with some simple
-constructors to handle finite types: \IC{unit}, \IC{inl}, \IC{inr} and \IC{$\_,\_$}.
+The set \F{ElU} of the elements of \F{U} is straightforward. We begin with some simple
+constructors to handle simple types, such as the unit type (\IC{unit}), coproducts (\IC{inl} and \IC{inr}), and products (\IC{$\_,\_$}).
 Next, we define how to reference variables using \IC{pop} and \IC{top}. Finally,
 \IC{mu} and \IC{red} specify how to handle recursive types and type applications.
 We now have all the machinery we need to start defining types and their constructors
-inside Agda. Figure \ref{fig:uexample} shows the encoding of polymorphic lists and
-its constructors.
+inside Agda. For example, Figure \ref{fig:uexample} shows how to define a representation of polymorphic 
+lists in this universe, together with its two constructors.
 
   \begin{figure}[h]
   \Agda{Diffing/Universe/Syntax}{U-example}
@@ -400,20 +436,18 @@ its constructors.
   \label{fig:uexample}
   \end{figure}
   
-  Remember that our main objective is to speak about \emph{how to track
-differences between elements of a given type}. So far we showed how to define
-the universe of context free types and the elements that inhabit it. With this
-definition, in Agda, we also get recursion principles for the elements
-of \F{U} and \F{ElU}, which will let us define some generic operations over
-them. Finally, we define our diffing algorithms using only these (generic) operations,
-completely abstracting over types that can be defined in \F{U} and hence making
-them generic.
+  Remember that our main objective is to define \emph{how to track
+    differences between elements of a given type}. So far we showed
+  how to define the universe of context free types and the elements
+  that inhabit it. We can now define \emph{generic} functions that
+  operate on any type representible in this universe by induction over the representation type, \F{U}. 
+  In the coming sections, we define our diff algorithm using 
+  a handful of (generic) operations that we will define next.
 
 \paragraph*{Some Generic Operations}
 
-  We can always view an element $\F{ElU}\;ty\;t$ as a tree, this will
-be particularly usefull in section \ref{sec:fixedpoints}. The idea is that the
-telescope indicates how many levels our tree has, and which is the shape (type)
+  We can always view an element $\F{ElU}\;ty\;t$ as a tree. The idea is that the
+telescope indicates how many `levels' a tree may have, and which is the shape (type)
 of each subtree in each of those levels. Figure \ref{fig:arity} illustrates this
 view for an element $\F{ElU}\;ty\;(\IC{tcons}\; t_1\;(\IC{tcons}\;t_2\;\IC{tnil})$. 
 Note how we use \IC{vl} to reference to the immediate children and
@@ -431,11 +465,12 @@ Note how we use \IC{vl} to reference to the immediate children and
   \caption{Children and Arity concepts illustrated}
   \label{fig:arity}
   \end{figure}
-  
-  The intuition is that the children of an element is the list of immediate subtrees of
-that element, whereas its arity is how many such immediate subtrees are there.
-The actual Agda code of those operations is fairly complex, for it will
-be ommited. Their type is given by:
+  % Wouter: I'm confused a bit here. What does arity count? The number
+  % of 'a' values (where 'a' is the head of the telescope?)?
+
+The intuition is that the children of an element is the list of immediate subtrees of
+that element, whereas its arity counts the number of immediate subtrees.
+The types of these two functions are given by:
 
   \Agda{Diffing/Universe/Ops}{children-type}
   
@@ -449,19 +484,20 @@ when writing types that \emph{depend} on the arity of an element.
 Hence, we want \F{arity} to be defined directly by induction on its argument, 
 making it structurally compatible with all other functions also defined by induction
 on \F{ElU}.
+%Wouter: I don't understand this remark...
 
-  We can define many more operations over elements of \F{U}, but this is outside the scope
-of this paper. We refer the interested reader to the work of Altenkirch et al 
-\cite{Altenkirch2009} for more. Our focus will now start shifting to our real objective:
-describing differences in the elements of \F{U}.
+With these auxiliary definitions in place, we can now turn our
+attention to the generic diff algorithm.
 
 \subsection{Patches over a Context Free Type}
 
-  Let us consider a simple edit to a file containing students name, number and
-grade, as in figure \ref{fig:samplepatch}. Assume that John, the responsible for
-the grades now knows that Carroll did drop out and that there was a mistake in
-Alice's grade. He then proceeds to edit the CSV file in order to reflect these
-changes.
+Let us consider a simple edit to a file containing students name,
+number and grade, as in figure \ref{fig:samplepatch}. Suppose that
+Carroll drops out of the course and that there was a mistake in
+Alice's grade. We would like to edit the CSV file to
+reflect these changes.
+% Wouter: personally, I don't really like these 'user stories' about
+% Alice, Bob and John. I've started to edit out John -- but what do you think?
 
 \begin{figure}[h]
 \begin{center}
@@ -474,20 +510,27 @@ Carroll & 168 & 8.5
 Name & Number & Mark \\
 Alice & 440 & 8.0 \\
 Bob & 593 & 6.5
-\end{tabular}}{$p_{John}$}
+\end{tabular}}{$p$}
 \end{center}
 \caption{Sample Patch}
 \label{fig:samplepatch}
 \end{figure}
+%Wouter: Once again, I'd prefer verbatim...
 
-  Remember that a CSV structure is defined as a list of lists of cells. Let us
-assume that we have operations \emph{enter}, \emph{copy}, \emph{change} and
-\emph{del} that will: enter inside a structure; copy the structure contents;
-change the contents or delete the structure, respectively. The patch $p_{John}$
-will then look like:
+Remember that a CSV structure is defined as a list of lists of
+cells. In what follows, we will define patches that operates on a
+specific CSV file. Such patches will be constructed from four
+primitive operations: \emph{enter}, \emph{copy}, \emph{change} and
+\emph{del}. The latter three should be familiar operations to copy a
+value, modify a value, or delete a value.  The last operation,
+\emph{enter}, will be used to inspect or edit the constituent parts of
+a composite data structure, such as the lines of a CSV file or the
+cells of a single line.
+
+In our example, the patch $p$ may be defined as follows:
 
 \vskip .5em
-%format PJOHN = "p_{John}"
+%format PJOHN = "p"
 \begin{code}
   PJOHN =  [ enter  [ copy , copy , copy , copy ]
            , enter  [ copy , copy , change 7.0 8.0 , copy ]
@@ -498,72 +541,75 @@ will then look like:
 \end{code}
 \vskip .5em
 
-  Note how the patch closely follow the structure of the changes, which is
-exactly what we want! There is a single change, which happens at \emph{Alice's
-mark} and a single deletion. Note also that we have to copy the end of both the
-inner and outer lists, this should not be confused with the list of \emph{edit
-operations} describing the change.
+Note how the patch closely follow the structure of the data. There is
+a single change, which happens in the third column of the second line
+and a single deletion. Note also that we have to copy the end of both
+the inner and outer lists -- the last |copy| refers to the nil
+constructor terminating the list.
 
-  Obviously, however, diffing CSV files is just the beginning. We shall now
-describe, formally, the actual \emph{edit operations} that one can perform, by
-induction on the structure of \F{U}. The type of \emph{diff}'s is defined by
-\F{D}. It is indexed by a type and a telescope, which is the same as saying that
-we only define \emph{diff}'s for closed types\footnote{Types that do not have
-any free type-variables}. However, it also has a parameter $A$, this will be
-addressed later.
+Obviously, however, diffing CSV files is just the beginning. We shall
+now formally describe the actual \emph{edit operations} that one can
+perform by induction on the structure of \F{U}. The type of a
+\emph{diff} is defined by the data type \F{D}. It is indexed by a type
+and a telescope. Finally, it also has a parameter $A$ that we will
+come back to later.
 
   \Agda{Diffing/Patches/Diff/D}{D-type}
   
-  As we mentioned earlier, we are interested in analyzing the set of possible
+As we mentioned earlier, we are interested in analyzing the set of possible
 changes that can be made to objects of a type $T$. These changes depend on
 the structure of $T$, for the definition follows by induction on it.
 
-  If $T$ is the Unit type, we can not modify it.
+If $T$ is the Unit type, we can not modify it.
 
   \Agda{Diffing/Patches/Diff/D}{D-unit-def}
   
-  If $T$ is a product, we need to provide \emph{diffs} for both
+If $T$ is a product, we need to provide \emph{diffs} for both
 its components.
 
   \Agda{Diffing/Patches/Diff/D}{D-pair-def}
   
-  If $T$ is a coproduct, things become slightly more interesting. There
+If $T$ is a coproduct, things become slightly more interesting. There
 are four possible ways of modifying a coproduct, which are defined by:
 
   \Agda{Diffing/Patches/Diff/D}{D-sum-def}
   
-  Let us take a closer look at the diffs of a coproduct. There are four possibilities
-when modifying a coproduct $a\;\IC{$\oplus$}\;b$. Given some 
-diff $p$ over $a$, we can always modify things that inhabit the left
-of the coproduct by $\IC{D-inl}\; p$. Or we can change some given value
-$\IC{left}\;x$ into a $\IC{right}\;y$, this is captured by $\IC{D-setl}\;x\;y$.
-The case for \IC{D-inr} and \IC{D-setr} are analogous.
+  Let us take a closer look at the four potential changes that can be
+  made to coproducts. There are four possibilities when modifying a
+  coproduct $a\;\IC{$\oplus$}\;b$. Given some diff $p$ over $a$, we
+  can always modify the left of the coproduct by
+  $\IC{D-inl}\; p$. Alternatively, we can change some given value $\IC{left}\;x$
+  into a $\IC{right}\;y$, this is captured by $\IC{D-setl}\;x\;y$.
+  The case for \IC{D-inr} and \IC{D-setr} are symmetrical.
   
-  We also need some housekeeping definitions to make sure we handle all
-types defined by \F{U}.
+Besides these basic types, we need a handful of constructors to handle variables:
 
   \Agda{Diffing/Patches/Diff/D}{D-rest-def}
   
-  Fixed points are handled by a list of \emph{edit operations}. We will
-discuss them in detail later on.
+Fixed points are handled by a list of \emph{edit operations}. We will
+discuss them in detail later on. %Wouter: perhaps 'list of edit operations, List (Dmu A t a)
 
   \Agda{Diffing/Patches/Diff/D}{D-mu-def}
   
-  The aforementioned parameter $A$ is used in a single constructor,
-allowing us to have a free-monad structure over \F{D}'s. This technique shows to be
-very useful for adding extra information, as we shall discuss, on section 
-\ref{sec:conflicts}, for adding conflicts.
+  Finally, the aforementioned parameter $A$ is used in a single
+  constructor, %Wouter , |D-A|,
+  ensuring our type for diffs forms a free monad. This constructor
+  will be used for storing additional
+  information about conflicts, as we shall see later~(Section \ref{sec:conflicts}).
 
   \Agda{Diffing/Patches/Diff/D}{D-A-def} 
   
   If \F{D} is a free-monad it is also, in particular, a functor. For we
 have the equivalent mapping of a function on a \F{D}-structure, denoted by $\F{D-map}$.
-Moreover, we can also ignore the \F{D}-structure and fetch only the $A$'s inside,
-we call this $\F{forget}\; : \: \forall A\;t\;ty \; . \; \F{D}\;A\;t\;ty \rightarrow \F{List}\;A$.
-It is worth mentioning that all the indexes involved make the actual Agda type
-much more complicated. The intuition and the functionality stays the same, however.
-  Finally, we define $\Patchtty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
-Meaning that a \F{Patch} is a \F{D} with \emph{no} extra information.
+%Wouter do we really use this map anywhere? Perhaps defer this until we actually need it?
+We traverse any \F{D}-structure and collect the values of type $A$ it stores.
+We call this operation $\F{forget}\; : \: \forall A\;t\;ty \; . \; \F{D}\;A\;t\;ty \rightarrow \F{List}\;A$.
+It is worth mentioning that all the indices involved make the actual Agda type
+a bit more complicated.
+
+Finally, we define the type synonym $\Patchtty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
+In other words, a \F{Patch} is a \F{D} structure that never uses the D-A constructor.
+\TODO{fix formatting of D-A}
 
 \subsection{Producing Patches}  
   
