@@ -613,28 +613,29 @@ In other words, a \F{Patch} is a \F{D} structure that never uses the D-A constru
 
 \subsection{Producing Patches}  
   
-  Given a generic definition of possible changes, the primary goal is to produce
-an instance of this possible changes, for two specific elements of a type $T$.
-We shall call this process \emph{diffing}. It is important to note that
-our \F{gdiff} function expects two elements of the same type! This contrasts
-with the work done by Vassena\cite{Vassena2015} and Lempsink\cite{Loh2009}, where
-their diff takes objects of two different types. 
+Next, we define a generic function \F{gdiff} that given two elements of a type
+in our universe, computes the patch recording their differences. It is
+important to note that our \F{gdiff} function expects two elements of
+the same type, in contrast to the work done by
+Vassena\cite{Vassena2015} and Lempsink\cite{Loh2009}. %Wouter why is this important?
   
   For types which are not fixed points, the \F{gdiff} functions follows the 
 structure of the type:
   
   \Agda{Diffing/Patches/Diff}{gdiff-def}
   
-  Where the \F{gdiffL} takes care of handling fixed point values. The important
-remark here is that it operates over lists of elements, instead of single
-elements. This is due to the fact that the children of a fixed point element
-is a (possibly empty) list of fixed point elements. 
+  The only interesting branch is that for fixed-points, that is
+  handled by the \F{gdiffL} function that operates over lists of
+  elements, corresponding to the direct children of a given node.
 
 \paragraph{Recursion}
 \label{sec:fixedpoints}
 
   Fixed-point types have a fundamental difference over the other type
-constructors in our universe. They can grow or shrink arbitrarily. We have to
+constructors in our universe. They can grow or shrink arbitrarily. 
+% Wouter -- it would be good to give an example here -- along the
+% lines of adding/deleting lines from a CSV file?
+We have to
 account for that when tracking differences between their elements. As we
 mentioned earlier, the diff of a fixed point is defined by a list of \emph{edit
 operations}.
@@ -643,7 +644,7 @@ operations}.
   
   But the interesting bits are the \emph{edit operations} we allow.
 We define $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$ as the 
-elements of type $a$ where the recursive occurrences of \IC{$\mu$ }$a$ are erased.
+elements of type $a$ where the recursive occurrences of \IC{$\mu$ }$a$ are replaced by unit values.
   
   \Agda{Diffing/Patches/Diff/D}{Dmu-def}
   
@@ -653,19 +654,20 @@ ignored in the case of \F{Patches}.
   \Agda{Diffing/Patches/Diff/D}{Dmu-A-def}
   
   The edit operations we allow are very simple. We can add or remove parts
-of a fixed-point or we can modify non-recursive parts of it.
-and instead of copying, we introduce a new constructor, \IC{D$\mu$-dwn}, which
-is responsible for traversing down the type-structure. Copying is modeled by
-$\IC{D$\mu$-dwn}\;(\F{gdiff}\; x \; x)$. The intuition is that for every object
-$x$ there is a diff that does not change $x$, we will look into this on
-section \ref{sec:id}.
+of a fixed-point or we can modify its non-recursive parts. Instead of
+of copying, we introduce a new constructor, \IC{D$\mu$-dwn}, which
+is responsible for traversing down the type-structure. 
+%Wouter is this the same as/analagous to enter?
+Copying is modeled by $\IC{D$\mu$-dwn}\;(\F{gdiff}\; x \; x)$. For
+every object $x$ we can define a patch $\IC{D$\mu$-dwn}$ that does not
+change $x$. We will return to this point in Section \ref{sec:id}.
   
   Before we delve into diffing fixed point values, we need some specialization
 of our generic operations for fixed points. Given that $\mu X . F\; X \approx
-F\;1 \times \F{List}\;(\mu X . F\; X)$, that is, any inhabitant of a fixed-point type can
-be seen as a non-recursive head and a list of recursive children. We then make
+F\;1 \times \F{List}\;(\mu X . F\; X)$, we may view any value of a fixed-point
+as a non-recursive head and a list of (recursive) children. We then make
 a specialized version of the \F{children} and \F{arity} functions, which lets us
-open and close fixed point values according to that \emph{head and children} view.
+open and close fixed point values, in accordance with this observation.
   
   \Agda{Diffing/Universe/MuUtils}{Openmu-def}
   
@@ -680,13 +682,16 @@ we return \IC{nothing}. A soundness lemma guarantees the correct behavior.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
   
-  We denote the first component of an \emph{opened} fixed point by its
-\emph{value}, or \emph{head}; whereas the second component by its children. These
-lemmas suggest that we handle fixed points in a serialized fashion. Since we never
-really know how many children will need to be handled in each step, we make \F{gdiffL}
-handle lists of elements or, forests, since every element is in fact a tree.
-Our algorithm, which was heavily inspired by \cite{Loh2009}, is then
-defined by:
+  We will refer to the first component of an \emph{opened} fixed point
+  as its \emph{value}, or \emph{head}; whereas we refer to the second
+  component as its children. These lemmas suggest that we handle fixed
+  points in a serialized fashion. 
+  %Wouter what do you mean by serialized?
+  Since we never really know how many
+  children will need to be handled in each step, we make \F{gdiffL}
+  handle lists of elements, or forests, since every element is in fact
+  a tree.  Our algorithm, which was heavily inspired by
+  \cite{Loh2009}, is then defined by:
   
   \AgdaI{Diffing/Patches/Diff}{gdiffL-def}{-3em}
   
@@ -703,67 +708,67 @@ that:
 
   \Agda{Diffing/Patches/Diff/Cost}{lubmu-def}
 
-  As we shall see in section \ref{sec:cost}, this notion of cost is very
-delicate. The idea, however, is simple. If the heads are equal we have $d3 =
-\IC{D$\mu$-dwn}\; (\F{gdiff}\; hdX\; hdX) \cdots$, which is how the copying
-instruction is encoded. It is clear that we want to copy as much as possible, so
-we will ensure that for all $a$, $\F{gdiff}\;a\;a$ has cost 0 whereas
-\IC{D$\mu$-ins} and \IC{D$\mu$-del} will have strictly positive cost. Therefore,
-we want to use the cost of a diff to drive the algorithm.
+  This operator compares two patches, returning the one with the
+  lowest \emph{cost}.  As we shall see in section \ref{sec:cost}, this
+  notion of cost is very delicate. Before we try to calculate a
+  suitable definition of the cost function, however, we will briefly
+  introduce two special patches and revisit our example.
 
-  Note, however, that $\F{gdiff}\;a\;a$ is the patch that changes $a$ into $a$.
-Well, but there are no changes to be made whatsoever. As it turns out, we do
-have some special patches that deserve some attention. They are the
-\emph{identity patch} and the \emph{inverse patch}. As we shall see later, the
-intuition from these two special patches will greatly influence how \F{cost} is
-defined.
+%   Note, however, that $\F{gdiff}\;a\;a$ is the patch that changes $a$ into $a$.
+% Well, but there are no changes to be made whatsoever. As it turns out, we do
+% have some special patches that deserve some attention. They are the
+% \emph{identity patch} and the \emph{inverse patch}. As we shall see later, the
+% intuition from these two special patches will greatly influence how \F{cost} is
+% defined.
 
 \paragraph*{The Identity Patch}
 \label{sec:id}
 
-  Given the definition of \F{gdiff}, it is not hard to see that whenever
+Given the definition of \F{gdiff}, it is not hard to see that whenever
 $x \equiv y$, we produce a patch without any \IC{D-setl}, \IC{D-setr},
-\IC{D$\mu$-ins} or \IC{D$\mu$-del}, as they are the only constructors of \F{D} that
-introduce \emph{new information}. Hence we call these the \emph{change-introduction} constructors. 
-One can then spare the comparisons made by \F{gdiff} and trivially define the
-identity patch for an object $x$, $\F{gdiff-id}\; x$, by induction on $x$. A
-good sanity check, however, is to prove that this intuition is in fact correct:
+\IC{D$\mu$-ins} or \IC{D$\mu$-del}, as they are the only constructors
+of \F{D} that introduce \emph{new information}. Hence we call these
+the \emph{change-introduction} constructors.  One can then spare the
+comparisons made by \F{gdiff} and trivially define the identity patch
+for an object $x$, $\F{gdiff-id}\; x$, by induction on $x$. The
+following property shows that our definition meets its specification:
   
   \Agda{Diffing/Patches/Diff/Id}{gdiff-id-correct-type}
   
-  Later on we will talk about applying patches, for we will see that this is
-in fact the identity for $x$ in \emph{patch-space}.
-  
 \paragraph*{The Inverse Patch} 
 
-  If a patch $\F{gdiff}\;x\;y$ is not the identity, then it has \emph{change-introduction} constructors.
-if we swap every \IC{D-setl} for \IC{D-setr}, and \IC{D$\mu$-ins} for \IC{D$\mu$-del} and
-vice-versa, we get a patch that transforms $y$ into $x$. We shall call this operation the inverse
-of a patch.
+If a patch $\F{gdiff}\;x\;y$ is not the identity, then it has
+\emph{change-introduction} constructors.  If we swap every \IC{D-setl}
+for \IC{D-setr} (and vice-versa), and \IC{D$\mu$-ins} for
+\IC{D$\mu$-del} (and vice-versa), we get a patch that transforms $y$
+into $x$. We shall call this operation the inverse of a patch.
 
   \Agda{Diffing/Patches/Diff/Inverse}{D-inv-type}
   
-  As one would expect, $\F{gdiff}\;y\;x$ or $\F{D-inv}\;(\F{gdiff}\;x\;y)$
-should be the same patch. In fact, we have that $\F{gdiff}\;y\;x \approx \F{D-inv}\;(\F{gdiff}\;x\;y)$.
-That is to say $\F{gdiff}\;y\;x$ is \emph{observationally} the same as $\F{D-inv}\;(\F{gdiff}\;x\;y)$,
-but may not be identical. In the presence of equal cost alternatives they may make
-different choices.
+  As one would expect, $\F{gdiff}\;y\;x$ or
+  $\F{D-inv}\;(\F{gdiff}\;x\;y)$ should be the same patch. We can
+  prove a slightly weaker statement,
+  $\F{gdiff}\;y\;x \approx \F{D-inv}\;(\F{gdiff}\;x\;y)$.  That is to
+  say $\F{gdiff}\;y\;x$ is \emph{observationally} the same as
+  $\F{D-inv}\;(\F{gdiff}\;x\;y)$, but the two patches may not be
+  identical. In the presence of equal cost alternatives they may make
+  different choices.
   
-\paragraph*{Revisiting John's patch}
+\paragraph*{Revisiting our example}
 
-  Recall the example given in figure \label{fig:samplepatch}. We can now write
-$p_{John}$ with the actual result of diffing the CSV file before and after
-John makes his changes. 
+Recall the example given in Figure \label{fig:samplepatch}. We can
+define the patch $p$ as the result of diffing the CSV file before and
+after our changes.
   
-    For readability purposes, we will omit the boilerplate \F{Patch} constructors.
-When diffing both versions of the CSV file, we get the patch that reflect John's
+For readability purposes, we will omit the boilerplate \F{Patch} constructors.
+When diffing both versions of the CSV file, we get the patch that reflect our
 changes over the initial file. Remember that $(\DmuDwn (\F{gdiff-id}\;a))$ is
 merely copying $a$. The CSV structure is easily definable in \F{U} as $CSV =
 \IC{$\beta$}\; \F{list}\; (\IC{$\beta$}\; \F{list}\; X)$, for some appropriate atomic
-type $X$ and $p_{John}$ is then defined by:
+type $X$ and $p$ is then defined by:
 
 \begin{eqnarray*}
-  p_{John} & = & \DmuDwn \; (\F{gdiff-id} \; "Name , ...") \\
+  p_{John} & = & \DmuDwn \; (\F{gdiff-id} \; \mathit{Name} , ...) \\
            & \cons & \begin{array}{r l}
                       \DmuDwn ( & \DmuDwn \; (\F{gdiff-id}\;Alice) \\
                       \cons   & \DmuDwn \; (\F{gdiff-id}\; 440) \\
@@ -776,8 +781,10 @@ type $X$ and $p_{John}$ is then defined by:
            & \cons & \DmuDwn (\F{gdiff-id} {[} {]}) \\
            & {[} {]} &
 \end{eqnarray*}
+%Wouter - use mathit for identifiers longer than one character.
+%Wouter - be consistent in adding quotes or not for the data in the CSV file
   
-\subsubsection{The Cost Function}
+\subsection{The Cost Function}
 \label{sec:cost}
   
   As we mentioned earlier, the cost function is one of the key pieces of the
