@@ -192,8 +192,8 @@
 \preprintfooter{some information here...}
 \titlebanner{DRAFT}
 
-\title{Structure aware version control}
-\subtitle{A case study in Agda}
+\title{Structural Diffing}
+\subtitle{Calculating a structure aware version control system in Agda}
 
 \authorinfo{Victor Cacciari Miraldo \and Wouter Swierstra}
   {University of Utrecht}
