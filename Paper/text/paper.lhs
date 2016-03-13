@@ -253,27 +253,33 @@ many situations.
 % point. I'd follow with a concrete example to drive home the issue
 % we're addressing.
 
+% Victor: Agreed.
+
 For exampl, consider the following example CSV file that records the
 marks, unique identification numbers, and names three students:
 
-% \begin{center}
-% \begin{tabular}{l@@{ , }l@@{ , }l}
-% Name & Number & Mark \\
-% Alice & 440 & 7.0 \\
-% Bob & 593 & 6.5 \\
-% Carroll & 168 & 8.5
-% \end{tabular}
-% \end{center}
+\begin{center}
+\ttfamily
+\begin{tabular}{l@@{ , }l@@{ , }l}
+Name & Number & Mark \\
+Alice & 440 & 7.0 \\
+Bob & 593 & 6.5 \\
+Carroll & 168 & 8.5
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-Name   ,   Number, Mark
-Alice  ,   440   , 7.0
-Bob    ,   593   , 6.5
-Carroll,   168   , 8.5 
-\end{verbatim}
+% \begin{verbatim}
+% Name   ,   Number, Mark
+% Alice  ,   440   , 7.0
+% Bob    ,   593   , 6.5
+% Carroll,   168   , 8.5 
+% \end{verbatim}
 % Wouter: I know verbatim is ugly, but in this way we can clearly
 % visually distinguish between text in a file (verbatim), text in the
 % paper (roman), and source code.
+% Victor: Makes sense. Yet, we cannot use varbatim inside the TikZ env.
+% We can always find another way of drawing the (only) diagram using TikZ 
+% and CSV files. I changed back to tabular with \ttfamily. 
 
 Adding a new line to this CSV file will not modify any existing entries and
 is unlikely to cause conflicts. Adding a new column storing the date
@@ -322,8 +328,8 @@ this paper makes the following novel contributions:
 \subsection*{Background}
 
   The generic diff problem is a very special case of the \emph{edit distance} problem,
-which is concerned with computing the minimum cost of transforming an untyped tree 
-$A$ into an untyped tree $B$. Demaine provides a solution to the problem 
+which is concerned with computing the minimum cost of transforming a arbitrarily branching tree 
+$A$ into another, $B$. Demaine provides a solution to the problem 
 \cite{Demaine2007}, improving the work of Klein \cite{Klein1998}. This problem
 has been popularized in the particular case where the trees in question are
 in fact lists, when it is referred to the \emph{least common subsequence} (LCS)
@@ -331,6 +337,8 @@ problem \cite{Bille2005,Bergroth2000}. The popular UNIX \texttt{diff} tool provi
 a solution to the LCS problem considering the edit operations to be inserting and 
 deleting lines of text.
 %Wouter: What do you mean by 'untyped tree' here?
+% Victor: I meant to say that there is structure in the child branches of a node.
+%         The edit distance problem considers trees, in the graph-theoretical sense. 
 
 
 Our implementation follows a slightly different route, in which we
@@ -342,6 +350,7 @@ patches by observing changes on a line-by-line basis. It is precisely
 when different changes must be merged, using tools such as
 \emph{diff3}~\cite{Khanna2007}, that there is room for improvement.
 %Wouter Some of the writing was a bit informal here...
+%Victor: Ok. 
   
 \section{Structural Diffing}  
   
@@ -354,6 +363,7 @@ algebraic data types used by familiar functional languages. This will
 ease transition from Agda to a more scalable implementation in Haskell
 (Section \ref{sec:haskell}).
 %Wouter add refs to OCaml/Haskell language def?
+%Victor: you mean bib refs? Sure, why not! 
   
 \newcommand{\CF}{\text{CF}}
 \subsection{Context Free Datatypes}
@@ -364,7 +374,7 @@ $\CF$, is defined by the by the grammar in Figure~\ref{fig:cfgrammar}.
   
   \begin{figure}[h]
   \[
-    \CF ::= 1 \mid 0 \mid \CF \times \CF \mid \CF + \CF \mid \mu \; \CF \mid \mathbb{N}
+    \CF ::= 1 \mid 0 \mid \CF \times \CF \mid \CF + \CF \mid \mu x \; . \; \CF \mid x
               \mid (\CF \; \CF)
   \]
   \caption{BNF for $\CF$ terms}
@@ -374,6 +384,9 @@ $\CF$, is defined by the by the grammar in Figure~\ref{fig:cfgrammar}.
   % Wouter: should we write \mathbb{N} for variables or the more
   % common $x$ (and mu X . CF) -- I personally prefer the latter -- de
   % Bruijn is just an implementation technique.
+  
+  % Victor : it is in fact better, especially when we use 0 and 1 for inital 
+  % and terminal objects.
 
   In Agda, the $\CF$ universe is defined by:
   
@@ -392,6 +405,10 @@ allow it anywhere in the code. This allows slightly more compact definitions
 later on.
 
 %Wouter: Like Andres, I prefer app/def to beta
+%Victor: I don't like app, for our "beta" rule is derivable
+% in the typed lambda-calculi by composing the standard app with abs.
+% Which is why I called it beta, it stands for creating a \beta-redex.
+% def is ok, and is the same used in Morris et al. 
   
 Stating the language of our types is not enough. We need to specify
 its elements too, after all, they are the domain which we seek to
@@ -419,13 +436,15 @@ in $\F{U}\;n$. In Agda, the elements of \F{U} are defined by:
   
   \Agda{Diffing/Universe/Syntax}{ElU-def}
   
-The set \F{ElU} of the elements of \F{U} is straightforward. We begin with some simple
-constructors to handle simple types, such as the unit type (\IC{unit}), coproducts (\IC{inl} and \IC{inr}), and products (\IC{$\_,\_$}).
-Next, we define how to reference variables using \IC{pop} and \IC{top}. Finally,
-\IC{mu} and \IC{red} specify how to handle recursive types and type applications.
-We now have all the machinery we need to start defining types and their constructors
-inside Agda. For example, Figure \ref{fig:uexample} shows how to define a representation of polymorphic 
-lists in this universe, together with its two constructors.
+The set \F{ElU} of the elements of \F{U} is straightforward. We begin with some
+simple constructors to handle simple types, such as the unit type (\IC{unit}),
+coproducts (\IC{inl} and \IC{inr}), and products (\IC{$\_,\_$}). Next, we define
+how to reference variables using \IC{pop} and \IC{top}. Finally, \IC{mu} and
+\IC{red} specify how to handle recursive types and type applications. We now
+have all the machinery we need to start defining types and their constructors
+inside Agda. For example, Figure \ref{fig:uexample} shows how to define a
+representation of polymorphic lists in this universe, together with its two
+constructors.
 
   \begin{figure}[h]
   \Agda{Diffing/Universe/Syntax}{U-example}
@@ -433,22 +452,25 @@ lists in this universe, together with its two constructors.
   \label{fig:uexample}
   \end{figure}
   
-  Remember that our main objective is to define \emph{how to track
-    differences between elements of a given type}. So far we showed
-  how to define the universe of context free types and the elements
-  that inhabit it. We can now define \emph{generic} functions that
-  operate on any type representible in this universe by induction over the representation type, \F{U}. 
-  In the coming sections, we define our diff algorithm using 
-  a handful of (generic) operations that we will define next.
+  Remember that our main objective is to define \emph{how to track differences
+between elements of a given type}. So far we showed how to define the universe
+of context free types and the elements that inhabit it. We can now define
+\emph{generic} functions that operate on any type representible in this universe
+by induction over the representation type, \F{U}. In the coming sections, we
+define our diff algorithm using a handful of (generic) operations that we will
+define next.
 
 \paragraph*{Some Generic Operations}
 
-  We can always view an element $\F{ElU}\;ty\;t$ as a tree. The idea is that the
-telescope indicates how many `levels' a tree may have, and which is the shape (type)
-of each subtree in each of those levels. Figure \ref{fig:arity} illustrates this
-view for an element $\F{ElU}\;ty\;(\IC{tcons}\; t_1\;(\IC{tcons}\;t_2\;\IC{tnil})$. 
-Note how we use \IC{vl} to reference to the immediate children and
-\IC{wk} to go one level deeper.
+  We can always view an element $el : \F{ElU}\;ty\;t$ as a tree. The idea is
+that the telescope indicates how many `levels' a tree may have, and which is the
+shape (type) of each subtree in each of those levels. Figure \ref{fig:arity}
+illustrates this view for an element $el : \F{ElU}\;ty\;(\IC{tcons}\;
+t_1\;(\IC{tcons}\;t_2\;\IC{tnil})$. Here, $ty$ gives the shape of the root
+whereas $t_1$ and $t_2$ gives the shape of levels $1$ and $2$. Note how we use
+\IC{vl} to reference to the immediate children and \IC{wk} to go one level
+deeper. Function \F{arity} is counting how many $\F{ElU} t_1
+(\IC{tcons}\;t_2\;t)$ occurs in $el$.
 
   \begin{figure}[h]
   \begin{displaymath}
@@ -464,6 +486,7 @@ Note how we use \IC{vl} to reference to the immediate children and
   \end{figure}
   % Wouter: I'm confused a bit here. What does arity count? The number
   % of 'a' values (where 'a' is the head of the telescope?)?
+  % Victor: Exactly! I added a sentence making that clearer.
 
 The intuition is that the children of an element is the list of immediate subtrees of
 that element, whereas its arity counts the number of immediate subtrees.
@@ -482,6 +505,9 @@ Hence, we want \F{arity} to be defined directly by induction on its argument,
 making it structurally compatible with all other functions also defined by induction
 on \F{ElU}.
 %Wouter: I don't understand this remark...
+% VOLATILE
+%Victor: This remark was not here, Andres gave it as a sugestion, I thought it was a good one.
+% We can choose whether to keep it or not this later.
 
 With these auxiliary definitions in place, we can now turn our
 attention to the generic diff algorithm.
@@ -495,15 +521,18 @@ Alice's grade. We would like to edit the CSV file to
 reflect these changes.
 % Wouter: personally, I don't really like these 'user stories' about
 % Alice, Bob and John. I've started to edit out John -- but what do you think?
+% Victor: I like both versions. From crypto literature I got very used
+% to those "user stories". I agree that writing this story in the first person
+% makes it more direct, though. 
 
 \begin{figure}[h]
 \begin{center}
-\csvABlbl{\begin{tabular}{l@@{ , }l@@{ , }l}
+\csvABlbl{ \ttfamily \begin{tabular}{l@@{ , }l@@{ , }l}
 Name & Number & Mark \\
 Alice & 440 & 7.0 \\
 Bob & 593 & 6.5 \\
 Carroll & 168 & 8.5
-\end{tabular}}{\begin{tabular}{l@@{ , }l@@{ , }l}
+\end{tabular}}{ \ttfamily \begin{tabular}{l@@{ , }l@@{ , }l}
 Name & Number & Mark \\
 Alice & 440 & 8.0 \\
 Bob & 593 & 6.5
@@ -513,6 +542,7 @@ Bob & 593 & 6.5
 \label{fig:samplepatch}
 \end{figure}
 %Wouter: Once again, I'd prefer verbatim...
+%Victor: Here is where it does not work. Seems like using \ttfamily works wonders!
 
 Remember that a CSV structure is defined as a list of lists of
 cells. In what follows, we will define patches that operates on a
@@ -599,25 +629,29 @@ discuss them in detail later on. %Wouter: perhaps 'list of edit operations, List
   If \F{D} is a free-monad it is also, in particular, a functor. For we
 have the equivalent mapping of a function on a \F{D}-structure, denoted by $\F{D-map}$.
 %Wouter do we really use this map anywhere? Perhaps defer this until we actually need it?
+%Victor: I briefly use it later, for saying that the trivial conflict resolution
+% strategy is (join . D-map pointwiseMerger) . 
+
 We traverse any \F{D}-structure and collect the values of type $A$ it stores.
 We call this operation $\F{forget}\; : \: \forall A\;t\;ty \; . \; \F{D}\;A\;t\;ty \rightarrow \F{List}\;A$.
 It is worth mentioning that all the indices involved make the actual Agda type
 a bit more complicated.
 
 Finally, we define the type synonym $\Patchtty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
-In other words, a \F{Patch} is a \F{D} structure that never uses the D-A constructor.
-\TODO{fix formatting of D-A}
+In other words, a \F{Patch} is a \F{D} structure that never uses the \IC{D-A} constructor.
 
 \subsection{Producing Patches}  
   
-Next, we define a generic function \F{gdiff} that given two elements of a type
-in our universe, computes the patch recording their differences. It is
-important to note that our \F{gdiff} function expects two elements of
-the same type, in contrast to the work done by
-Vassena\cite{Vassena2015} and Lempsink\cite{Loh2009}. %Wouter why is this important?
-  
-  For types which are not fixed points, the \F{gdiff} functions follows the 
-structure of the type:
+  Next, we define a generic function \F{gdiff} that given two elements of a type
+in our universe, computes the patch recording their differences. For types which
+are not fixed points, the \F{gdiff} functions follows the structure of the type: 
+
+% It is
+% important to note that our \F{gdiff} function expects two elements of
+% the same type, in contrast to the work done by
+% Vassena\cite{Vassena2015} and Lempsink\cite{Loh2009}. 
+% Wouter: why is this important?
+% Victor: Good question, I don't know. Removing it for the time beeing.
   
   \Agda{Diffing/Patches/Diff}{gdiff-def}
   
@@ -630,11 +664,22 @@ structure of the type:
 
   Fixed-point types have a fundamental difference over the other type
 constructors in our universe. They can grow or shrink arbitrarily. 
+Just like for values of coproducts, where we had multiple ways of changing them,
+we have three possible changes we can make to the value of a fixed-point. This time,
+however, they are not mutually exclusive. 
+
+  For example, imagine we are making changes in an element of \F{list}. We
+could, for instance, add a few \F{CONS} to the head, then go and copy some
+values, then delete an entire suffix. We can also do something different. Note how
+there is an implicit order in which those \emph{edit operations} happened. 
+
 % Wouter -- it would be good to give an example here -- along the
 % lines of adding/deleting lines from a CSV file?
+% Victor: I added some text trying to explain this. I believe an actual example in ElU
+% will confuse more than help, at this point.
 We have to
-account for that when tracking differences between their elements. As we
-mentioned earlier, the diff of a fixed point is defined by a list of \emph{edit
+account for that when tracking differences between their elements. The diff of 
+a fixed point is, hence, defined by a list of \emph{edit
 operations}.
   
   \Agda{Diffing/Patches/Diff/D}{Dmu-type}
@@ -653,8 +698,10 @@ ignored in the case of \F{Patches}.
   The edit operations we allow are very simple. We can add or remove parts
 of a fixed-point or we can modify its non-recursive parts. Instead of
 of copying, we introduce a new constructor, \IC{D$\mu$-dwn}, which
-is responsible for traversing down the type-structure. 
+is responsible for traversing down the type-structure, analogous to \emph{enter}
+used in figure \ref{fig:samplepatch}.
 %Wouter is this the same as/analagous to enter?
+%Victor: yes.
 Copying is modeled by $\IC{D$\mu$-dwn}\;(\F{gdiff}\; x \; x)$. For
 every object $x$ we can define a patch $\IC{D$\mu$-dwn}$ that does not
 change $x$. We will return to this point in Section \ref{sec:id}.
@@ -679,16 +726,14 @@ we return \IC{nothing}. A soundness lemma guarantees the correct behavior.
   
   \Agda{Diffing/Universe/MuUtils}{mu-close-resp-arity-lemma}
   
-  We will refer to the first component of an \emph{opened} fixed point
-  as its \emph{value}, or \emph{head}; whereas we refer to the second
-  component as its children. These lemmas suggest that we handle fixed
-  points in a serialized fashion. 
-  %Wouter what do you mean by serialized?
-  Since we never really know how many
-  children will need to be handled in each step, we make \F{gdiffL}
-  handle lists of elements, or forests, since every element is in fact
-  a tree.  Our algorithm, which was heavily inspired by
-  \cite{Loh2009}, is then defined by:
+  We will refer to the first component of an \emph{opened} fixed point as its
+\emph{value}, or \emph{head}; whereas we refer to the second component as its
+children. These lemmas suggest that we handle fixed points in a pre-order
+fashion. %Wouter what do you mean by serialized? Victor: pre-order is more accurate. 
+Since we never really know how many children will need to be handled
+in each step, we make \F{gdiffL} handle lists of elements, or forests, since
+every element is in fact a tree. Our algorithm, which was heavily inspired by
+\cite{Loh2009}, is then defined by:
   
   \AgdaI{Diffing/Patches/Diff}{gdiffL-def}{-3em}
   
@@ -705,11 +750,11 @@ that:
 
   \Agda{Diffing/Patches/Diff/Cost}{lubmu-def}
 
-  This operator compares two patches, returning the one with the
-  lowest \emph{cost}.  As we shall see in section \ref{sec:cost}, this
-  notion of cost is very delicate. Before we try to calculate a
-  suitable definition of the cost function, however, we will briefly
-  introduce two special patches and revisit our example.
+  This operator compares two patches, returning the one with the lowest
+\emph{cost}. As we shall see in section \ref{sec:cost}, this notion of cost is
+very delicate. Before we try to calculate a suitable definition of the cost
+function, however, we will briefly introduce two special patches and revisit our
+example.
 
 %   Note, however, that $\F{gdiff}\;a\;a$ is the patch that changes $a$ into $a$.
 % Well, but there are no changes to be made whatsoever. As it turns out, we do
@@ -742,14 +787,12 @@ into $x$. We shall call this operation the inverse of a patch.
 
   \Agda{Diffing/Patches/Diff/Inverse}{D-inv-type}
   
-  As one would expect, $\F{gdiff}\;y\;x$ or
-  $\F{D-inv}\;(\F{gdiff}\;x\;y)$ should be the same patch. We can
-  prove a slightly weaker statement,
-  $\F{gdiff}\;y\;x \approx \F{D-inv}\;(\F{gdiff}\;x\;y)$.  That is to
-  say $\F{gdiff}\;y\;x$ is \emph{observationally} the same as
-  $\F{D-inv}\;(\F{gdiff}\;x\;y)$, but the two patches may not be
-  identical. In the presence of equal cost alternatives they may make
-  different choices.
+  As one would expect, $\F{gdiff}\;y\;x$ or $\F{D-inv}\;(\F{gdiff}\;x\;y)$
+should be the same patch. We can prove a slightly weaker statement,
+$\F{gdiff}\;y\;x \approx \F{D-inv}\;(\F{gdiff}\;x\;y)$. That is to say
+$\F{gdiff}\;y\;x$ is \emph{observationally} the same as
+$\F{D-inv}\;(\F{gdiff}\;x\;y)$, but the two patches may not be identical. In the
+presence of equal cost alternatives they may make different choices.
   
 \paragraph*{Revisiting our example}
 
@@ -765,7 +808,7 @@ merely copying $a$. The CSV structure is easily definable in \F{U} as $CSV =
 type $X$ and $p$ is then defined by:
 
 \begin{eqnarray*}
-  p_{John} & = & \DmuDwn \; (\F{gdiff-id} \; \mathit{Name} , ...) \\
+  p & = & \DmuDwn \; (\F{gdiff-id} \; \mathit{Name} , ...) \\
            & \cons & \begin{array}{r l}
                       \DmuDwn ( & \DmuDwn \; (\F{gdiff-id}\;Alice) \\
                       \cons   & \DmuDwn \; (\F{gdiff-id}\; 440) \\
@@ -779,7 +822,9 @@ type $X$ and $p$ is then defined by:
            & {[} {]} &
 \end{eqnarray*}
 %Wouter - use mathit for identifiers longer than one character.
-%Wouter - be consistent in adding quotes or not for the data in the CSV file
+%Wouter - be consistent in adding quotes or not for the data in the CSV file.
+%Victor: Fair enough! I was using quoted things to represent the entire lines
+%        whereas cells were unquoted.
   
 \subsection{The Cost Function}
 \label{sec:cost}
