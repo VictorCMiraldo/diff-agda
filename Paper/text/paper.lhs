@@ -577,7 +577,14 @@ constructor terminating the list.
 Obviously, however, diffing CSV files is just the beginning. We shall
 now formally describe the actual \emph{edit operations} that one can
 perform by induction on the structure of \F{U}. The type of a
-\emph{diff} is defined by the data type \F{D}. It is indexed by a type
+diff is defined by the data type \F{D} \footnote{%
+%%% BEGIN FOOTNOTE
+For the unfamiliar reader $\F{Set}\;a$ can be read as $\F{Set}$. Agda has a infinite
+hierarchy of \F{Set}s, where $\F{Set}\; i : \F{Set}\; (\IC{suc}\; i)$. This restriction
+is there in order to keep Agda consisten. If $\F{Set} : \F{Set}$ one could typecheck
+Russell's paradox.
+%%% END FOOTNOTE
+}. It is indexed by a type
 and a telescope. Finally, it also has a parameter $A$ that we will
 come back to later.
 
@@ -587,11 +594,11 @@ As we mentioned earlier, we are interested in analyzing the set of possible
 changes that can be made to objects of a type $T$. These changes depend on
 the structure of $T$, for the definition follows by induction on it.
 
-If $T$ is the Unit type, we can not modify it.
+If $T$ is the Unit type, we cannot modify it.
 
   \Agda{Diffing/Patches/Diff/D}{D-unit-def}
   
-If $T$ is a product, we need to provide \emph{diffs} for both
+If $T$ is a product, we need to provide diffs for both
 its components.
 
   \Agda{Diffing/Patches/Diff/D}{D-pair-def}
@@ -601,13 +608,12 @@ are four possible ways of modifying a coproduct, which are defined by:
 
   \Agda{Diffing/Patches/Diff/D}{D-sum-def}
   
-  Let us take a closer look at the four potential changes that can be
-  made to coproducts. There are four possibilities when modifying a
-  coproduct $a\;\IC{$\oplus$}\;b$. Given some diff $p$ over $a$, we
-  can always modify the left of the coproduct by
-  $\IC{D-inl}\; p$. Alternatively, we can change some given value $\IC{left}\;x$
-  into a $\IC{right}\;y$, this is captured by $\IC{D-setl}\;x\;y$.
-  The case for \IC{D-inr} and \IC{D-setr} are symmetrical.
+  Let us take a closer look at the four potential changes that can be made to
+coproducts. There are four possibilities when modifying a coproduct
+$a\;\IC{$\oplus$}\;b$. Given some diff $p$ over $a$, we can always modify the
+left of the coproduct by $\IC{D-inl}\; p$. Alternatively, we can change some
+given value $\IC{inl}\;x$ into a $\IC{inr}\;y$, this is captured by
+$\IC{D-setl}\;x\;y$. The case for \IC{D-inr} and \IC{D-setr} are symmetrical.
   
 Besides these basic types, we need a handful of constructors to handle variables:
 
@@ -618,24 +624,12 @@ discuss them in detail later on. %Wouter: perhaps 'list of edit operations, List
 
   \Agda{Diffing/Patches/Diff/D}{D-mu-def}
   
-  Finally, the aforementioned parameter $A$ is used in a single
-  constructor, %Wouter , |D-A|,
-  ensuring our type for diffs forms a free monad. This constructor
-  will be used for storing additional
-  information about conflicts, as we shall see later~(Section \ref{sec:conflicts}).
+  Finally, the aforementioned parameter $A$ is used in a single constructor, 
+\IC{D-A}, ensuring our type for diffs forms a free monad. This
+constructor will be used for storing additional information about conflicts, as
+we shall see later~(Section \ref{sec:conflicts}).
 
   \Agda{Diffing/Patches/Diff/D}{D-A-def} 
-  
-  If \F{D} is a free-monad it is also, in particular, a functor. For we
-have the equivalent mapping of a function on a \F{D}-structure, denoted by $\F{D-map}$.
-%Wouter do we really use this map anywhere? Perhaps defer this until we actually need it?
-%Victor: I briefly use it later, for saying that the trivial conflict resolution
-% strategy is (join . D-map pointwiseMerger) . 
-
-We traverse any \F{D}-structure and collect the values of type $A$ it stores.
-We call this operation $\F{forget}\; : \: \forall A\;t\;ty \; . \; \F{D}\;A\;t\;ty \rightarrow \F{List}\;A$.
-It is worth mentioning that all the indices involved make the actual Agda type
-a bit more complicated.
 
 Finally, we define the type synonym $\Patchtty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
 In other words, a \F{Patch} is a \F{D} structure that never uses the \IC{D-A} constructor.
@@ -655,9 +649,10 @@ are not fixed points, the \F{gdiff} functions follows the structure of the type:
   
   \Agda{Diffing/Patches/Diff}{gdiff-def}
   
-  The only interesting branch is that for fixed-points, that is
-  handled by the \F{gdiffL} function that operates over lists of
-  elements, corresponding to the direct children of a given node.
+  The only interesting branch is that for fixed-points, that is handled by the
+\F{gdiffL} function that operates over lists of elements, corresponding to the
+direct children of a given node. Let us now see how to handle the diff of
+fixed-points.
 
 \paragraph{Recursion}
 \label{sec:fixedpoints}
@@ -668,24 +663,42 @@ Just like for values of coproducts, where we had multiple ways of changing them,
 we have three possible changes we can make to the value of a fixed-point. This time,
 however, they are not mutually exclusive. 
 
-  For example, imagine we are making changes in an element of \F{list}. We
-could, for instance, add a few \F{CONS} to the head, then go and copy some
-values, then delete an entire suffix. We can also do something different. Note how
-there is an implicit order in which those \emph{edit operations} happened. 
+\newcommand{\constt}{\F{CONS}\;\F{tt}}
+\newcommand{\consff}{\F{CONS}\;\F{ff}}
 
-% Wouter -- it would be good to give an example here -- along the
-% lines of adding/deleting lines from a CSV file?
-% Victor: I added some text trying to explain this. I believe an actual example in ElU
-% will confuse more than help, at this point.
-We have to
-account for that when tracking differences between their elements. The diff of 
-a fixed point is, hence, defined by a list of \emph{edit
-operations}.
+  For example, imagine we are making changes in an element of $\IC{$\beta$}\;\F{list}\;\F{bool}$.
+One such change is depicted in figure \ref{fig:listbool}, where the list grows in the middle,
+by $\small \consff \;(\constt\;\cdot)$ and shrinks in the end.
+
+
+\begin{figure}[h]
+\begin{displaymath}
+  \scalebox{0.8}{%
+  \xymatrix@@C=.2em@@R=.5em{
+     \constt \ar@@{-}[dd] &  &  & (\constt \ar@@{-}[dd] & (\consff \ar@@{-}[d] & \IC{NIL} \ar@@{-}[dl])) \\ 
+       & Grow \ar@@{-}[d] & Grow \ar@@{-}[d] & & Shrink \ar@@{-}[d] & \\
+     \constt & (\consff & (\constt & (\constt & \IC{NIL})) & 
+    }}
+\end{displaymath}
+\caption{Growing and Shrinking a fixed-point}
+\label{fig:listbool}
+\end{figure}
+
+  Note that figure \ref{fig:listbool} is not the only possible representation of such change
+by means of grows and shrinks. In fact, the \texttt{diff3} tool pre-computes an aligment
+table for identifying where the file grows and shrinks before computing the actual differences.
+We chose to dynamically discover where the fixed-point value grows and shrinks instead
+of pre-computing such a table, since types other than \F{list} give rise to a
+grow-shrink pattern that do not resemble a table, but the structure of the respective type
+itself. Although we cannot represent these patterns in a uniform fashion for all types,
+we can fix the way in which we traverse a type for growing and shrinking it. Hence,
+we can model the diff of a fixed-point as a list of atomic \emph{edit operations}:
   
   \Agda{Diffing/Patches/Diff/D}{Dmu-type}
   
-  But the interesting bits are the \emph{edit operations} we allow.
-We define $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$ as the 
+  And here we define the \emph{edit operations} we allow. Whenever the value
+grows it means something was inserted, whenever the value shrinks, it means something
+was deleted. We define $\F{Val}\;a\;t = \F{ElU}\;a\;(\IC{tcons}\;\IC{u1}\;t)$ as the 
 elements of type $a$ where the recursive occurrences of \IC{$\mu$ }$a$ are replaced by unit values.
   
   \Agda{Diffing/Patches/Diff/D}{Dmu-def}
@@ -1278,7 +1291,9 @@ strategy would have $\F{B} = |IO|$, a partial merge strategy would have $\F{B} =
 to merge patches. Ideally we would like to have a library of \emph{mergers} and
 a calculus for them, such that we can prove lemmas about the behavior of some
 \emph{merge strategies}, that is, a bunch of \emph{mergers} combined using
-different operators.
+different operators. Remember that \F{D} makes a free-monad, therefore it also
+makes a functor. For we have the equivalent mapping of a function on a
+\F{D}-structure, denoted by $\F{D-map}$.
 
   A simple pointwise \emph{merge strategy} can be defined for a \emph{merger} $m
 : \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$, which can now be
