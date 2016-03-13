@@ -41,7 +41,7 @@ COMPILER=pdflatex -etex
 
 
 all: $(MAINPDF)
-
+	
 $(MAINPDF): \
 	$(REFERENCES) $(MAINTEX) \
 	$(TEXT_PARTS:%=$(TEXT_PARTS_SRC_GENTEX)/%.tex) \

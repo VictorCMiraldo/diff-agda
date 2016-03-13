@@ -16,11 +16,8 @@
 %% WORKFLOW ENVS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newenvironment{TODO}{%
-  \color{blue} \itshape \begin{itemize}
-}{%
-  \end{itemize}
-}
+\newcommand{\TODO}[1]{%
+\[ \bullet \text{\color{blue} #1} \] }
 
 \newenvironment{TRASH}{\color{gray} \itshape}{}
 
