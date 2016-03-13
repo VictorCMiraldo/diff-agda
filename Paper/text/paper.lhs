@@ -1390,7 +1390,8 @@ instance {-# OVERLAPPABLE #-}
 
   As the tool is still a very young prototype, we chose to omit implementation
 details. For those who wish to see these details, the code is available
-online\footnote{\warnme{HASKELL REPOSITORY}}. There is, however, one extension we need
+online\footnote{\url{https://git.science.uu.nl/v.cacciarimiraldo/hs-diff}}. 
+There is, however, one extension we need
 to be able to handle built-in types. We have two additional constructors to |Patch| 
 to handle atomic types:
 
