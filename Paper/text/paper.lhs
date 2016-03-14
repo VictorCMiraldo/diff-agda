@@ -818,19 +818,19 @@ identity patch then has cost 0 by construction, as we seen it is exactly the pat
 with no \emph{change-introduction} constructor.
 
   Equation (2), on the other hand, tells that it should not matter whether we go
-from $x$ to $y$ or from $y$ to $x$, the effort is the same. In patch-space, this
-means that the inverse of a patch should preserve its cost. Well, the inverse
+from $x$ to $y$ or from $y$ to $x$, the effort is the same. In other words, 
+inverting a patch should preserve its cost. The inverse
 operation leaves everything unchanged but flips the \emph{change-introduction}
 constructors to their dual counterpart. We will hence assign a cost $c_\oplus =
 \F{cost } \IC{D-setl} = \F{cost } \IC{D-setr}$ and $c_\mu = \F{cost }
-\IC{D$\mu$-ins} = \F{cost } \IC{D$\mu$-del}$ and guarantee this by construction
-already. 
-  Some care must be taken however, as if we define $c_\mu$ and $c_\oplus$ as constants
-we will say that inserting a tiny object has the same cost of inserting a gigantic object!
-That is not what we are looking for in a fine-tuned diff algorithm. Let us then define
+\IC{D$\mu$-ins} = \F{cost } \IC{D$\mu$-del}$. This guarantees the second property by construction.
+If we define $c_\mu$ and $c_\oplus$ as constants, however,
+the cost of inserting a small subtree will have the same cost as inserting a very large subtree.
+This is probably undesirable and may lead to unexpected behaviour. Instead of constants, $\c_\oplus$ and $c_\mu$,
+we will instead try to define a pair of functions,
 $c_\oplus\;x\;y = \F{cost }(\IC{D-setr}\;x\;y) = \F{cost }(\IC{D-setl}\;x\;y)$ and
-$c_\mu\;x = \F{cost }(\IC{D$\mu$-ins}\;x) = \F{cost }(\IC{D$\mu$-del}\;x)$ so we can
-take this fine-tuning into account.
+$c_\mu\;x = \F{cost }(\IC{D$\mu$-ins}\;x) = \F{cost }(\IC{D$\mu$-del}\;x)$, that may take
+the size of the arguments into account.
 
   Equation (3) is concerned with composition of patches. The aggregate cost of changing
 $x$ to $y$, and then $y$ to $z$ should be greater than or equal to changing
@@ -852,14 +852,16 @@ the inverse of a patch we already have that:
   \Agda{Diffing/Patches/Diff/Inverse}{D-inv-cost-type}
   
   In order to finalize our definition, we just need to find an actual value for
-$c_\oplus$ and $c_\mu$. We have a lot of freedom to choose these values, however,
-yet, they are a critical part of the diff algorithm, since they will drive it to prefer some
-changes over others. 
+$c_\oplus$ and $c_\mu$. We have a lot of freedom to choose these values and
+they are a critical part of the diff algorithm. The choice of cost model will prefer
+certain changes over others. 
 
   We will now calculate a relation that $c_\mu$ and $c_\oplus$ need to satisfy
-for the diff algorithm to weight changes in a top-down manner. That is, we want
+for the diff algorithm to weigh changes in a top-down manner. That is, we want
 the changes made to the outermost structure to be \emph{more expensive} than the
-changes made to the innermost parts.
+changes made to the innermost parts. For example, when considering the CSV file example, 
+we consider inserting a new line to be a more expensive operation than updating a single
+cell.
 
   Let us then take a look at where the difference between $c_\mu$ and $c_\oplus$ comes
 into play, and calculate from there. Assume we have stopped execution of
@@ -883,8 +885,8 @@ one of them.
 inserting and deleting should be the same, the analysis for $d_2$ is analogous.
 By choosing $d_1$, we would be opting to insert $hdY$ instead of transforming
 $hdX$ into $hdY$, this is preferable only when we do not have to delete $hdX$
-later on, in $\F{gdiffL}\;(x \cons xs)\;(chY \cat ys)$, as that would be a waste
-of information. Deleting $hdX$ is inevitable when $hdX \notin chY \cat ys$. 
+later on when computing $\F{gdiffL}\;(x \cons xs)\;(chY \cat ys)$. 
+Deleting $hdX$ is inevitable when $hdX \notin chY \cat ys$. %Wouter perhaps just say 'when hdX does not occur as a subtree in the remaining structures to diff
 Assuming without loss of generality that this deletion happens in the next
 step, we have:
 
@@ -895,27 +897,29 @@ step, we have:
       & & \hskip 1.72cm \cons \F{gdiffL}\;(chX \cat xs)\;(chY \cat ys) \\
       & = & \DmuIns hdY \cons \DmuDel hdX \cons \F{tail }d_3
 \end{eqnarray*}
+% Wouter I found this calculation hard to read -- but basically all it
+% is saying is that the cost of d_1 is equal to c-mu hdX + c-mu hdY +
+% w -- which is kind of 'obvious' -- would it not be better to explain
+% in text what is going on?
 
   Hence, \F{cost }$d_1$ is $c_\mu\;hdX + c_\mu\;hdY + w$, for $w =
-\F{cost}\;(\F{tail}\;d_3)$. Obviously, $hdX$ and $hdY$ are values of the same
-type. Namely $hdX , hdY : \F{ElU}\;ty\;(\IC{tcons}\;\IC{u1}\;t)$. Since we want
-to apply this to Haskell datatypes by the end of the day, it is acceptable to
+\F{cost}\;(\F{tail}\;d_3)$. Here $hdX$ and $hdY$ are values of the same
+type, $\F{ElU}\;ty\;(\IC{tcons}\;\IC{u1}\;t)$. 
+As our data types will be sums-of-products,
+we will
 assume that $ty$ is a coproduct of constructors. Hence $hdX$ and $hdY$ are
-values of the same finitary coproduct, representing the constructors of the
-fixed-point datatype. If $hdX$ and $hdY$ comes from different constructors,
-then\footnote{
-%%%% FOOTNOTE
-We use $i_j$ to denote the $j$-th injection into a finitary coproduct. 
-%%%% FOOTNOTE
-} $hdX = i_j\; x'$ and $hdY = i_k\; y'$ where $j \neq k$. The patch from $hdX$
+values of the same finitary coproduct, representing the constructors of a (recursive) data type.
+In what follows we will use $i_j$ to denote the $j$-th injection into a finitary coproduct. 
+If $hdX$ and $hdY$ comes from different constructors,
+then
+$hdX = i_j\; x'$ and $hdY = i_k\; y'$ where $j \neq k$. The patch from $hdX$
 to $hdY$ will therefore involve a $\IC{D-setl}\;x'\;y'$ or a
 $\IC{D-setr}\;y'\;x'$, hence the cost of $d_3$ becomes $c_\oplus\;x'\;y' + w$.
-Remember that we are still in the situation where it is wise to delete and
-insert instead of recursively changing. The reasoning behind it is simple: since
-things are coming from a different constructors the structure of the outermost
-type is definitely changing, we want to reflect that! This means we need to
+The reasoning behind this choice is simple: since
+the outermost constructor is changing, the cost of this change should reflect this.
+As a result, we need to
 select $d_1$ instead of $d_3$, that is, we need to attribute a cost to $d_1$
-that is strictly lower than the cost of $d_3$:
+that is strictly lower than the cost of $d_3$: %Wouter: Why do we *need* to do this?
 
 \[
 \begin{array}{crcl}
@@ -923,6 +927,7 @@ that is strictly lower than the cost of $d_3$:
   \Leftrightarrow & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') & < & c_\oplus\;(i_j\;x')\;(i_k\;y')
 \end{array}
 \]
+%Wouter I don't understand this iff and only iff -- is it a definition, lemma, assumption?
 
   If $hdX$ and $hdY$ come from the same constructor, on the other hand, the
 story is slightly different. We now have $hdX = i_j\;x'$ and $hdY = i_j\;y'$,
@@ -931,7 +936,7 @@ cost of $d_3$ is $\F{dist}\;x'\;y' + w$, since $\F{gdiff}\;hdX\;hdY$ will be
 $\F{gdiff}\;x'\;y'$ preceded by a sequence of \IC{D-inr} and \IC{D-inr}, for
 $hdX$ and $hdY$ they come from the same coproduct injection, and these have cost
 0. This is the situation that selecting $d_3$ is the best option, therefore we
-need:
+need: %Wouter: this sentence is much too long and hard to follow. Can you rephrase it?
 
 \[
 \begin{array}{crcl}
@@ -939,31 +944,39 @@ need:
   \Leftrightarrow & \F{dist}\;x'\;y' & < & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y')
 \end{array}
 \]
+%Wouter I don't understand this iff and only iff -- is it a definition, lemma, assumption?
+
 
 In order to enforce this behavior on our diffing algorithm, we need to assign
 values to $c_\mu$ and $c_\oplus$ that respects:
 
 \[ \F{dist}\;x'\;y' < c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') < c_\oplus\;(i_j\;x')\;(i_k\;y') \]
 
-  Note that there are an infinite amount of definitions that would fit here.
-This is indeed a central topic of future work, as the \F{cost} function is what
-drives the diffing algorithm. So far we have calculated a relation between
-$c_\mu$ and $c_\oplus$ that will make the diff algorithm match in a top-down
-manner. That is, changes to the outermost type are seen as the heaviest changes.
-Different domains may require different relations. For a first generic
-implementation, however, this relation does make sense. Now is the time for
-finally assigning values to $c_\mu$ and $c_\oplus$ and the diffing algorithm is
-completed. We simply define the cost function in such a way that it has to
-satisfy the imposed constraints. Firstly we define the size of an element:
+Note that there are many definitions that satisfy the specification we
+have outlined above.  So far we have calculated a relation between
+$c_\mu$ and $c_\oplus$ that encourages the diff algorithm to favour
+(smaller) changes further down in the tree.
+
+
+To complete our definition, we still need to choose $c_\mu$ and
+$c_\oplus$. We simply define
+the cost function in such a way that it has to satisfy the imposed
+constraints. To do so, we begin by defining the size of an element:
 
   \Agda{Diffing/Universe/Measures}{sizeEl}
 
-  Finally, with $\F{costL} = sum \cdot map\; \F{cost$\mu$}$, we finish
-our \F{cost} function.
+  Finally, we define $\F{costL} = sum \cdot map\; \F{cost$\mu$}$. This completes the definition of the diff algorithm.
+%Wouter should sum and map be in this font?
 
   \Agda{Diffing/Patches/Diff/Cost}{cost-def}
   
   \Agda{Diffing/Patches/Diff/Cost}{costmu-def}
+
+  The choice of \F{cost} function determines how the diff algorithm
+  works; finding further evidence that the choice we have made here
+  works well in practice requires further work. Different domains may
+  require different relations.
+
 
 \subsection{Applying Patches}
 \label{sec:apply}
