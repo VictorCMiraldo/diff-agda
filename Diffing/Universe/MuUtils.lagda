@@ -137,3 +137,12 @@ returns the unused part of the children list.
                             (λ { (pop x) → refl }))) 
            (sym (plug-lvl-correct fz a))))
 \end{code} 
+
+\begin{code}
+  μ-arity-lemma
+    : {n : ℕ}{t : Tel n}{ty : U (suc n)}(x : ElU (μ ty) t)
+    → (i : Fin n) 
+    → arity-lvl i x ≡ arity-lvl (fs i) (μ-hd x) + Σ-ar-lvl (fs i) {! (μ-ch x)!}
+  μ-arity-lemma {n} {t} {ty} (mu x) i 
+    = arity-split-lemma {t = t} {ty = ty} {a = μ ty} i fz base x
+\end{code}

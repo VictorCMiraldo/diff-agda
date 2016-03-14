@@ -7,6 +7,8 @@ open import Diffing.Utils.Vector
 open import Relation.Binary.PropositionalEquality
 open import Data.List.Properties
     using (length-map; length-++; map-compose)
+open import Data.Nat.Properties.Simple
+    using (+-comm; +-assoc)
 
 module Diffing.Universe.Ops where
 \end{code}
@@ -33,6 +35,22 @@ Now we can start defining a few generic operations on terms.
   children-lvl i (red el)      = map unpop (children-lvl (fs i) el)
 \end{code}
 %</children-lvl>
+
+\begin{code}
+  childrenℕ : {n : ℕ}{t : Tel n}{a : U n} 
+            → (i : ℕ) → ElU a t 
+            → List (ElU (tel-lkup-ℕ i t) t)
+  childrenℕ i void = []
+  childrenℕ i (inl el) = childrenℕ i el
+  childrenℕ i (inr el) = childrenℕ i el
+  childrenℕ i (ela , elb) = childrenℕ i ela ++ childrenℕ i elb
+  childrenℕ zero (top el) = pop el ∷ []
+  childrenℕ (suc i) (top el) = map pop (childrenℕ i el)
+  childrenℕ zero (pop el) = []
+  childrenℕ (suc i) (pop el) = map pop (childrenℕ i el)
+  childrenℕ i (mu el) = map unpop (childrenℕ (suc i) el)
+  childrenℕ i (red el) = map unpop (childrenℕ (suc i) el)
+\end{code}
 
   A mmore usefull variant returning the immediate children.
 
@@ -412,3 +430,114 @@ Now we can start defining a few generic operations on terms.
              (plug-lvl-correct fz el)
 \end{code}
 
+  Arity and plugging lemmas
+
+begin{code}
+  ↑_ : {n : ℕ} → Fin n → Fin (suc n)
+  ↑ fz = fz
+  ↑ fs i = fs (↑ i)
+
+  δ : {n : ℕ} → Fin n → Fin n → Fin n
+  δ i fz = i
+  δ fz (fs j) = fz
+  δ (fs i) (fs j) = ↑ δ i j
+
+  -- Sum of arities.
+  Σ-ar-lvl : {n : ℕ}{t : Tel n}{a : U n}
+           → Fin n → List (ElU a t) → ℕ
+  Σ-ar-lvl i [] = 0
+  Σ-ar-lvl i (x ∷ xs) = arity-lvl i x + Σ-ar-lvl i xs
+
+  Σ-ar-unpop-lemma
+    : {n : ℕ}{t : Tel n}{ty : U n}{a : U n}
+    → (i : Fin n)(x : List (ElU (wk ty) (tcons a t)))
+    → Σ-ar-lvl (fs i) x ≡ Σ-ar-lvl i (map unpop x)
+  Σ-ar-unpop-lemma i [] = refl
+  Σ-ar-unpop-lemma i (pop x ∷ xs) 
+    = {!!} -- cong (λ P → arity-lvl i x + P) (Σ-ar-unpop-lemma i xs)
+
+  Σ-ar-pop-lemma
+    : {n : ℕ}{t : Tel n}{ty : U n}{a : U n}
+    → (i : Fin n)(x : List (ElU ty t))
+    → Σ-ar-lvl (fs i) (map (pop {a = a}) x) ≡ Σ-ar-lvl i x
+  Σ-ar-pop-lemma i [] = refl
+  Σ-ar-pop-lemma {a = a} i (x ∷ xs) 
+    = {!!} -- cong (λ P → arity-lvl i x + P) (Σ-ar-pop-lemma {a = a} i xs)
+
+  Σ-ar-++-commute
+    : {n : ℕ}{t : Tel n}{ty : U n}
+    → (i : Fin n)(xs ys : List (ElU ty t))
+    → Σ-ar-lvl i (xs ++ ys) ≡ Σ-ar-lvl i xs + Σ-ar-lvl i ys
+  Σ-ar-++-commute i [] ys = refl
+  Σ-ar-++-commute i (x ∷ xs) ys 
+    = trans (cong (λ P → arity-lvl i x + P) (Σ-ar-++-commute i xs ys))
+            (sym (+-assoc (arity-lvl i x) (Σ-ar-lvl i xs) (Σ-ar-lvl i ys)))
+
+  +-exch : (m n o p : ℕ)
+         → (m + n) + (o + p) ≡ (m + o) + (n + p)
+  +-exch m n o p = 
+    trans (sym (+-assoc (m + n) o p)) (
+      trans (cong (λ P → P + p) (+-assoc m n o)) (
+        trans (cong (λ P → m + P + p) (+-comm n o)) (
+          trans (cong (λ P → P + p) (sym (+-assoc m o n)))
+                (+-assoc (m + o) n p)
+          )))
+
+  data _≤-Fin_ : {n : ℕ} → Fin n → Fin n → Set where
+    base : ∀{n}{i : Fin (suc n)} → _≤-Fin_ {suc n} fz i
+    step : ∀{n}{i j : Fin n}
+         → i ≤-Fin j → fs i ≤-Fin fs j
+
+  δ-fs-lemma : {n : ℕ}(i : Fin n)(j : Fin (suc n))
+             → (j ≤-Fin (↑ i)) → ∃ (λ x → δ (fs i) j ≡ fs x)
+  δ-fs-lemma i fz hip = i , refl
+  δ-fs-lemma fz (fs j) ()
+  δ-fs-lemma (fs i) (fs j) (step hip) 
+    with δ-fs-lemma i j hip
+  ...| x' , prf rewrite prf = (↑ x') , refl
+
+  arity-split-lemma 
+    : {n : ℕ}{t : Tel n}{ty : U (suc n)}{a : U n}
+    → (i j : Fin n)(hip : j ≤-Fin i)(x : ElU ty (tcons a t))
+    → arity-lvl (fs i) x 
+    ≡ arity-lvl (fs i) (forget (↑ j) x) + Σ-ar-lvl (δ i j) (children-lvl j {!x!})
+  arity-split-lemma i j hip void = refl
+  arity-split-lemma i j hip (inl x) = arity-split-lemma i j hip x
+  arity-split-lemma i j hip (inr x) = arity-split-lemma i j hip x
+  arity-split-lemma i j hip (x , y) 
+    = {!!}
+  {-
+    rewrite Σ-ar-++-commute (δ i j) (children-lvl j x) (children-lvl j y)
+          | +-exch (arity-lvl (fs i) (forget j x)) (arity-lvl (fs i) (forget j y))
+                   (Σ-ar-lvl (δ i j) (children-lvl j x)) (Σ-ar-lvl (δ i j) (children-lvl j y))
+          = cong₂ _+_ (arity-split-lemma i j hip x)
+                      (arity-split-lemma i j hip y)
+  -}
+  arity-split-lemma i fz hip (top x) = sym (+-comm (arity-lvl i x) zero)
+  arity-split-lemma fz (fs j) () (top x)
+  arity-split-lemma {t = tcons t ts} (fs i) (fs j) (step hip) (top x) 
+    = {!!} -- trans (arity-split-lemma i j hip x) 
+        --    (cong (λ P → arity-lvl (fs i) (forget j x) + P) (sym (Σ-ar-pop-lemma (δ i j) (children-lvl j x))))
+  arity-split-lemma i fz hip (pop x) = sym (+-comm (arity-lvl i x) zero)
+  arity-split-lemma fz (fs j) () (pop x)
+  arity-split-lemma {t = tcons t ts} (fs i) (fs j) (step hip) (pop x)
+    = {!!} -- trans (arity-split-lemma i j hip x) 
+            -- (cong (λ P → arity-lvl (fs i) (forget j x) + P) (sym (Σ-ar-pop-lemma (δ i j) (children-lvl j x))))
+  arity-split-lemma i j hip (mu x) 
+    = trans (arity-split-lemma (fs i) (fs j) (step hip) x) 
+             {!!} -- (cong (λ P → arity-lvl (fs (fs i)) (forget (fs j) x) + P) 
+             --     (Σ-ar-unpop-lemma (δ i j) (children-lvl (fs j) x)))
+  arity-split-lemma i j hip (red x) 
+    = trans (arity-split-lemma (fs i) (fs j) (step hip) x) 
+            {!!} -- (cong (λ P → arity-lvl (fs (fs i)) (forget (fs j) x) + P) 
+                 -- (Σ-ar-unpop-lemma (δ i j) (children-lvl (fs j) x)))
+
+  arity-split-lemma-fz
+    : {n : ℕ}{t : Tel n}{ty : U (suc n)}{a : U n}
+    → (i : Fin n)(x : ElU ty (tcons a t))
+    → arity-lvl (fs i) x 
+    ≡ arity-lvl (fs i) (term-hd x) + Σ-ar-lvl i (children x)
+  arity-split-lemma-fz {n} {t} {ty} {a} i x 
+    = {!δ i fz!}
+
+end{code}

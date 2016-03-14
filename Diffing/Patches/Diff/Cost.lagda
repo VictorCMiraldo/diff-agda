@@ -47,10 +47,6 @@ module Diffing.Patches.Diff.Cost where
   With this in mind, we implement the cost function as follows:
 
 \begin{code}
-  sum : ∀{a}{A : Set a}(f : A → ℕ)
-      → List A → ℕ
-  sum f = foldr (λ h r → f h + r) 0
-
   mutual
     {-# TERMINATING #-}
 \end{code}
@@ -70,7 +66,7 @@ module Diffing.Patches.Diff.Cost where
     cost (D-mu l)  = costL l
 
     costL : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Patchμ t ty → ℕ
-    costL = sum costμ
+    costL = sum ∘ map costμ
 
     costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ (const (const ⊥)) t ty → ℕ
     costμ (Dμ-A ())

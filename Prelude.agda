@@ -33,7 +33,8 @@ module Prelude where
 
   open import Data.Fin
     using (Fin; fromℕ; fromℕ≤; toℕ)
-    renaming (zero to fz; suc to fs)
+    renaming (zero to fz; suc to fs;
+              inject+ to finject; raise to fraise)
     public
 
   open import Data.Fin.Properties
@@ -43,7 +44,8 @@ module Prelude where
 
   open import Data.List
     using (List; _∷_; []; map; _++_; zip; filter;
-           all; any; concat; foldr; reverse; length)
+           all; any; concat; foldr; reverse; length;
+           sum)
     public
 
   open import Data.Product

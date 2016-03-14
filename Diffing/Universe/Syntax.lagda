@@ -59,6 +59,15 @@ as these allow an easier syntatical handling of terms of U.
 \end{code}
 %</tel-lkup>
 
+%<*tel-lkup-nat>
+\begin{code}
+  tel-lkup-ℕ : {n : ℕ} → ℕ → Tel n → U n
+  tel-lkup-ℕ n tnil              = u0
+  tel-lkup-ℕ zero (tcons x t)    = wk x
+  tel-lkup-ℕ (suc n) (tcons x t) = wk (tel-lkup-ℕ n t)
+\end{code}
+%</tel-lkup-nat>
+
 %<*tel-forget>
 \begin{code}
   tel-forget : {n : ℕ} → Fin n → Tel n → Tel n
