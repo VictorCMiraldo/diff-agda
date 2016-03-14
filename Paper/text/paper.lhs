@@ -192,8 +192,9 @@
 \preprintfooter{some information here...}
 \titlebanner{DRAFT}
 
-\title{Structural Diffing}
-\subtitle{Calculating a structure aware version control system in Agda}
+\title{Structure-aware version control}
+\subtitle{A generic approach using Agda}
+%Wouter: I changed the title -- is this better?
 
 \authorinfo{Victor Cacciari Miraldo \and Wouter Swierstra}
   {University of Utrecht}
@@ -1036,22 +1037,29 @@ constraints. To do so, we begin by defining the size of an element:
 \subsection{Applying Patches}
 \label{sec:apply}
 
-  At this stage we are able to: work generically on a suitable universe; describe
-how elements of this universe can change and compute those changes. In order to
-make our framework useful, though, we need to be able to apply the patches we
-compute. The application of patches is easy, thus we only
-show the implementation for coproducts and fixed points here. The rest is very
-straightforward.
+Although we have now defined an algorithm to \emph{compute} a patch,
+we have not yet defined a function to apply a patch to a given
+structure.  For the most part, the generic function that does this is
+fairly straightforward. We will cover two typical cases, coproducts
+and fixed points, in some detail here.
 
-  Patch application is a partial operation, however. A patch over $T$ is an object that
-describe possible changes that can be made to objects of type $T$. The
-high-level idea is that diffing two objects $t_1 , t_2 : T$ will produce a patch
-over $T$, whereas applying a patch over $T$ to an object will produce a
-$Maybe\;T$. It is interesting to note that application can not be made total.
-Let's consider $T = X + Y$, and now consider a patch $(Left\; x) \xrightarrow{p}
-(Left\; x')$. What should be the result of applying $p$ to a $(Right\; y)$? It
-is undefined!
+A patch over $T$ is an object that describe possible changes that can
+be made to objects of type $T$. The high-level idea is that diffing
+two objects $t_1 , t_2 : T$ will produce a patch over $T$.  Consider
+the case for coproducts, that is, $T = X + Y$. Suppose we have a patch
+$p$ modifying one component of the coproduct, mapping $(\mathit{Left}\; x)$ to
+$(\mathiit{Left}\; x')$. What should be the result of applying $p$ to the value
+$(\mathit{Right}\; y)$? As there is no sensible value that we can return, we
+instead choose to make the application of patches a partial function
+that returns a value of $\mathit{Maybe}~T$. %Wouter: Do you want to use Left/Rigt or inl/inr here?
 
+% Wouter -- is it worth moving some of the explanation here, rather
+% than after the code? At the moment the big dump of code may be a bit
+% daunting for the reader. Or at least, perhaps split the gapply and
+% gapplyL functions. At the moment the connection between code and
+% explanation is a bit lost.
+
+The definition of the \F{gapply} function proceeds by induction on the patch:
   \begin{agdacode}
   \AgdaRaw{Diffing/Patches/Diff}{gapply-type}
   \AgdaRaw{Diffing/Patches/Diff}{gapply-sum-def}
@@ -1063,26 +1071,30 @@ is undefined!
   
   Where \F{<\$>} is the applicative-style application for the \emph{Maybe} monad;
 \RF{>>=} is the usual bind for the \emph{Maybe} monad and \F{safeHead} is the 
-partial head function with type |[a] -> Maybe a|. In \F{gapplyL}, we have
-a \F{gIns} function, which will get a value and a list of children of a
+partial function of type |[a] -> Maybe a| that returns the first element of a list, when it exists. 
+Despite the numerous cases that must be handled, the definition of \F{gapply} for coproducts
+is reasonably straightforward.
+For example, consider the case for the \IC{D-setl} constructor, which is expecting 
+to transform an $\IC{inl}\; x$ into a $\IC{inr}\;y$. Upon receiving a
+\IC{inl} value, we need to check whether or not its contents are equal to $x$.
+If this holds, we can simply return $\IC{inr}\; y$ as intended. If not, we fail and return nothing. %Wouter nothing font?
+Similarly, in the branch for $\IC{D-inl}\;diff$, we see that
+it only succeeds upon receiving a $\IC{inl}\;x$.
+
+The case for fixed points is handled by the \F{gapplyL} function. This function uses
+an auxiliar function, \F{gIns}, that will get a value and a list of children of a
 fixed point, will try to \F{$\mu$-close} it and add the result to the
-head of the remaining list. On the other hand, \F{gDel} will \F{$\mu$-open}
+head of the remaining list.
+On the other hand, \F{gDel} will \F{$\mu$-open}
 the head of the received list and compare its value with the received value,
 if they are equal it returns the tail of the input list appended to its children,
 if they are not equal it returns \IC{nothing}.
 
-  Instead of presenting an example, lets provide some intuition for our \F{gapply} function.
-Looking at the \IC{D-setl} case, for instance. $\F{gapply}\;(\IC{D-setl}\;x\;y)$ is expecting
-to transform a $\IC{inl}\; x$ into a $\IC{inr}\;y$. Upon receiving a
-\IC{inl} value, we need to check whether or not its contents are equal to $x$.
-If they are, we are good to go. If not, we have to return nothing as we cannot possibly
-know what to do. If we look instead on the $\IC{D-inl}\;diff$ branch, we see that
-it only succeeds upon receiving a $\IC{inl}\;x$, given that $\F{gapply}\;diff$ succeeds in
-modifying $x$.
+% Wouter the two sentences above are long and hard to
+% follow... Example/Intuition? Presumably, it has to do with
+% inserting/deleting children of a fixed point.
 
-  The important part of application, nevertheless, is that it must produce the 
-expected result. A correctness result guarantees that. Its
-proof is too big to be shown here but it has type:
+Given this definition of \F{gapply}, we can now formally prove the following property:
 
   \Agda{Diffing/Postulated}{gdiff-correctness}
   
@@ -1094,9 +1106,8 @@ transitivity with \F{correctness} and the following lemma:
   \Agda{Diffing/Patches/Diff/Inverse}{D-inv-sound-type}
   
   We have given algorithms for computing and applying differences over
-elements of a generic datatype. Moreover, we proved our algorithms are correct
-with respect to each other. This functionality is necessary for constructing
-a version control system, but it is by no means sufficient!
+  elements of a generic datatype. For a structure aware version
+  control tool, however, we will also need to reconcile different changes.
    
 \section{Patch Propagation}
 \label{sec:residual}
