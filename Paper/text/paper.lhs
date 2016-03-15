@@ -1112,29 +1112,29 @@ transitivity with \F{correctness} and the following lemma:
 \section{Patch Propagation}
 \label{sec:residual}
 
-  In a nutshell, any version control system must accomplish two tasks: (A) we
-need to be able to produce and apply patches and (B) we need to be able to merge
-different, concurrent, changes made to the same object. We have taken care of
-task (A) in the previous sections, and even though current VCS tools already
-excel at obtaining patches, there is a big lack of tools excelling at (B), that
-is, merging patches. All the structural information we are using in task (A) is,
-in fact, providing a lot more to help us at task (B), as we shall discuss in
-this section.
+A version control system must handle three separate tasks: it must
+produce patches, based on the changes to a file; it must apply patches
+to a file; and, finally, it must merge patches made to the same
+file. In the previous section, we defined generic algorithms for
+creating and applying patches. In this section, we turn our attention
+to the final point: merging different patches. It is precisely here
+that we expect to be able to exploit the structure of files to avoid
+unneccessary conflicts.
 
-  The task of merging changes arise when we have multiple users changing the
-same file at the same time. Imagine Bob and Alice perform concurrent edits in an
-object $A_0$, which are captured by patches $p$ and $q$. The center of the
-repository needs to keep only one copy of that object, but upon receiving the
-changes of both Bob and Alice we have:
+The task of merging changes arise when we have multiple users changing
+the same file at the same time. Imagine Bob and Alice perform edits on
+a file $A_0$, resulting in two patches $p$ and $q$. We might visualise
+this situation in the following diagram:
 
   \[ \xymatrix{ A_1 & A_0 \ar[l]_{p} \ar[r]^{q} & A_2} \]
 
-  Our idea, inspired by \cite{Tieleman2006}, is to incorporate the changes
-expressed by $p$ into a new patch, namely one that is aimed at being applied
-somewhere already changed by $q$, and vice-versa, in such a way that they
-converge. We call this the residual patch. The diagram in figure
-\ref{fig:residual} illustrates the result of merging $p$ and $q$ through
-propagation.
+  Our idea, inspired by \cite{Tieleman2006},
+%Wouter: don't use \cite as a noun. Instead, inspired by Tieleman(2006) or inspired by existing work on X...
+  is to incorporate the changes made by $p$ into a new patch, that may
+  be applied to $A_2$ which we will call the residual of $p$ after
+  $q$, denoted by $q/p$. Similarly, we can compute the residual of
+  $p/q$.  The diagram in figure \ref{fig:residual} illustrates the
+  result of merging the patches $p$ and $q$ using their respective residuals:
   
   \begin{figure}[h]
   \begin{displaymath}
@@ -1152,22 +1152,29 @@ propagation.
 notion of incorporating the changes made by $p$ in an object that has already
 been modified by $q$. 
 
-  In an ideal world, we would expect the residual function to have type
+Ideally, we would hope the residual function to have type
 $\F{Patch}\;t\;ty \rightarrow \F{Patch}\;t\;ty \rightarrow \F{Patch}\;t\;ty$.
-Real life is more complicated. To begin with, it only makes sense to compute the
+Unfortunately, we cannot define a total notion of residual as it only makes sense to compute the
 residual of patches that are \emph{aligned}, that is, they can be applied to the
-same input. For this, we make the residual function partial though the |Maybe|
+same input. Hence, we make the residual function partial though the |Maybe|
 monad: $\F{Patch}\;t\;ty \rightarrow \F{Patch}\;t\;ty \rightarrow
 \F{Maybe}\;(\F{Patch}\;t\;ty)$ and define two patches to be aligned if and only
-if their residual returns a \IC{just}.
+if their residual returns a \IC{just}. %Wouter: I understand that this
+% is your definition of aligned. Do you have a simple example showing
+% that trying to compute the residual of non-aligned patches fails?
+% Longer term question: should patches track the source value in their
+% type? That way we can rule out non-alignment issues a priori.
+
+Even if we restrict ourselves to a partial residual function, there
+may be other issues that arise. In particular, suppose that both Bob
+and Alice change the same cell in the CSV file. There is no reason to
+favour one particular change over another. In that case, we report a
+\emph{conflict} and leave it to the end user to choose which value to
+use final result.
   
-  Partiality solves just a few problems, what if, for instance, Bob and Alice
-changes the same cell in their CSV file? Then it is obvious that someone (human)
-have to chose which value to use in the final, merged, version. 
-  
-  For this illustration, we will consider the conflicts that can arise from
+  We will now consider the different kinds of conflicts that can arise from
 propagating the changes Alice made over the changes already made by Bob, that
-is, $p_{Alice} / p_{Bob}$.
+is in computing the residual $p_{Alice} / p_{Bob}$.
   
   \begin{itemize}
     \item If Alice changes $a_1$ to $a_2$ and Bob changed $a_1$ to $a_3$,
@@ -1183,75 +1190,95 @@ is, $p_{Alice} / p_{Bob}$.
     \item If both Alice and Bob add different information to a fixed-point,
           a \emph{grow-left-right} conflict arises;        
   \end{itemize}
-  
+  % Wouter: can you instantiate grow-left/grow-right/grow-left-right
+  % conflicts to CSV files to provide some intuition? When are grow-l
+  % and grow-r updates really unresolvable conflicts?
   Most of the readers might be familiar with the \emph{update-update},
-\emph{delete-update} and \emph{update-delete} conflicts, as these are the 
-most straight forward to be recognized as conflicts. We refer to these
-conflicts as \emph{update} conflicts. 
+  \emph{delete-update} and \emph{update-delete} conflicts, as these
+  are familiar from existing version control systems. We refer to
+  these conflicts as \emph{update} conflicts.
 
   The \emph{grow} conflicts are slightly more subtle. This class of conflicts
 corresponds to the \emph{alignment table} that \emph{diff3}
 calculates \cite{Khanna2007} before deciding which changes go where. The idea is
 that if Bob adds new information to a file, it is impossible that Alice changed
 it in any way, as it was not in the file when Alice was editing it, we then flag
-it as a conflict. The \emph{grow-left} and \emph{grow-right} are easy to handle,
+it as a conflict. %Wouter: this sentence seems to suggest that it's *not* a conflict, yet you say you flag it as a conflict.
+The \emph{grow-left} and \emph{grow-right} are easy to handle,
 if the context allows, we could simply transform them into actual insertions or copies.
+%Wouter: 'we *could* simply transform them' suggests that you don't
 They represent insertions made by Bob and Alice in \emph{disjoint} places of the structure.
 A \emph{grow-left-right} is more complex, as it corresponds to a overlap and we
 can not know for sure which should come first unless more information is provided.
-  From the structure in our patch-space, we can already separate conflicts by
-the types they can occur on. An \emph{update-update} conflict has to happen on a
-coproduct type, for it is the only type which \F{Patch}es over it can have
-multiple different options, whereas the rest are restricted to fixed-point types. In Agda,
+As our patch data type is indexed by the types on which it operates, we can distinguish conflicts
+according to the types on which they may occur. For example, an \emph{update-update} conflict must occur on a
+coproduct type, for it is the only type for which \F{Patch}es over it can have
+different inhabitants. The other possible conflicts must happen on a fixed-point. In Agda, we can therefore
+define the following data type describing the different possible conflicts that may occur:
   
   \Agda{Diffing/Patches/Conflicts}{C-def}
       
 \subsection{Incorporating Conflicts}
 \label{sec:conflicts}
 
-  In order to track down these conflicts we need a more expressive patch data
-structure. We exploit $D$'s parameter for that matter. This approach has the
-advantage of separating conflicting from conflict-free patches on the type level,
-guaranteeing that we can only \emph{apply} conflict-free patches.
+Although we now have fixed the data type used to represent conflicts,
+we still need to define our residual operator. As we discussed
+previously, the residual will return a new patch, but may fail in two
+possible ways. If the input patches are not aligned, we will return
+nothing; if there is a conflict, we will record the precise location
+of the conflict using the \IC{D-A} constructor. In this fashion, we
+have separate types to distinguish between patches without conflict
+and patches arising from our residual computation containing
+unresolved conflicts.
 
-  The final type of our residual\footnote{Our residual operation does not form a
-residual as in the Term Rewriting System sense\cite{Bezem2003}. It might,
-however, satisfy interesting properties. This is left as future work for now}.
+The final type of our residual %Wouter: I've removed the footnote. Try
+% to avoid footnotes (it breaks the flow of text and looks 'ugly' and
+% is usually discouraged by the publisher
 operation is:
   
   \Agda{Diffing/Patches/Residual}{residual-type}
   
-  We reiterate that the partiality comes from the fact the residual is not
-defined for non-aligned patches. The whole function is too big to be shown here,
-but explaining one of its cases can provide valuable intuition.
+  We reiterate that the partiality comes from the fact the residual is
+  not defined for non-aligned patches. Instead of displaying the
+  entire Agda definition, we will discuss the key branches in some
+  detail. We begin by describing the branch when one patch enters a
+  fixed-point, but the other deletes it:
 
   \Agda{Diffing/Patches/Residual}{res-dwn-del-case}
   
   Here we are computing the residual:
-\[ (P_x = \DmuDwn dx \cons dp) / (P_y = \DmuDel y \cons dq) \]
+\[ (\DmuDwn dx \cons dp) / (\DmuDel y \cons dq) \]
 
-We want to describe how to apply the $P_x$ changes to an object
-that has been modified by the $P_y$ patch. Note the order is important!
+We want to describe how to apply the changes $\DmuDwn dx \cons dp)$ to a structure
+that has been modified by the patch $\DmuDel y \cons dq$. Note that the order is important.
 The first thing we do is to check whether or not the patch $dx$ can be applied to $y$.
-If we can not apply $dx$ to $y$, then patches $P_x$ and $P_y$ are non-aligned, we
-then simply return \IC{nothing}. If we can apply $dx$ to $y$, however, this will
-result in an object $y'$. We then need to compare $y$ to $y'$, as if they are
-different we are in a \IC{UpdDel} conflict situation. If they are equal, then $dx$
-is just $\F{diff-id}\; y$, that is, no changes were performed. To extend this to 
-be applied to the object were $y$ was deleted we simply suppress the $\DmuDel$ and 
-continue recursively. The remaining cases follow a similar reasoning process.  
+If we can not apply $dx$ to $y$, then these two patches are not aligned, and we
+simply return \IC{nothing}. If we can apply $dx$ to $y$, however, this will
+result in a new structure $y'$. We then need to compare $y$ to $y'$. If they are
+different we have an update-delete conflict, signaled by \TODO{D-mu-A (UpdDel y' y)}. If they are equal, then $dx$
+is the identity patch, and no new changes were introduced. Hence we can
+simply suppress the deletion, $\DmuDel$, and 
+continue recursively. The remaining cases follow a similar reasoning.
+%Wouter can we list all the different cases? Or is even that too much work?
+%Wouter it would be good to at least hint at the general specification/principle that
+% is used in the other branches. This is one of the main contributions of your work and deserves a more comprehensive presentation.
 
   The attentive reader might have noticed a symmetric structure on conflicts.
-This is not at all by chance. In fact, we can prove that the residual of $p / q$
-have the same (modulo symmetry) conflicts as $q / p$. This proof goes in two
-steps. Firstly, \F{residual-symmetry} proves that if $p$ and $q$ are aligned,
-that is, $p / q \equiv \IC{just}\;k$ for some $k$, then there exists a function
-$op$ such that $q / p \equiv \IC{just}\;(\F{D-map}\;\F{C-sym}\; (op\;k))$. We
-then prove, in \F{residual-sym-stable} that this function $op$ does not
-introduce any new conflicts, it is purely structural. This could be made into a
-single result by proving that the type of $op$ actually is $\forall A\; .\;
-\F{D}\;A\;t\;ty \rightarrow \F{D}\;A\;t\;ty$, we chose to split it for improved
-readability.
+This is no coincidence. In fact, we can prove that the residual of $p / q$
+have the same conflicts as $q / p$:
+
+%Wouter I'm commenting out the proof sketch here. It's not too important -- I'd focus more
+%on providing some intuition for the residuals -- your readers will be happy to believe this 
+%lemma holds.
+%  This proof goes in two
+% steps. Firstly, \F{residual-symmetry} proves that if $p$ and $q$ are aligned,
+% that is, $p / q \equiv \IC{just}\;k$ for some $k$, then there exists a function
+% $op$ such that $q / p \equiv \IC{just}\;(\F{D-map}\;\F{C-sym}\; (op\;k))$. We
+% then prove, in \F{residual-sym-stable} that this function $op$ does not
+% introduce any new conflicts, it is purely structural. This could be made into a
+% single result by proving that the type of $op$ actually is $\forall A\; .\;
+% \F{D}\;A\;t\;ty \rightarrow \F{D}\;A\;t\;ty$, we chose to split it for improved
+% readability.
   
   \Agda{Diffing/Patches/Residual/Symmetry}{residual-symmetry-type}
   
@@ -1260,20 +1287,25 @@ readability.
   Here \F{$\downarrow-map-\downarrow$} takes care of hiding type indexes and
 \F{forget} is the canonical function with type $\F{D}\;A\;t\;ty \rightarrow
 \F{List}\;(\F{$\downarrow$}\; A)$, \F{$\downarrow\_$} encapsulates the type indexes of
-the different $A$'s we might come across.
+the different $A$'s we might come across. %Wouter: this is quite heavy
+% notation... Is there some short intuitive formulation of the second
+% property that suffices?
     
-  Now, we can compute both $p / q$ and $q / p$ at the same time. It also backs
-up the intuition that using residuals or patch commutation (as in Darcs) is not
-significantly different. This means that $p / q$ and $q / p$, although
-different, have the same conflicts (up to conflict symmetry).
+This lemma provides further evidence that the usage of res or patch
+commutation (as proposed by some version control systems such as
+Darcs\TODO{Add reference}) are not significantly different. This means
+that the $p / q$ and $q / p$, although different, have symmetrical conflicts.
+
 
 \paragraph*{Merge Strategies}
 
-  By looking at the type of \emph{residual} we see that figure
-\ref{fig:residual} does not really reflect what really happens with residuals. A
-more accurate picture is given in figure \ref{fig:residualreal}, where $op$ is
-the function obtained by \F{residual-symmetry} and $e$ is a special patch, lets
-call it a \emph{merge strategy} for now.
+When the residual operation manages to merge two patches, without
+introducing conflicts, we require no further user interaction. When
+the calculation of a residual does introduce conflicts, however, we
+need further information to eliminate these conflicts and produce a
+pair of conflict-free patches. We can visualise this situation as
+follows:
+
 
   \begin{figure}[h]
   \begin{displaymath}
@@ -1287,64 +1319,80 @@ call it a \emph{merge strategy} for now.
   \caption{Residual patch square}
   \label{fig:residualreal}
   \end{figure}
+  % Wouter: this diagram is a little misleading. P1/2 and P2/1 are not
+  % really a valid states.
+
     
-  Note that $P_{1/2}$ and $P_{2/1}$ are not really objects, as we can not apply
-a patch with conflicts. They are patches with conflicts. In order to more clearly
-discuss what is going on let us take a closer look at the types of the left path
-from $A_0$ to $A_3$. We assume that $p , q : \F{Patch} A$ and $hip : q / p \equiv
-\IC{just}\; k$ for some $k$, for the rest of this section. 
+  Note that, as we can only apply patches without conflicts, $P_{1/2}$
+  and $P_{2/1}$ are not valid structures. Instead, we would like to
+  find suitable conflict resolutions that allow us to extend $q/p$ and
+  $p/q$ to yield conflict-free patches. What information do we need to
+  resolve any conflicts? 
+% Manipulating the types of
+% the functions we have defined so far yields:
 
-  In order to merge things, that is, to compute patches $p'$ and $q'$ that can be
-applied to $A_1$ and $A_2$ and produce the same $A_3$ we need to figure out what
-the aforementioned \emph{merge strategy} actually is. Playing around with the types of
-our already defined functions we have:
+% \newcommand{\marr}[1]{\xrightarrow{\mathmakebox[6em]{#1}}}
+% \begin{eqnarray*}
+%   A & \marr{\text{flip}\; \F{gdiff}\; A_1} & \F{Patch}\;A \\
+%     & \marr{(q /)} & \F{Maybe}\;(\F{PathC}\; A) \\
+%     & \marr{\F{fromJust}\;hip} & \F{PatchC}\;A \\
+%     & \marr{e} & \F{B}\;(\F{Patch}\;A)    
+% \end{eqnarray*}
 
-\newcommand{\marr}[1]{\xrightarrow{\mathmakebox[6em]{#1}}}
-\begin{eqnarray*}
-  A & \marr{\text{flip}\; \F{gdiff}\; A_1} & \F{Patch}\;A \\
-    & \marr{(q /)} & \F{Maybe}\;(\F{PathC}\; A) \\
-    & \marr{\F{fromJust}\;hip} & \F{PatchC}\;A \\
-    & \marr{e} & \F{B}\;(\F{Patch}\;A)    
-\end{eqnarray*}
+%   By assumption and the types above, we see that a suitable type for the
+% \emph{merge strategy} $e$ would be $\F{PatchC}\;A \rightarrow
+% \F{B}\;(\F{Patch}\;A)$ for some behavior monad \F{B}. An interactive merge
+% strategy would have $\F{B} = |IO|$, a partial merge strategy would have $\F{B} =
+% \F{Maybe}$, etc. We can see that the design space is huge in order to define how
+% to merge patches. Ideally we would like to have a library of \emph{mergers} and
+% a calculus for them, such that we can prove lemmas about the behavior of some
+% \emph{merge strategies}, that is, a bunch of \emph{mergers} combined using
+% different operators. Remember that \F{D} makes a free-monad, therefore it also
+% makes a functor. For we have the equivalent mapping of a function on a
+% \F{D}-structure, denoted by $\F{D-map}$.
 
-  By assumption and the types above, we see that a suitable type for the
-\emph{merge strategy} $e$ would be $\F{PatchC}\;A \rightarrow
-\F{B}\;(\F{Patch}\;A)$ for some behavior monad \F{B}. An interactive merge
-strategy would have $\F{B} = |IO|$, a partial merge strategy would have $\F{B} =
-\F{Maybe}$, etc. We can see that the design space is huge in order to define how
-to merge patches. Ideally we would like to have a library of \emph{mergers} and
-a calculus for them, such that we can prove lemmas about the behavior of some
-\emph{merge strategies}, that is, a bunch of \emph{mergers} combined using
-different operators. Remember that \F{D} makes a free-monad, therefore it also
-makes a functor. For we have the equivalent mapping of a function on a
-\F{D}-structure, denoted by $\F{D-map}$.
+%   A simple pointwise \emph{merge strategy} can be defined for a \emph{merger} $m
+% : \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$, which can now be
+% mapped over $\DCtty$ pointwise on its conflicts. We end up with an object of
+% type $\F{D}\;(\F{D}\;\F{$\bot_p$})\;t\;ty$. This is not a problem, however,
+% since the free-monad structure on \F{D} provides us with a multiplication $\mu_D
+% : \F{D}\;(\F{D}\;A)\;t\;ty \rightarrow \F{D}\;A\;t\;ty$. Therefore, 
+% \[
+% merge_{pw}\;m : \DCtty \xrightarrow{\mu_D \cdot \F{D-map}\; m} \Patchtty 
+% \]
+% would be one possible \emph{merge strategy} using the \emph{merger} $m$ for
+% removing the conflicts of a patch. Mapping a \emph{merger} over the conflicting
+% patch is by far not the only possible way of walking the tree, as we shall see
+% in section \ref{sec:haskell}. This opens up a lot of very interesting questions
+% and paves the road to defining conflict resolution combinators. Allowing for a
+% great degree of genericity in the base framework.
 
-  A simple pointwise \emph{merge strategy} can be defined for a \emph{merger} $m
-: \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$, which can now be
-mapped over $\DCtty$ pointwise on its conflicts. We end up with an object of
-type $\F{D}\;(\F{D}\;\F{$\bot_p$})\;t\;ty$. This is not a problem, however,
-since the free-monad structure on \F{D} provides us with a multiplication $\mu_D
-: \F{D}\;(\F{D}\;A)\;t\;ty \rightarrow \F{D}\;A\;t\;ty$. Therefore, 
-\[
-merge_{pw}\;m : \DCtty \xrightarrow{\mu_D \cdot \F{D-map}\; m} \Patchtty 
-\]
-would be one possible \emph{merge strategy} using the \emph{merger} $m$ for
-removing the conflicts of a patch. Mapping a \emph{merger} over the conflicting
-patch is by far not the only possible way of walking the tree, as we shall see
-in section \ref{sec:haskell}. This opens up a lot of very interesting questions
-and paves the road to defining conflict resolution combinators. Allowing for a
-great degree of genericity in the base framework.
+% Wouter it took me a while to read this series of arrows.  Could you
+% not say that you essentially need to map all the conflicts in a
+% patch to some choice of patch? That would be much clearer, I think.
+
+  Recall that all our conflicts are recorded in the type parameter of
+  our patch data type. If we had a function
+  $m : \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$, that
+  explained how conflicts must be resolved, we could map this over
+  $\DCtty$, yielding a value of type
+  $\F{D}\;(\F{D}\;\F{$\bot_p$})\;t\;ty$. Applying the monadic join,
+  would then yield a valid patch. We hope that this provides a
+  suitable hook for end-users to provide domain specific knowledge,
+  allowing better heuristics or interactive user dialogue, to resolve
+  conflicts (semi)automatically.
 
 \section{The Haskell Prototype}
 \label{sec:haskell}
 
   In sections \ref{sec:cf} and \ref{sec:residual} we have layered the foundations
-for creating a generic, structure aware, version control system. We proceed by illustrating
-these ideas with a prototype in Haskell, with an emphasis on its extended capability
-of handling non-trivial conflicts. A great advantage of using $\CF$ as a universe is
-that we are able to do generic-programming via typeclasses in Haskell.
+for creating a generic, structure aware, version control system. We proceed by demonstrating
+how these ideas may be implemented in a Haskell prototype, with an emphasis on its extended capability
+of handling non-trivial conflicts. A great advantage of our choice of type universe is
+that we it closely follows the traditional `sums-of-products' view of Haskell data types,
+and can be readily transcribed to typeclasses in Haskell.
 
-  The user has access to a typeclass |Diffable a|, which gives the basic diffing
+The central type class in our prototype is |Diffable|, that gives the basic diffing
 and merging functionality for objects of type |a|:
 
 \vskip .5em
