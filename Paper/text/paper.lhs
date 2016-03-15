@@ -883,7 +883,7 @@ constructors to their dual counterpart. We will hence assign a cost $c_\oplus =
 \IC{D$\mu$-ins} = \F{cost } \IC{D$\mu$-del}$. This guarantees the second property by construction.
 If we define $c_\mu$ and $c_\oplus$ as constants, however,
 the cost of inserting a small subtree will have the same cost as inserting a very large subtree.
-This is probably undesirable and may lead to unexpected behaviour. Instead of constants, $\c_\oplus$ and $c_\mu$,
+This is probably undesirable and may lead to unexpected behaviour. Instead of constants, $c_\oplus$ and $c_\mu$,
 we will instead try to define a pair of functions,
 $c_\oplus\;x\;y = \F{cost }(\IC{D-setr}\;x\;y) = \F{cost }(\IC{D-setl}\;x\;y)$ and
 $c_\mu\;x = \F{cost }(\IC{D$\mu$-ins}\;x) = \F{cost }(\IC{D$\mu$-del}\;x)$, that may take
@@ -1048,11 +1048,11 @@ A patch over $T$ is an object that describe possible changes that can
 be made to objects of type $T$. The high-level idea is that diffing
 two objects $t_1 , t_2 : T$ will produce a patch over $T$.  Consider
 the case for coproducts, that is, $T = X + Y$. Suppose we have a patch
-$p$ modifying one component of the coproduct, mapping $(\mathit{Left}\; x)$ to
-$(\mathiit{Left}\; x')$. What should be the result of applying $p$ to the value
-$(\mathit{Right}\; y)$? As there is no sensible value that we can return, we
+$p$ modifying one component of the coproduct, mapping $(\IC{inl}\; x)$ to
+$(\IC{inl}\; x')$. What should be the result of applying $p$ to the value
+$(\IC{inr}\; y)$? As there is no sensible value that we can return, we
 instead choose to make the application of patches a partial function
-that returns a value of $\mathit{Maybe}~T$. %Wouter: Do you want to use Left/Rigt or inl/inr here?
+that returns a value of $\F{Maybe}~T$. %Wouter: Do you want to use Left/Rigt or inl/inr here?
 
 % Wouter -- is it worth moving some of the explanation here, rather
 % than after the code? At the moment the big dump of code may be a bit
