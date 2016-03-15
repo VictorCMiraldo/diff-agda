@@ -1661,30 +1661,38 @@ tool behaves.
 
 \section{Summary, Remarks and Related Work}
 
-  On this paper we presented our approach to solving the generic diffing
-problem. We provided the theoretical foundations and created a Haskell prototype
-applying the proposed concepts. The diffing API can be made ready for all
-Haskell types, out of the box, with some simple Template Haskell, as all we need
-is the derivation of two trivial instances. We have also shown how this approach
-allows one to fully specialize conflict resolution for the domain in question.
-The work of L\"{o}h\cite{Loh2009} and Vassena\cite{Vassena2015} are the most
-similar to our. We use a drastically different definition of patches, in order
-to have room for experimenting with conflict resolution.
+On this paper we presented a novel approach to version control
+systems, enhancing the diff and merge algorithms with information
+about the structure of data under control.  We provided the
+theoretical foundations and created a Haskell prototype, demonstrating
+the viability of our approach. Our algorithms can be readily applied
+to any algebraic data type in Haskell, as these can all be represented
+in our type universe.  We have also shown how this approach allows one
+to define custom conflict resolution strategies, such as those that
+attempt to recognise the copying of subtrees. The work of Lempsink et al.~\cite{Loh2009} and
+Vassena~\cite{Vassena2015} are the most similar to our. We use a
+drastically different definition of patches to have more freedom in
+defining conflict resolution strategies. %Wouter it would be better to
+                                         %motivate the choice for
+                                         %different patch more
+                                         %clearly. What are the
+                                         %pros/cons of the different
+                                         %approaches?
 
-  Below we give a short comparison with other related work.
+There are several pieces of related work that we would like to mention here:
 
   \begin{description}
     \item[Antidiagonal] Although easy to be confused with the diff problem,
       the antidiagonal is fundamentally different from the diff/apply
-      specification. In \cite{Piponi2007}, the antidiagonal for a type $T$ is
-      defined as a type $X$ such that there exists $X \rightarrow T^2$. That is,
+      specification. Piponi~\cite{Piponi2007} defines the antidiagonal for a type $T$ %Wouter perhaps use \citet and natbib to give nicer citations?
+      as a type $X$ such that there exists $X \rightarrow T^2$. That is,
       $X$ produces two \textbf{distinct} $T$'s, whereas a diff produces a $T$
       given another $T$. 
     
     \item[Pijul]
       The VCS Pijul is inspired by \cite{Mimram2013}, where they use the 
       free co-completion of a category to be able to treat merges as
-      pushouts. In a categorical setting, the residual square (figure \ref{fig:residual})
+      pushouts. In a categorical setting, the residual square (Figure \ref{fig:residual})
       looks like a pushout. The free co-completion is used to make sure that for
       every objects $A_i$, $i \in \{0 , 1 , 2 \}$ the pushout exists. Still, the base
       category from which they build their results still handles files as a list
@@ -1700,16 +1708,14 @@ to have room for experimenting with conflict resolution.
       shortcoming for it handles files as lines of text and disregards their
       structure. 
   \end{description}
-  
-  Finally, we address some issues and their respective solutions to the
-work done so far before concluding. The implementation of these solutions and the
-consequent evaluation of how they change our theory of patches
-is left as future work.
+  \TODO{Cite homotopy type theory work; cite Swierstra and Loh on separation logic}
 
-\subsection{Cost, Inverses and Lattices}
+
+\subsection{Further work}
+\paragraph{Cost, Inverses and Lattices}
 \label{sec:costremarks}
 
-  Back in section \ref{sec:cost}, where we calculated our cost function from a
+  In section \ref{sec:cost}, where we calculated our cost function from a
 specification, we did not provide a formal proof that our definitions
 did in fact satisfy the relation we stated:
 
