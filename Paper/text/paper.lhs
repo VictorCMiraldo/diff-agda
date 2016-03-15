@@ -1429,7 +1429,10 @@ for creating a generic, structure aware, version control system. We proceed by d
 how these ideas may be implemented in a Haskell prototype, with an emphasis on its extended capability
 of handling non-trivial conflicts. A great advantage of our choice of type universe is
 that we it closely follows the traditional `sums-of-products' view of Haskell data types,
-and can be readily transcribed to typeclasses in Haskell.
+and can be readily transcribed to typeclasses in Haskell. 
+The source code of our prototype is available
+online~\footnote{\url{https://git.science.uu.nl/v.cacciarimiraldo/hs-diff}}.
+
 
 The central type class in our prototype is |Diffable|, that gives the basic diffing
 and merging functionality for objects of type |a|:
@@ -1445,23 +1448,25 @@ class (Sized a) => Diffable a where
 \vskip .5em
 
 Where |Sized a| is a class providing the \F{sizeElU} function, presented in
-section \ref{sec:cost}; |Patch| is a GADT\cite{PeytonJones2006} reflecting our \F{Patch}
+section \ref{sec:cost}; |Patch| is a GADT~\cite{PeytonJones2006} corresponding to our \F{Patch}
 type in Agda. We then proceed to provide instances by induction on the structure
 of |a|. Products and coproducts are trivial and follow immediately from the Agda code.
 
 \vskip .5em
 \begin{code}
 instance (Diffable a, Diffable b) 
-    => Diffable (a , b)
+    => Diffable (a , b) where
+...
 instance (Eq a , Eq b, Diffable a , Diffable b) 
-    => Diffable (Either a b)
+    => Diffable (Either a b) where
+...
 \end{code}
 \vskip .5em
 
-Fixed points are not complicated, too. It is important that they support
-the same plugging and unplugging functionality as in Agda, though.
+To handle fixed points, we need to provide
+the same plugging and unplugging functionality as in Agda.
 We have to use explicit recursion since current Haskell's instance search does
-not have explicit type applications yet.
+not have explicit type applications yet.%Wouter I'm not sure I understand this remark...
 
 \vskip .5em
 \begin{code}
@@ -1480,8 +1485,9 @@ instance (HasAlg (a :: * -> *) , Diffable (a ()))
 \end{code}
 \vskip .5em
 
-All the other types can also be seen as sums-of-products. We then define
-a class and some template Haskell functionality to generate instances of |SOP a|.
+We then define
+a class and some template Haskell functionality to generate the `sums-of-products' representation
+of a Haskell data type, which we can use as the input of our generic functions.
 The \emph{overlappable} pragma makes sure that Haskell's instance search
 will give preference to the other \emph{Diffable} instances, whenever the term head
 matches a product, coproduct atom or fixed-point.
@@ -1499,12 +1505,9 @@ instance {-# OVERLAPPABLE #-}
 \end{code}
 \vskip .5em
 
-  As the tool is still a very young prototype, we chose to omit implementation
-details. For those who wish to see these details, the code is available
-online\footnote{\url{https://git.science.uu.nl/v.cacciarimiraldo/hs-diff}}. 
-There is, however, one extension we need
-to be able to handle built-in types. We have two additional constructors to |Patch| 
-to handle atomic types:
+There is, however, one extension we need to be able to handle built-in
+types, such as \emph{Char} or \emph{Int}. We have two additional
+constructors to |Patch| to handle atomic types:
 
 \vskip .5em
 \begin{code}
@@ -1520,16 +1523,17 @@ they are equal or different, no inspection of their structure is made. As a
 result, there are only two possible ways to change an |Atom a|. We can either
 copy it, or change one |x :: a| into a |y :: a|. 
 
-\subsection{A more involved proof of concept}
+\subsection{Copying and moving}
   
-  In order to show the full potential of our approach, we will develop a simple
-example showing how one can encode and run a \emph{refactoring} conflict solver for arbitrary
-datatypes. We will first introduce some simple definitions and then explore how
-refactoring can happen there. We 
+In order to show the full potential of our approach, we will develop a
+simple example showing how one can define and run a new conflict
+resolution algorithm for arbitrary datatypes, capable of
+\emph{copying} and \emph{moving} subtrees. We will first introduce some simple
+definitions and then explore how refactoring can happen there.
 
-  Our case study will be centered on CSV files with integers on their cells. The canonical
-representation of this CSV format is |T|. Moreover, we will also assume that the specific
-domain in which these files are used allows for refactorings.
+Our case study will be centered on CSV files with integers on their
+cells. The canonical representation of this CSV format is given by the
+type |T|, defined below. 
 
 \vskip .5em
 \begin{code}
@@ -1537,7 +1541,7 @@ type T = List (List (Atom Int))
 \end{code}
 \vskip .5em
 
-  Our |List| type is then defined as follows:
+Note that the |List| type is defined as an element of our universe as follows:
 
 \vskip .5em
 %format DOTS = "\cdots"
@@ -1550,11 +1554,14 @@ type     List a  = Fix (L a)
 %format k  = "\uparrow"
 %format ki = "\hskip .3em \uparrow \hskip -.3em"
   Again, |List a| is isomorphic to |[a]|, but it uses explicit
-  recursion\footnote{ The use of explicit recursion is what forces us to define
-  |L| as a newtype, so that we can partially apply it.} and hence has a |HasAlg|
-  and |HasSOP| instance. Both of them are trivial and hence omitted. We hence
-  have that |T| is isomorphic to |[[Int]]|. We will denote |k :: [[Int]] -> T|
-  as one of the witnesses of such isomorphism.
+  recursion, and hence has a |HasAlg|
+  and |HasSOP| instance. It is easy to see that
+  |T| is isomorphic to |[[Int]]|. We will write |k :: [[Int]] -> T|
+  as one of the witnesses of this isomorphism. %Wouter, why not just
+  % say you'll work with
+  % [[Int]], even if it is
+  % not quite precise. People can infer where to insert the coercions,
+  % I guess.
 
   We are now ready to go into our case study. Imagine both Alice and Bob clone
 a repository containing a single CSV file |l0 = ki [[1 , 2] , [3]]|. 
@@ -1567,9 +1574,10 @@ lB = ki [[12 , 2] , [3]]
 \end{code}
 \vskip .5em
   
-  Here we see that Alice moved the cell containing the number 1 and Bob
-changed 1 to 12. Lets denote these patches by |pA| and |pB| respectively.
-In a simplified notation, they are represented by:
+Here we see that Alice moved the cell containing the number 1 and Bob
+changed 1 to 12. Lets denote these patches by |pA| and |pB|
+respectively.  Using a slightly simplified notation, these two changes
+may be represented by the following two patches:
 
 \vskip .5em
 \begin{code}
@@ -1582,7 +1590,7 @@ In a simplified notation, they are represented by:
 \end{code}
 \vskip .5em
 
-  We will now proceed to merge these changes automatically, following the
+We will now proceed to merge these changes automatically, following the
 approach on section \ref{sec:residual}, we want to propagate Alice's changes
 over Bob's patch and vice-versa. There will obviously be conflicts on those
 residuals. Here we illustrate a different way of traversing a patch with
@@ -1597,35 +1605,42 @@ conflicts besides the free-monad multiplication, as mentioned in section
 \end{code}
 \vskip .5em
 
-  As we expected, there are two conflicts there! A $\IC{DelUpd}\;1\;12$ and a
-$\IC{GrowL}\;1$ conflict on |pA / pB|. Note that the \IC{GrowL}
-\emph{matches} the deleted object on \IC{DelUpd}. This is the \emph{anatomy} of
-a refactoring conflict! Someone updated something that was moved by someone else. 
-Moreover, from \F{residual-symmetry}, we know that that
-the conflicts in |pB / pA| are exactly $\IC{UpdDel}\;12\;1$ and $\IC{GrowR}\;1$.
-The grow also matches the deleted object.
+As we expected, there are two conflicts there: a $\IC{DelUpd}\;1\;12$
+and a $\IC{GrowL}\;1$ conflict on |pA / pB|. Note that the \IC{GrowL}
+\emph{matches} the deleted object on \IC{DelUpd}. This is the
+\emph{anatomy} of a conflict that may be resolved by copying some
+edited subtree. Moreover, from \F{residual-symmetry}, we know that that the
+conflicts in |pB / pA| are exactly $\IC{UpdDel}\;12\;1$ and
+$\IC{GrowR}\;1$.  The grow also matches the deleted object.
 
   By permeating Bob's changes over Alice's refactor we would expect the the
 resulting CSV to be |lR = ki [[2] , [3, 12]]|. The functorial structure of
 patches provides us with exactly what we need to do so. The idea is that we
 traverse the patch structure twice. First we make a list of the \IC{DelUpd} and
 \IC{UpdDel} conflicts, then we do a second pass, now focusing on the \emph{grow}
-conflicts and trying to match them with what was deleted. If they match, we
+conflicts and trying to match them with deleted subtrees. If they match, we
 either copy or insert the \emph{updated} version of the object.
 
-  Recall \ref{sec:conflicts}, where we explain that conflict solving is comprised
-of a \emph{merge strategy} combining different \emph{mergers}. Although still
-not formulated in Agda, our Haskell prototype library already provides different
-\emph{merge strategies} and \emph{mergers}. It is worth mentioning that the actual code is slightly more complicated\footnote{
-We define a \emph{subtyping} relation as a GADT, named |a :>: b|, which specifies |b| as a subtype
-of |a|. The actual Haskell code uses this proofs extensively in order to typecheck
-and cast conflicts instead of the rank 2 types shown here.
-}, as the
-generic nature of the functions require some boilerplate code to typecheck but the
-main idea is precisely the same, for we will present a simplified version. 
+  Recall Section \ref{sec:conflicts}, where we described how conflicts may be resolved
+by a \emph{merge strategy}, mapping conflicts to patches. 
+Our Haskell prototype library already explores several different
+\emph{merge strategies} that handle specific kinds of conflicts. 
+% Implementing this in Haskell takes some
+% We define a \emph{subtyping} relation as a GADT, named |a :>: b|, which specifies |b| as a subtype
+% of |a|. The actual Haskell code uses this proofs extensively in order to typecheck
+% and cast conflicts instead of the rank 2 types shown here.
+% }, as the
+% generic nature of the functions require some boilerplate code to typecheck but the
+% main idea is precisely the same, for we will present a simplified version. 
+% Wouter -- I'd scrap this description here. It's too high level to give much information and
+%not important enough to spend more time on.
 
-  In the context provided by the current example, we will use a \emph{merge strategy}
+In the context provided by the current example, we will use a \emph{merge strategy}
 |solvePWithCtx| with a \emph{merger} |sRefactor|.
+% Wouter: as you may have noticed, I don't like the 'refactor'
+% terminology. I'd suggest going for copying or moving. Refactoring is
+% a specific technical term referring to source code transformations;
+% many refactorings do not copy subtrees at all!
 
 %format forall = "\forall"
 %format DOT    = "\cdot"
@@ -1641,16 +1656,14 @@ solvePWithCtx  :: (Cf a -> [forall x DOT Cf x] -> Maybe (Patch a))
 traversals. The first one records the conflicts whereas the second one applies
 |sRefactor| to the conflicts. The |sRefactor| \emph{merger}, in turn, will
 receive the list of all conflicts (context) and will try to match the
-\emph{growths} with the \emph{deletions}. Note that we return a |PatchC| from
-the \emph{merge strategy}. This happens since the \emph{merge strategy} is
-\emph{partial}. It will leave the conflicts it cant solve untouched. Predicate
+\emph{grow} operations with the \emph{deletions}. Note that
+the \emph{merge strategy} returns a |PatchC|,  as the \emph{merge strategy} is
+\emph{partial}. It will leave the conflicts it cannot solve untouched. The predicate
 |resolved :: PatchC a -> Maybe (Patch a)| casts it back to a patch if no
 conflict is present. We stress that the maximum we can do is provide the user
-with \emph{merge strategies} and \emph{mergers}, but since different domains
-will have different conflicts, it is up to the user to program the best
-strategy for that particular case. We leave as future work the development
-of an actual calculus of \emph{mergers}, allowing one to actually prove
-their strategy will behave the way one expects.  
+with \emph{merge strategies}, but since different domains
+will have different conflicts and conflict semantics, it is up to the user to program the best
+strategy for their particular domain. 
 
   We can now compute the patches |pAR| and |pBR|, to be applied to Alice's and Bob's
 copy in order to obtain the result, by: 
@@ -1678,8 +1691,8 @@ copy in order to obtain the result, by:
   And finally we can apply |pAR| to Alice's copy and |pBR| to Bob's copy
 and both will end up with the desired |lR = ki [[2] , [3, 12]]| as a result.
 
-  As we can see from this not so simple example, our framework allows for a
-definition of a plethora of different conflict solving strategies. This fits
+  As we can see from this example, our framework allows for a
+definition of different conflict resolution strategies. This fits
 very nicely with the \emph{generic} part of the diff problem we propose to
 solve. In the future we would like to have a formal calculus of combinators for
 conflict solving, allowing different users to fully customize how their merge
@@ -1687,30 +1700,38 @@ tool behaves.
 
 \section{Summary, Remarks and Related Work}
 
-  On this paper we presented our approach to solving the generic diffing
-problem. We provided the theoretical foundations and created a Haskell prototype
-applying the proposed concepts. The diffing API can be made ready for all
-Haskell types, out of the box, with some simple Template Haskell, as all we need
-is the derivation of two trivial instances. We have also shown how this approach
-allows one to fully specialize conflict resolution for the domain in question.
-The work of L\"{o}h\cite{Loh2009} and Vassena\cite{Vassena2015} are the most
-similar to our. We use a drastically different definition of patches, in order
-to have room for experimenting with conflict resolution.
+On this paper we presented a novel approach to version control
+systems, enhancing the diff and merge algorithms with information
+about the structure of data under control.  We provided the
+theoretical foundations and created a Haskell prototype, demonstrating
+the viability of our approach. Our algorithms can be readily applied
+to any algebraic data type in Haskell, as these can all be represented
+in our type universe.  We have also shown how this approach allows one
+to define custom conflict resolution strategies, such as those that
+attempt to recognise the copying of subtrees. The work of Lempsink et al.~\cite{Loh2009} and
+Vassena~\cite{Vassena2015} are the most similar to our. We use a
+drastically different definition of patches to have more freedom in
+defining conflict resolution strategies. %Wouter it would be better to
+                                         %motivate the choice for
+                                         %different patch more
+                                         %clearly. What are the
+                                         %pros/cons of the different
+                                         %approaches?
 
-  Below we give a short comparison with other related work.
+There are several pieces of related work that we would like to mention here:
 
   \begin{description}
     \item[Antidiagonal] Although easy to be confused with the diff problem,
       the antidiagonal is fundamentally different from the diff/apply
-      specification. In \cite{Piponi2007}, the antidiagonal for a type $T$ is
-      defined as a type $X$ such that there exists $X \rightarrow T^2$. That is,
+      specification. Piponi~\cite{Piponi2007} defines the antidiagonal for a type $T$ %Wouter perhaps use \citet and natbib to give nicer citations?
+      as a type $X$ such that there exists $X \rightarrow T^2$. That is,
       $X$ produces two \textbf{distinct} $T$'s, whereas a diff produces a $T$
       given another $T$. 
     
     \item[Pijul]
       The VCS Pijul is inspired by \cite{Mimram2013}, where they use the 
       free co-completion of a category to be able to treat merges as
-      pushouts. In a categorical setting, the residual square (figure \ref{fig:residual})
+      pushouts. In a categorical setting, the residual square (Figure \ref{fig:residual})
       looks like a pushout. The free co-completion is used to make sure that for
       every objects $A_i$, $i \in \{0 , 1 , 2 \}$ the pushout exists. Still, the base
       category from which they build their results still handles files as a list
@@ -1726,16 +1747,14 @@ to have room for experimenting with conflict resolution.
       shortcoming for it handles files as lines of text and disregards their
       structure. 
   \end{description}
-  
-  Finally, we address some issues and their respective solutions to the
-work done so far before concluding. The implementation of these solutions and the
-consequent evaluation of how they change our theory of patches
-is left as future work.
+  \TODO{Cite homotopy type theory work; cite Swierstra and Loh on separation logic}
 
-\subsection{Cost, Inverses and Lattices}
+
+\subsection{Further work}
+\paragraph{Cost, Inverses and Lattices}
 \label{sec:costremarks}
 
-  Back in section \ref{sec:cost}, where we calculated our cost function from a
+  In section \ref{sec:cost}, where we calculated our cost function from a
 specification, we did not provide a formal proof that our definitions
 did in fact satisfy the relation we stated:
 
