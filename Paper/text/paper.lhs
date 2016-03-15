@@ -1553,24 +1553,26 @@ type     List a  = Fix (L a)
 
 %format k  = "\uparrow"
 %format ki = "\hskip .3em \uparrow \hskip -.3em"
-  Again, |List a| is isomorphic to |[a]|, but it uses explicit
-  recursion, and hence has a |HasAlg|
-  and |HasSOP| instance. It is easy to see that
-  |T| is isomorphic to |[[Int]]|. We will write |k :: [[Int]] -> T|
-  as one of the witnesses of this isomorphism. %Wouter, why not just
+  Again, |List a| is isomorphic to |[a]|, but it uses explicit recursion, and
+hence has a |HasAlg| and |HasSOP| instance. It is easy to see that |T| is
+isomorphic to |[[Int]]|. We will work with |[[Int]]| in the
+following example for better readability. 
+  
+  %Wouter, why not just
   % say you'll work with
   % [[Int]], even if it is
   % not quite precise. People can infer where to insert the coercions,
   % I guess.
+  % Victor: I agree.
 
   We are now ready to go into our case study. Imagine both Alice and Bob clone
-a repository containing a single CSV file |l0 = ki [[1 , 2] , [3]]|. 
+a repository containing a single CSV file |l0 = [[1 , 2] , [3]]|. 
 Both Alice and Bob make their changes to |lA| and |lB| respectively.
 
 \vskip .5em
 \begin{code}
-lA = ki [[2] , [3, 1]]
-lB = ki [[12 , 2] , [3]]
+lA = [[2] , [3, 1]]
+lB = [[12 , 2] , [3]]
 \end{code}
 \vskip .5em
   
@@ -1614,7 +1616,7 @@ conflicts in |pB / pA| are exactly $\IC{UpdDel}\;12\;1$ and
 $\IC{GrowR}\;1$.  The grow also matches the deleted object.
 
   By permeating Bob's changes over Alice's refactor we would expect the the
-resulting CSV to be |lR = ki [[2] , [3, 12]]|. The functorial structure of
+resulting CSV to be |lR = [[2] , [3, 12]]|. The functorial structure of
 patches provides us with exactly what we need to do so. The idea is that we
 traverse the patch structure twice. First we make a list of the \IC{DelUpd} and
 \IC{UpdDel} conflicts, then we do a second pass, now focusing on the \emph{grow}
@@ -1700,30 +1702,32 @@ tool behaves.
 
 \section{Summary, Remarks and Related Work}
 
-On this paper we presented a novel approach to version control
-systems, enhancing the diff and merge algorithms with information
-about the structure of data under control.  We provided the
-theoretical foundations and created a Haskell prototype, demonstrating
-the viability of our approach. Our algorithms can be readily applied
-to any algebraic data type in Haskell, as these can all be represented
-in our type universe.  We have also shown how this approach allows one
-to define custom conflict resolution strategies, such as those that
-attempt to recognise the copying of subtrees. The work of Lempsink et al.~\cite{Loh2009} and
-Vassena~\cite{Vassena2015} are the most similar to our. We use a
-drastically different definition of patches to have more freedom in
-defining conflict resolution strategies. %Wouter it would be better to
-                                         %motivate the choice for
-                                         %different patch more
-                                         %clearly. What are the
-                                         %pros/cons of the different
-                                         %approaches?
+On this paper we presented a novel approach to version control systems,
+enhancing the diff and merge algorithms with information about the structure of
+data under control. We provided the theoretical foundations and created a
+Haskell prototype, demonstrating the viability of our approach. Our algorithms
+can be readily applied to any algebraic data type in Haskell, as these can all
+be represented in our type universe. We have also shown how this approach allows
+one to define custom conflict resolution strategies, such as those that attempt
+to recognise the copying of subtrees. The work of Lempsink et al.~\cite{Loh2009}
+and Vassena~\cite{Vassena2015} are the most similar to our. We use a drastically
+different definition of patches. The immediate pros of our approach are the
+ability to have more freedom in defining conflict resolution strategies and a
+much simpler translation to Haskell. Our universe makes the development of
+proofs much harder, nonetheless.
+%Wouter it would be better to motivate the choice for different patch more
+%clearly. What are the pros/cons of the different approaches?
+%Victor: Added info.
 
 There are several pieces of related work that we would like to mention here:
 
   \begin{description}
     \item[Antidiagonal] Although easy to be confused with the diff problem,
       the antidiagonal is fundamentally different from the diff/apply
-      specification. Piponi~\cite{Piponi2007} defines the antidiagonal for a type $T$ %Wouter perhaps use \citet and natbib to give nicer citations?
+      specification. Piponi~\cite{Piponi2007} defines the antidiagonal for a type $T$ 
+      %Wouter perhaps use \citet and natbib to give nicer citations?
+      %Victor: I don't like natbib citations, it takes much more time to actually
+      %        navigate between text and bibliography. Numbers are easy.
       as a type $X$ such that there exists $X \rightarrow T^2$. That is,
       $X$ produces two \textbf{distinct} $T$'s, whereas a diff produces a $T$
       given another $T$. 
@@ -1746,9 +1750,21 @@ There are several pieces of related work that we would like to mention here:
       \emph{Conflictors} to handle conflicting patches, however, it has the same
       shortcoming for it handles files as lines of text and disregards their
       structure. 
+      
+    \item[Homotopical Patch Theory]
+      Homotopy Type Theory, and its notion of equality corresponding to paths in
+      a suitable space, can also be used to model patches. Licata et al \cite{Angiuli2014}
+      developed such a model of patch theory.
+      
+      
+    \item[Separation Logic]
+      Swierstra and L\"{o}h, in \cite{Swierstra2014}, use separation logic and Hoare calculus to 
+      be able to prove that certain patches do not overlap and, hence, can be merged.
+      They provide increasingly more complicated models of a repository in which one
+      can apply such reasoning. Our approach is more general in the file structures
+      it can encode, but it might benefit significantly from using similar concepts.
+      
   \end{description}
-  \TODO{Cite homotopy type theory work; cite Swierstra and Loh on separation logic}
-
 
 \subsection{Further work}
 \paragraph{Cost, Inverses and Lattices}
@@ -1803,12 +1819,12 @@ over elements of type $T = \F{ElU} (\IC{$\mu$}\;ty)\;t$ and moreover, it expects
 vector of length $i$ of $T$'s and produces a vector of length $j$ of $T$'s.
 This is very similar to how type-safety is guaranteed in \cite{Loh2009}, 
 but since we have the types fixed, we just need the arity of their elements. 
-
-  If we try to encode this in Agda, using the universe of context-free types, we
-run into a very subtle problem. In short, we can not prove that if two elements of
-a recursive type come from the same constructor then they have the same arity. 
-Mainly because this does not hold! This hinders \F{D$\mu$-dwn} useless. Let us
-take a look at how one defines rose trees in \CF:
+  
+  Insertions, $\DmuIns~x$, (resp. deletions, $\DmuDel~x$) are easy to fix, as we can extract
+the number of children we require from the head, $x$, that we are inserting (resp. deleting).
+Recursive changes, $\DmuDwn~dx$, however, are more subtle. The easy fix would be
+to say that $\DmuDwn~dx$ will never change a constructor, and hence it will not
+change its arity. This is not true for nested types, as is the case of rose trees:
 
   \Agda{Diffing/Universe/Syntax}{rt-def}
   
@@ -1822,41 +1838,14 @@ same constructor, as there is only one, with different arities, as we can see in
   \AgdaI{Diffing/Universe/MuUtils}{rt-els-def}{-2.2em}
   
   \AgdaI{Diffing/Universe/MuUtils}{r-ar-lemma}{-2.2em}
-
-If we look at \F{rt}'s Haskell counterpart, |data RT a = RT a [RT a]|, we see that 
-its arity should be zero, as the type |RT a| does not appear immediately on
-the constructor, but only as an argument to the List type.
-
-Although easy to describe, this problem is deeper than what meets the eye. 
-On a separate example, consider a leaf tree, \F{ltree}, as defined below:
-
-  \Agda{Diffing/Universe/Syntax}{ltree-def}
   
-  The Haskell equivalent, with explicit recursion, would be:
-  \vskip .2em
-  
-\begin{code}
-data LTreeF a b x  = Leaf a | Fork b x x
-type LTree a b     = Fix (LTreeF a b)
-\end{code}
-\vskip .5em
-  
-  Now consider the following reduction.
-
-  \Agda{Diffing/Universe/Syntax}{U-monster}
-
-%format MCM = "\mathcal{M}"
- In \CF, due to the dependency introduced by the telescopes, this type of
-reduction is establishing a relation between the two type variables of \F{ltree}.
-Here we have the type of \F{ltree}s where the first type variable is actually
-a list of the second. In Haskell, this type would be defined as |type MCM a = LTree a [a]|. 
-
-To be able to encode this more delicate definition of arity we need to first
-divide our universe into sums-of-products, so that we have the notion of 
-a constructor. Then change the definition of telescope to use closed types only
-(that is, types with \IC{zero} type variables), not allowing this functional dependency
-between type variables. There are multiple ways to achieve this, we leave
-the exploration of these techniques as future work.
+The insight is that the patch $dx$ already has the information about the arity
+of both its source and destination elements. We then should be able
+to extract this information from $dx$ do provide correct indexes to $\DmuDwn~dx$.
+Proving that the arity extracted from a patch corresponds to the arity
+of an element is tricker than it looks at first sight. We already have started
+a better model of patches, which has type-safe diffs by construction. Further
+exploration of this subject is left as future work, nevertheless.
   
 \section{Conclusion}
 
