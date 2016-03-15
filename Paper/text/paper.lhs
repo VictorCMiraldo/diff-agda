@@ -307,28 +307,26 @@ this paper makes the following novel contributions:
   \emph{type-indexed} data type for representing edits to this
   structured data in Agda~\cite{norell2009}. We have chosen a universe that closely
   resembles the algebraic data types that are definable in functional
-  languages such as Haskell.
+  languages such as Haskell, section~\ref{sec:cf}.
 
       \item We define generic algorithms for computing and applying a
         diff and prove that these algorithms satisfy several basic
-        correctness properties.
+        correctness properties, from section~\ref{sec:producingpatches}.
 
 
       \item We define a notion of residual to propagate changes of
         different diffs on the same structure. This provides a basic
-        mechanism for merging changes and resolving conflicts.
+        mechanism for merging changes and resolving conflicts, in section~\ref{sec:residual}.
 
   \item We illustrate how our definitions in Agda may be used to implement a
         prototype Haskell tool, capable of automatically merging changes to
         structured data. This tool provides the user with the ability to define
         custom conflict resolution strategies when merging changes to structured
-        data. 
+        data, in section~\ref{sec:haskell}.
         % For instance, we can automatically resolve refactoring conflicts.
         % Wouter: removed this last sentence, as it doesn't mean anything to the reader yet.
         % + lots of edits to text
-\end{itemize}    
-
-\TODO{Add forward references in contributions to concrete subsections}
+\end{itemize}  
 
 \subsection*{Background}
 
@@ -639,7 +637,8 @@ we shall see later~(Section \ref{sec:conflicts}).
 Finally, we define the type synonym $\Patchtty$ as $\F{D}\;(\lambda \;\_\;\_ \rightarrow \bot)\; t\; ty$.
 In other words, a \F{Patch} is a \F{D} structure that never uses the \IC{D-A} constructor.
 
-\subsection{Producing Patches}  
+\subsection{Producing Patches}
+\label{sec:producingpatches}
   
   Next, we define a generic function \F{gdiff} that given two elements of a type
 in our universe, computes the patch recording their differences. For types which
@@ -1037,7 +1036,8 @@ constraints. To do so, we begin by defining the size of an element:
 
   \Agda{Diffing/Universe/Measures}{sizeEl}
 
-  Finally, we define $\F{costL} = \F{sum} \cdot \F{map}\; \F{cost$\mu$}$. This completes the definition of the diff algorithm.
+  Finally, we define $\F{costL} = \F{sum} \cdot \F{map}\; \F{cost$\mu$}$. This
+completes the definition of the diff algorithm.
 %Wouter should sum and map be in this font?
 %Victor fixed
 
@@ -1118,6 +1118,7 @@ the supplied list if it matches the supplied head.
 % Wouter the two sentences above are long and hard to
 % follow... Example/Intuition? Presumably, it has to do with
 % inserting/deleting children of a fixed point.
+% Changed
 
 Given this definition of \F{gapply}, we can now formally prove the following property:
 
@@ -1247,7 +1248,13 @@ operation is:
   \Agda{Diffing/Patches/Residual}{residual-type}
   
   We reiterate that the partiality comes from the fact the residual is not
-defined for non-aligned patches. The whole function is too big to be shown here,
+defined for non-aligned patches. The whole function is too big to be shown here
+\footnote{%
+%%% BEGIN FOOTNOTE
+The complete Agda code is publically available and can be found in \texttt{ommited for double-blindness}.
+% \url{https://git.science.uu.nl/v.cacciarimiraldo/diff-agda/}.
+%%% END FOOTNOTE
+},
 but explaining one of its cases can provide valuable intuition.
 
   \Agda{Diffing/Patches/Residual}{res-dwn-del-case}
@@ -1439,7 +1446,8 @@ instance {-# OVERLAPPABLE #-}
 
   As the tool is still a very young prototype, we chose to omit implementation
 details. For those who wish to see these details, the code is available
-online\footnote{\url{https://git.science.uu.nl/v.cacciarimiraldo/hs-diff}}. 
+online\footnote{ Personal repository. Ommited for double-blindness } 
+%\url{https://git.science.uu.nl/v.cacciarimiraldo/hs-diff}}. 
 There is, however, one extension we need
 to be able to handle built-in types. We have two additional constructors to |Patch| 
 to handle atomic types:
