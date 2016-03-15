@@ -178,6 +178,7 @@
 \newcommand{\DmuIns}{\IC{D$\mu$-ins} \;}
 \newcommand{\DmuDel}{\IC{D$\mu$-del} \;}
 \newcommand{\DmuDwn}{\IC{D$\mu$-dwn} \;}
+\newcommand{\DmuA}{\IC{D$\mu$-A} \;}
 \newcommand{\ICoplus}{\; \IC{$\oplus$} \;}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1162,8 +1163,16 @@ monad: $\F{Patch}\;t\;ty \rightarrow \F{Patch}\;t\;ty \rightarrow
 if their residual returns a \IC{just}. %Wouter: I understand that this
 % is your definition of aligned. Do you have a simple example showing
 % that trying to compute the residual of non-aligned patches fails?
+% Victor: It is easdy to craft non aligned patches. D-setl and D-setr are alredy
+% non-aligned.
+
 % Longer term question: should patches track the source value in their
 % type? That way we can rule out non-alignment issues a priori.
+% Victor: We already have that information. In fact, we can compute both the
+% source and the target of a patch from nothing but the patch.
+% Another way of defining alignment is to say sources must be equal.
+% I chose not to introduce more overhead as I want the residual to be one of
+% the fundamental concepts of the theory.
 
 Even if we restrict ourselves to a partial residual function, there
 may be other issues that arise. In particular, suppose that both Bob
@@ -1193,6 +1202,9 @@ is in computing the residual $p_{Alice} / p_{Bob}$.
   % Wouter: can you instantiate grow-left/grow-right/grow-left-right
   % conflicts to CSV files to provide some intuition? When are grow-l
   % and grow-r updates really unresolvable conflicts?
+  % Victor: Instantiating them is simple. A situation where they might be unresolvable
+  % is a CSV file that tracks scores of *exactly* 50 people. If someboby adds a line without deleting
+  % one, the grow is a conflict. 
   Most of the readers might be familiar with the \emph{update-update},
   \emph{delete-update} and \emph{update-delete} conflicts, as these
   are familiar from existing version control systems. We refer to
@@ -1202,11 +1214,16 @@ is in computing the residual $p_{Alice} / p_{Bob}$.
 corresponds to the \emph{alignment table} that \emph{diff3}
 calculates \cite{Khanna2007} before deciding which changes go where. The idea is
 that if Bob adds new information to a file, it is impossible that Alice changed
-it in any way, as it was not in the file when Alice was editing it, we then flag
-it as a conflict. %Wouter: this sentence seems to suggest that it's *not* a conflict, yet you say you flag it as a conflict.
+it in any way, as it was not in the file when Alice was editing it. Hence, 
+we have no way of automatically knowing how this new information affects the rest of the
+file. This depends on the semantics of the specific file, therefore it is a conflict.
+%Wouter: this sentence seems to suggest that it's *not* a 
+%        conflict, yet you say you flag it as a conflict.
+%Victor: Rephrased.
 The \emph{grow-left} and \emph{grow-right} are easy to handle,
 if the context allows, we could simply transform them into actual insertions or copies.
 %Wouter: 'we *could* simply transform them' suggests that you don't
+%Victor: And it is correct, we don't transform them automatically.
 They represent insertions made by Bob and Alice in \emph{disjoint} places of the structure.
 A \emph{grow-left-right} is more complex, as it corresponds to a overlap and we
 can not know for sure which should come first unless more information is provided.
@@ -1234,6 +1251,9 @@ unresolved conflicts.
 The final type of our residual %Wouter: I've removed the footnote. Try
 % to avoid footnotes (it breaks the flow of text and looks 'ugly' and
 % is usually discouraged by the publisher
+% Victor: Ok. I do think it was an important footnote, though.
+%         We should then mention that we don't know if our patches and
+%         our residuals form a *residual system* as known by the Term Rewriting community.      
 operation is:
   
   \Agda{Diffing/Patches/Residual}{residual-type}
@@ -1255,11 +1275,15 @@ The first thing we do is to check whether or not the patch $dx$ can be applied t
 If we can not apply $dx$ to $y$, then these two patches are not aligned, and we
 simply return \IC{nothing}. If we can apply $dx$ to $y$, however, this will
 result in a new structure $y'$. We then need to compare $y$ to $y'$. If they are
-different we have an update-delete conflict, signaled by \TODO{D-mu-A (UpdDel y' y)}. If they are equal, then $dx$
+different we have an update-delete conflict, signaled by $\DmuA~(\IC{UpdDel}~y'~y)$. 
+If they are equal, then $dx$
 is the identity patch, and no new changes were introduced. Hence we can
 simply suppress the deletion, $\DmuDel$, and 
 continue recursively. The remaining cases follow a similar reasoning.
 %Wouter can we list all the different cases? Or is even that too much work?
+%Victor: I was planning to add the full definition in the appendix.
+%        We can always throw in two or three more cases.
+
 %Wouter it would be good to at least hint at the general specification/principle that
 % is used in the other branches. This is one of the main contributions of your work and deserves a more comprehensive presentation.
 
@@ -1279,6 +1303,9 @@ have the same conflicts as $q / p$:
 % single result by proving that the type of $op$ actually is $\forall A\; .\;
 % \F{D}\;A\;t\;ty \rightarrow \F{D}\;A\;t\;ty$, we chose to split it for improved
 % readability.
+
+% Victor: then I should remove the types alltogether. This raised a lot of confusion
+%         on the reading club.
   
   \Agda{Diffing/Patches/Residual/Symmetry}{residual-symmetry-type}
   
@@ -1289,9 +1316,13 @@ have the same conflicts as $q / p$:
 \F{List}\;(\F{$\downarrow$}\; A)$, \F{$\downarrow\_$} encapsulates the type indexes of
 the different $A$'s we might come across. %Wouter: this is quite heavy
 % notation... Is there some short intuitive formulation of the second
-% property that suffices?
+% property that suffices? 
+% Victor: We can always write it in pseudo-agda, or we give the type
+%         of residual-symmetry with the "op" already polymorphic.
+%         Then, the fact that it does *not* add conflicts becomes a bit
+%         more subtle.
     
-This lemma provides further evidence that the usage of res or patch
+This lemma provides further evidence that the usage of residuals or patch
 commutation (as proposed by some version control systems such as
 Darcs\TODO{Add reference}) are not significantly different. This means
 that the $p / q$ and $q / p$, although different, have symmetrical conflicts.
@@ -1321,6 +1352,8 @@ follows:
   \end{figure}
   % Wouter: this diagram is a little misleading. P1/2 and P2/1 are not
   % really a valid states.
+  % Victor: I know... I think it is less misleading than the first diagram
+  %         we show, however.
 
     
   Note that, as we can only apply patches without conflicts, $P_{1/2}$
@@ -1370,6 +1403,12 @@ follows:
 % Wouter it took me a while to read this series of arrows.  Could you
 % not say that you essentially need to map all the conflicts in a
 % patch to some choice of patch? That would be much clearer, I think.
+
+% Victor: I know. But mapping all the conflicts to some choice of patch
+%         is only one possibly way of doing so. I defined "merger" and
+%         "merge strategy". I hopped to explain that "mapping all the conflicts to {...}"
+%         is the most simple merge strategy and "{...} some choice of patch" is the
+%         simplest merger.
 
   Recall that all our conflicts are recorded in the type parameter of
   our patch data type. If we had a function
