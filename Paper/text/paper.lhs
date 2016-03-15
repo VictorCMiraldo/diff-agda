@@ -196,9 +196,13 @@
 \subtitle{A generic approach using Agda}
 %Wouter: I changed the title -- is this better?
 
-\authorinfo{Victor Cacciari Miraldo \and Wouter Swierstra}
-  {University of Utrecht}
-  {\{v.cacciarimiraldo,w.s.swierstra\} at uu.nl}
+%\authorinfo{Victor Cacciari Miraldo \and Wouter Swierstra}
+%  {University of Utrecht}
+%  {\{v.cacciarimiraldo,w.s.swierstra\} at uu.nl}
+
+\authorinfo{ Author 1 \and Author 2 }   
+           {Some Institution}
+           {\{email1,email2\} at some.institution}
 
 \maketitle
 
@@ -874,29 +878,30 @@ identity patch then has cost 0 by construction, as we seen it is exactly the pat
 with no \emph{change-introduction} constructor.
 
   Equation (2), on the other hand, tells that it should not matter whether we go
-from $x$ to $y$ or from $y$ to $x$, the effort is the same. In other words, 
-inverting a patch should preserve its cost. The inverse
-operation leaves everything unchanged but flips the \emph{change-introduction}
-constructors to their dual counterpart. We will hence assign a cost $c_\oplus =
-\F{cost } \IC{D-setl} = \F{cost } \IC{D-setr}$ and $c_\mu = \F{cost }
-\IC{D$\mu$-ins} = \F{cost } \IC{D$\mu$-del}$. This guarantees the second property by construction.
-If we define $c_\mu$ and $c_\oplus$ as constants, however,
-the cost of inserting a small subtree will have the same cost as inserting a very large subtree.
-This is probably undesirable and may lead to unexpected behaviour. Instead of constants, $\c_\oplus$ and $c_\mu$,
-we will instead try to define a pair of functions,
-$c_\oplus\;x\;y = \F{cost }(\IC{D-setr}\;x\;y) = \F{cost }(\IC{D-setl}\;x\;y)$ and
-$c_\mu\;x = \F{cost }(\IC{D$\mu$-ins}\;x) = \F{cost }(\IC{D$\mu$-del}\;x)$, that may take
-the size of the arguments into account.
+from $x$ to $y$ or from $y$ to $x$, the effort is the same. In other words,
+inverting a patch should preserve its cost. The inverse operation leaves
+everything unchanged but flips the \emph{change-introduction} constructors to
+their dual counterpart. We will hence assign a cost $c_\oplus = \F{cost }
+\IC{D-setl} = \F{cost } \IC{D-setr}$ and $c_\mu = \F{cost } \IC{D$\mu$-ins} =
+\F{cost } \IC{D$\mu$-del}$. This guarantees the second property by construction.
+If we define $c_\mu$ and $c_\oplus$ as constants, however, the cost of inserting
+a small subtree will have the same cost as inserting a very large subtree. This
+is probably undesirable and may lead to unexpected behaviour. Instead of
+constants, $c_\oplus$ and $c_\mu$, we will instead try to define a pair of
+functions, $c_\oplus\;x\;y = \F{cost }(\IC{D-setr}\;x\;y) = \F{cost
+}(\IC{D-setl}\;x\;y)$ and $c_\mu\;x = \F{cost }(\IC{D$\mu$-ins}\;x) = \F{cost
+}(\IC{D$\mu$-del}\;x)$, that may take the size of the arguments into account.
 
-  Equation (3) is concerned with composition of patches. The aggregate cost of changing
-$x$ to $y$, and then $y$ to $z$ should be greater than or equal to changing
-$x$ directly to $z$. We do not have a composition operation over patches yet, but
-we can see that this is already trivially satisfied. Let us denote the number of 
-\emph{change-introduction} constructors in a patch $p$ by $\# p$. In the best case scenario,
-$\# (\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z) = \# (\F{gdiff}\;x\;z)$, this is the situation
-in which the changes of $x$ to $y$ and from $y$ to $z$ are non-overlapping. If they
-are overlapping, then some changes made from $x$ to $y$ must be changed again from $y$ to $z$,
-yielding $\# (\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z) > \# (\F{gdiff}\;x\;z)$. 
+  Equation (3) is concerned with composition of patches. The aggregate cost of
+changing $x$ to $y$, and then $y$ to $z$ should be greater than or equal to
+changing $x$ directly to $z$. We do not have a composition operation over
+patches yet, but we can see that this is already trivially satisfied. Let us
+denote the number of \emph{change-introduction} constructors in a patch $p$ by
+$\# p$. In the best case scenario, $\# (\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z)
+= \# (\F{gdiff}\;x\;z)$, this is the situation in which the changes of $x$ to
+$y$ and from $y$ to $z$ are non-overlapping. If they are overlapping, then some
+changes made from $x$ to $y$ must be changed again from $y$ to $z$, yielding $\#
+(\F{gdiff}\;x\;y) + \# (\F{gdiff}\;y\;z) > \# (\F{gdiff}\;x\;z)$. 
 
   \vskip .3em
 
@@ -937,12 +942,15 @@ one of them.
 \]
 \end{center}
 
-  We will only compare $d_1$ and $d_3$, as the cost of
-inserting and deleting should be the same, the analysis for $d_2$ is analogous.
-By choosing $d_1$, we would be opting to insert $hdY$ instead of transforming
-$hdX$ into $hdY$, this is preferable only when we do not have to delete $hdX$
-later on when computing $\F{gdiffL}\;(x \cons xs)\;(chY \cat ys)$. 
-Deleting $hdX$ is inevitable when $hdX \notin chY \cat ys$. %Wouter perhaps just say 'when hdX does not occur as a subtree in the remaining structures to diff
+  We will only compare $d_1$ and $d_3$, as the cost of inserting and deleting
+should be the same, the analysis for $d_2$ is analogous. By choosing $d_1$, we
+would be opting to insert $hdY$ instead of transforming $hdX$ into $hdY$, this
+is preferable only when we do not have to delete $hdX$ later on when computing
+$\F{gdiffL}\;(x \cons xs)\;(chY \cat ys)$. Deleting $hdX$ is inevitable when
+$hdX$ does not occur as a subtree in the remaining structures to diff, that is,
+$hdX \notin chY \cat ys$. 
+%Wouter perhaps just say 'when hdX does not occur as a subtree in the remaining structures to diff
+%Victor This is better, indeed!
 Assuming without loss of generality that this deletion happens in the next
 step, we have:
 
@@ -957,6 +965,7 @@ step, we have:
 % is saying is that the cost of d_1 is equal to c-mu hdX + c-mu hdY +
 % w -- which is kind of 'obvious' -- would it not be better to explain
 % in text what is going on?
+% Victor: I'm afraid the more picky reviewers might want calculations...
 
   Hence, \F{cost }$d_1$ is $c_\mu\;hdX + c_\mu\;hdY + w$, for $w =
 \F{cost}\;(\F{tail}\;d_3)$. Here $hdX$ and $hdY$ are values of the same
@@ -975,36 +984,43 @@ The reasoning behind this choice is simple: since
 the outermost constructor is changing, the cost of this change should reflect this.
 As a result, we need to
 select $d_1$ instead of $d_3$, that is, we need to attribute a cost to $d_1$
-that is strictly lower than the cost of $d_3$: %Wouter: Why do we *need* to do this?
+that is strictly lower than the cost of $d_3$. Note that we are \emph{not} defining
+the \F{cost} function yet, but calculating the relations it needs to satisfy in order
+to behave the way we want.
+%Wouter: Why do we *need* to do this?
+%Victor: Otherwise the (gdiffL xs ys) will always "D\mu-dwn" the first (length ys)
+%        xs and insert or delete the rest.
 
 \[
 \begin{array}{crcl}
   & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w & < & c_\oplus\;(i_j\;x')\;(i_k\;y') + w \\
-  \Leftrightarrow & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') & < & c_\oplus\;(i_j\;x')\;(i_k\;y')
+  \Leftarrow & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') & < & c_\oplus\;(i_j\;x')\;(i_k\;y')
 \end{array}
 \]
 %Wouter I don't understand this iff and only iff -- is it a definition, lemma, assumption?
 
   If $hdX$ and $hdY$ come from the same constructor, on the other hand, the
-story is slightly different. We now have $hdX = i_j\;x'$ and $hdY = i_j\;y'$,
-the cost of $d_1$ still is $c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w$ but the
-cost of $d_3$ is $\F{dist}\;x'\;y' + w$, since $\F{gdiff}\;hdX\;hdY$ will be
-$\F{gdiff}\;x'\;y'$ preceded by a sequence of \IC{D-inr} and \IC{D-inr}, for
-$hdX$ and $hdY$ they come from the same coproduct injection, and these have cost
-0. This is the situation that selecting $d_3$ is the best option, therefore we
-need: %Wouter: this sentence is much too long and hard to follow. Can you rephrase it?
+story is slightly different. In this scenario we prefer to choose $d_3$ over
+$d_1$, as we want to preserver the constructor information. We now have $hdX =
+i_j\;x'$ and $hdY = i_j\;y'$, the cost of $d_1$ still is $c_\mu\;(i_j\;x') +
+c_\mu\;(i_k\;y') + w$ but the cost of $d_3$ will be
+$\F{cost}\;(\F{gdiff}\;(i_j\;x')\;(i_j\;y')) + w$. Well, $\F{gdiff}\;(i_j\;x')\;(i_j\;y')$
+will reduce to $\F{gdiff}\;x'\;y'$ preceded by a sequence of \IC{D-inr} and \IC{D-inr}. 
+Hence, $\F{cost}\;d_3 = \F{cost}\;(\F{gdiff}\;x'\;y') + w$. 
+
+  Remember that we want to select $d_3$ instead of $d_1$, based on their costs.
+The way to do so is to enforce that $d_3$ will have a strictly smaller cost than $d_1$.
+We hence get another relation our \F{cost} function will need to respect:
 
 \[
 \begin{array}{crcl}
   & \F{dist}\;x'\;y' + w & < & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') + w \\
-  \Leftrightarrow & \F{dist}\;x'\;y' & < & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y')
+  \Leftarrow & \F{dist}\;x'\;y' & < & c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y')
 \end{array}
 \]
-%Wouter I don't understand this iff and only iff -- is it a definition, lemma, assumption?
 
-
-In order to enforce this behavior on our diffing algorithm, we need to assign
-values to $c_\mu$ and $c_\oplus$ that respects:
+  Now we can finally assign values to $c_\mu$ and $c_\oplus$. By transitivity
+and the relations calculated above we get:
 
 \[ \F{dist}\;x'\;y' < c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') < c_\oplus\;(i_j\;x')\;(i_k\;y') \]
 
@@ -1021,8 +1037,9 @@ constraints. To do so, we begin by defining the size of an element:
 
   \Agda{Diffing/Universe/Measures}{sizeEl}
 
-  Finally, we define $\F{costL} = sum \cdot map\; \F{cost$\mu$}$. This completes the definition of the diff algorithm.
+  Finally, we define $\F{costL} = \F{sum} \cdot \F{map}\; \F{cost$\mu$}$. This completes the definition of the diff algorithm.
 %Wouter should sum and map be in this font?
+%Victor fixed
 
   \Agda{Diffing/Patches/Diff/Cost}{cost-def}
   
@@ -1037,21 +1054,30 @@ constraints. To do so, we begin by defining the size of an element:
 \subsection{Applying Patches}
 \label{sec:apply}
 
-Although we have now defined an algorithm to \emph{compute} a patch,
+  Although we have now defined an algorithm to \emph{compute} a patch,
 we have not yet defined a function to apply a patch to a given
 structure.  For the most part, the generic function that does this is
 fairly straightforward. We will cover two typical cases, coproducts
 and fixed points, in some detail here.
 
-A patch over $T$ is an object that describe possible changes that can
+  A patch over $T$ is an object that describe possible changes that can
 be made to objects of type $T$. The high-level idea is that diffing
 two objects $t_1 , t_2 : T$ will produce a patch over $T$.  Consider
 the case for coproducts, that is, $T = X + Y$. Suppose we have a patch
-$p$ modifying one component of the coproduct, mapping $(\mathit{Left}\; x)$ to
-$(\mathiit{Left}\; x')$. What should be the result of applying $p$ to the value
-$(\mathit{Right}\; y)$? As there is no sensible value that we can return, we
+$p$ modifying one component of the coproduct, mapping $(\IC{inl}\; x)$ to
+$(\IC{inl}\; x')$. What should be the result of applying $p$ to the value
+$(\IC{inr}\; y)$? As there is no sensible value that we can return, we
 instead choose to make the application of patches a partial function
-that returns a value of $\mathit{Maybe}~T$. %Wouter: Do you want to use Left/Rigt or inl/inr here?
+that returns a value of $\F{Maybe}~T$. 
+
+  The overall idea is that a $\F{Patch}~T$ specify a bunch of instructions to
+transform a given $t_1 : T$ into a $t_2 : T$. The \F{gapply} function is the
+machine that understands these instructions and performs them on $t_1$, yielding
+$t_2$. For example, consider the case for the \IC{D-setl} constructor, which is
+expecting to transform an $\IC{inl}\; x$ into a $\IC{inr}\;y$. Upon receiving a
+\IC{inl} value, we need to check whether or not its contents are equal to $x$.
+If this holds, we can simply return $\IC{inr}\; y$ as intended. If not, we fail
+and return \IC{nothing}.
 
 % Wouter -- is it worth moving some of the explanation here, rather
 % than after the code? At the moment the big dump of code may be a bit
@@ -1067,28 +1093,27 @@ The definition of the \F{gapply} function proceeds by induction on the patch:
   \AgdaDots
   \end{agdacode}
   
-  \Agda{Diffing/Patches/Diff}{gapplyL-def}
-  
   Where \F{<\$>} is the applicative-style application for the \emph{Maybe} monad;
 \RF{>>=} is the usual bind for the \emph{Maybe} monad and \F{safeHead} is the 
 partial function of type |[a] -> Maybe a| that returns the first element of a list, when it exists. 
 Despite the numerous cases that must be handled, the definition of \F{gapply} for coproducts
 is reasonably straightforward.
-For example, consider the case for the \IC{D-setl} constructor, which is expecting 
-to transform an $\IC{inl}\; x$ into a $\IC{inr}\;y$. Upon receiving a
-\IC{inl} value, we need to check whether or not its contents are equal to $x$.
-If this holds, we can simply return $\IC{inr}\; y$ as intended. If not, we fail and return nothing. %Wouter nothing font?
-Similarly, in the branch for $\IC{D-inl}\;diff$, we see that
-it only succeeds upon receiving a $\IC{inl}\;x$.
+
+  \Agda{Diffing/Patches/Diff}{gapplyL-def}
 
 The case for fixed points is handled by the \F{gapplyL} function. This function uses
-an auxiliar function, \F{gIns}, that will get a value and a list of children of a
-fixed point, will try to \F{$\mu$-close} it and add the result to the
-head of the remaining list.
-On the other hand, \F{gDel} will \F{$\mu$-open}
-the head of the received list and compare its value with the received value,
-if they are equal it returns the tail of the input list appended to its children,
-if they are not equal it returns \IC{nothing}.
+two auxiliar functions, \F{gIns} and \F{gDel}. They provide an easy way to \F{$\mu$-close}
+and to \F{$\mu$-open} a head and a list fixed-point values. 
+
+  \Agda{Diffing/Patches/Diff}{gIns-def}
+  
+  \Agda{Diffing/Patches/Diff}{gDel-def}
+
+  Intuitively, we can see \F{gIns} creates a new fixed-point value. It uses the
+supplied head and the corresopnding number of children from the supplied list.
+We then just return a list, with the newly created value and the remaining list. 
+The \F{gDel} function is the dual case. It will delete the head of the head of 
+the supplied list if it matches the supplied head. 
 
 % Wouter the two sentences above are long and hard to
 % follow... Example/Intuition? Presumably, it has to do with

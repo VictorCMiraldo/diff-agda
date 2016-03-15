@@ -69,6 +69,13 @@ module Diffing.Patches.Diff where
 
   infixl 20 _<$>_
 
+  pattern True = yes _
+  pattern False = no _
+
+  _==_ : {n : ℕ}{t : Tel n}{ty : U n}(a b : ElU ty t)
+       → Dec (a ≡ b)
+  _==_ = _≟-U_
+
   mutual
 \end{code}
 %<*gapply-type>
@@ -122,25 +129,32 @@ module Diffing.Patches.Diff where
 \end{code}
 %</safeHead-def>
 
-%<*gIns-def>
+%<*gIns-type>
 \begin{code}
     gIns : {n : ℕ}{t : Tel n}{ty : U (suc n)}
          → ElU ty (tcons u1 t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+\end{code}
+%</gIns-type>
+%<*gIns-def>
+\begin{code}
     gIns x l with μ-close (x , l)
     ...| nothing = nothing
     ...| just (r , l') = just (r ∷ l')
 \end{code}
 %</gIns-def>
 
-%<*gDel-def>
+%<*gDel-type>
 \begin{code}
     gDel : {n : ℕ}{t : Tel n}{ty : U (suc n)}
          → ElU ty (tcons u1 t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+\end{code}
+%</gDel-type>
+%<*gDel-def>
+\begin{code}
     gDel x [] = nothing
-    gDel {ty = ty} x (y ∷ ys) with μ-open y
-    ...| hdY , chY with x ≟-U hdY
-    ...| yes _ = just (chY ++ ys)
-    ...| no  _ = nothing
+    gDel x (y ∷ ys) with x == (μ-hd y)
+    ...| True = just (μ-ch y ++ ys)
+    ...| False = nothing
 \end{code}
 %</gDel-def>
 
