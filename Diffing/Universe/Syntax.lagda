@@ -20,7 +20,7 @@ as these allow an easier syntatical handling of terms of U.
     u1  : {n : ℕ} → U n
     _⊕_ : {n : ℕ} → U n → U n → U n
     _⊗_ : {n : ℕ} → U n → U n → U n
-    β   : {n : ℕ} → U (suc n) → U n → U n
+    def : {n : ℕ} → U (suc n) → U n → U n
     μ   : {n : ℕ} → U (suc n) → U n
     vl  : {n : ℕ} → U (suc n)
     wk  : {n : ℕ} → U n → U (suc n)
@@ -89,7 +89,7 @@ Now, we define a 'free-monad' like datatype for elements.
          → ElU a (tcons (μ a) t) → ElU (μ a) t
     red  : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n}
          → ElU F (tcons x t)
-         → ElU (β F x) t
+         → ElU (def F x) t
 \end{code}
 %</ElU-def>
 
@@ -169,7 +169,7 @@ And some general purpose functions
 %<*rt-def>
 \begin{code}
   rt : {n : ℕ} → U (1 + n)
-  rt = μ (wk vl ⊗ β (wk list) vl)
+  rt = μ (wk vl ⊗ def (wk list) vl)
 \end{code}
 %</rt-def>
 
@@ -189,6 +189,6 @@ And some general purpose functions
 %<*U-monster>
 \begin{code}
   𝓜 : {n : ℕ} → U (suc n)
-  𝓜 = β ltree list
+  𝓜 = def ltree list
 \end{code}
 %</U-monster>

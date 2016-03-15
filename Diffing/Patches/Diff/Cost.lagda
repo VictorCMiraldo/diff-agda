@@ -70,7 +70,7 @@ module Diffing.Patches.Diff.Cost where
     cost (D-setl xa xb) = 2 * (sizeElU xa + sizeElU xb)
     cost (D-setr xa xb) = 2 * (sizeElU xa + sizeElU xb)
     cost (D-pair da db) = cost da + cost db
-    cost (D-β d)   = cost d
+    cost (D-def d)   = cost d
     cost (D-top d) = cost d
     cost (D-pop d) = cost d
     cost (D-mu l)  = costL l

@@ -38,7 +38,7 @@ module Diffing.Universe.Equality where
   _≟-U_ {u = wk u} (pop x) (pop y) with x ≟-U y
   ...| yes p = yes (cong pop p)
   ...| no  p = no (p ∘ inj-pop)
-  _≟-U_ {u = β F a} (red x) (red y) with x ≟-U y
+  _≟-U_ {u = def F a} (red x) (red y) with x ≟-U y
   ...| yes p = yes (cong red p)
   ...| no  p = no (p ∘ inj-red)
 \end{code}

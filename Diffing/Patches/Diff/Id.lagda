@@ -35,7 +35,7 @@ module Diffing.Patches.Diff.Id where
     Is-diff-id (D-setr x x₁) = ⊥
     Is-diff-id (D-pair p q) = Is-diff-id p × Is-diff-id q
     Is-diff-id (D-mu x) = Is-diffL-id x × (x ≡ [] → ⊥)
-    Is-diff-id (D-β p) = Is-diff-id p
+    Is-diff-id (D-def p) = Is-diff-id p
     Is-diff-id (D-top p) = Is-diff-id p
     Is-diff-id (D-pop p) = Is-diff-id p
 \end{code}
@@ -67,7 +67,7 @@ module Diffing.Patches.Diff.Id where
     gdiff-id (a1 , a2) = D-pair (gdiff-id a1) (gdiff-id a2)
     gdiff-id (top a) = D-top (gdiff-id a)
     gdiff-id (pop a) = D-pop (gdiff-id a)
-    gdiff-id (red a) = D-β (gdiff-id a)
+    gdiff-id (red a) = D-def (gdiff-id a)
     gdiff-id (mu a) = D-mu (gdiffL-id (mu a ∷ []))
   
     {-# TERMINATING #-}
@@ -133,7 +133,7 @@ module Diffing.Patches.Diff.Id where
     gdiff-id-correct (top a) = cong D-top (gdiff-id-correct a)
     gdiff-id-correct (pop a) = cong D-pop (gdiff-id-correct a)
     gdiff-id-correct (mu a) = cong D-mu (gdiffL-id-correct (mu a ∷ []))
-    gdiff-id-correct (red a) = cong D-β (gdiff-id-correct a)
+    gdiff-id-correct (red a) = cong D-def (gdiff-id-correct a)
 
   {-
     private

@@ -89,7 +89,7 @@ module Diffing.Patches.Residual where
     _/_ {ty = a ⊗ b} (D-pair p1 p2) (D-pair q1 q2) 
       = D-pair <M> (p1 / q1) <M*> (p2 / q2)
 
-    _/_ {ty = β F x} (D-β p) (D-β q) = D-β <M> (p / q)
+    _/_ {ty = def F x} (D-def p) (D-def q) = D-def <M> (p / q)
     _/_ {ty = vl} (D-top p) (D-top q) = D-top <M> (p / q)
     _/_ {ty = wk ty} (D-pop p) (D-pop q) = D-pop <M> (p / q)
 
@@ -109,11 +109,17 @@ module Diffing.Patches.Residual where
    
     -- we can always keep inserting things, though.
     -- If we find the same exact insert, though, we simply copy it.
-    res (Dμ-ins x ∷ dp) (Dμ-ins y ∷ dq) with x ≟-U y
-    ...| yes _ = _∷_ (Dμ-dwn (cast (gdiff-id x))) <M> res dp dq
-    ...| no  _ = _∷_ (Dμ-A (GrowLR x y)) <M> res dp dq
+\end{code}
+%<*res-ins-case>
+\begin{code}
+    res (Dμ-ins x ∷ dp) (Dμ-ins y ∷ dq) with x == y
+    ...| True  = _∷_ (Dμ-dwn (cast (gdiff-id x))) <M> res dp dq
+    ...| False = _∷_ (Dμ-A (GrowLR x y)) <M> res dp dq
     res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-A (GrowR x)) <M> res dp dq
     res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-A (GrowL x)) <M> res dp dq
+\end{code}
+%</res-ins-case>
+\begin{code}
 
     res (Dμ-del x ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
     ...| yes _ = res dp dq

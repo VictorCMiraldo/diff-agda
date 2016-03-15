@@ -112,7 +112,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
            = cong just (trans (cong₂ _++_ (sym r3) (sym r4))
                           (sym (map-++-commute (↓-map-↓ C-sym) (forget s2) (forget a))))
 
-        aux (D-β d1) (D-β d2) prf with <M>-elim prf
+        aux (D-def d1) (D-def d2) prf with <M>-elim prf
         ...| r1 , refl , q1 with <M>-elim (aux d1 d2 q1)
         ...| r2 , s2 , q2 rewrite q2 = cong just (sym s2)   
         aux (D-top d1) (D-top d2) prf with <M>-elim prf

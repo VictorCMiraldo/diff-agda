@@ -24,7 +24,7 @@ module Diffing.Patches.Diff where
           → ElU ty t → ElU ty t → Patch t ty
     gdiff {ty = vl} (top a) (top b)    = D-top (gdiff a b)
     gdiff {ty = wk u} (pop a) (pop b)  = D-pop (gdiff a b)
-    gdiff {ty = β F x} (red a) (red b) = D-β (gdiff a b)
+    gdiff {ty = def F x} (red a) (red b) = D-def (gdiff a b)
     gdiff {ty = u1} unit unit = D-unit
     gdiff {ty = ty ⊗ tv} (ay , av) (by , bv) 
       = D-pair (gdiff ay by) (gdiff av bv)
@@ -110,7 +110,7 @@ module Diffing.Patches.Diff where
     ...| nothing = nothing
     ...| just ra = _,_ ra <$> gapply db b
 
-    gapply (D-β diff) (red el) = red <$> gapply diff el
+    gapply (D-def diff) (red el) = red <$> gapply diff el
     gapply (D-top diff) (top el) = top <$> gapply diff el
     gapply (D-pop diff) (pop el) = pop <$> gapply diff el
 \end{code}
@@ -304,7 +304,7 @@ module Diffing.Patches.Diff where
 
   NF : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → Set
   NF (D-mu xs) = NF* xs
-  NF (D-β d)   = NF d
+  NF (D-def d) = NF d
   NF (D-inl d) = NF d
   NF (D-inr d) = NF d
   NF (D-top d) = NF d

@@ -64,8 +64,8 @@ module Diffing.Patches.Diff.D where
 
 %<*D-rest-def>
 \begin{code}
-      D-β : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n} 
-          → D A (tcons x t) F → D A t (β F x)
+      D-def : {n : ℕ}{t : Tel n}{F : U (suc n)}{x : U n} 
+          → D A (tcons x t) F → D A t (def F x)
       D-top : {n : ℕ}{t : Tel n}{a : U n}
             → D A t a → D A (tcons a t) vl
       D-pop : {n : ℕ}{t : Tel n}{a b : U n}

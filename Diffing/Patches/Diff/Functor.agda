@@ -31,7 +31,7 @@ module Diffing.Patches.Diff.Functor where
     D-map f (D-setr x x₁) = D-setr x x₁
     D-map f (D-pair d d₁) = D-pair (D-map f d) (D-map f d₁)
     D-map f (D-mu x) = D-mu (Dμ-map f x)
-    D-map f (D-β d) = D-β (D-map f d)
+    D-map f (D-def d) = D-def (D-map f d)
     D-map f (D-top d) = D-top (D-map f d)
     D-map f (D-pop d) = D-pop (D-map f d)
 
@@ -68,7 +68,7 @@ module Diffing.Patches.Diff.Functor where
     D-map-join f g (D-setr x y) = refl
     D-map-join f g (D-pair d e) 
       = cong₂ D-pair (D-map-join f g d) (D-map-join f g e)
-    D-map-join f g (D-β d) = cong D-β (D-map-join f g d)
+    D-map-join f g (D-def d) = cong D-def (D-map-join f g d)
     D-map-join f g (D-top d) = cong D-top (D-map-join f g d)
     D-map-join f g (D-pop d) = cong D-pop (D-map-join f g d)
     D-map-join f g (D-mu x) = cong D-mu (Dμ-map-join f g x)
@@ -104,7 +104,7 @@ module Diffing.Patches.Diff.Functor where
     D-map-id (D-setl x y) = refl
     D-map-id (D-setr x y) = refl
     D-map-id (D-pair d e) = cong₂ D-pair (D-map-id d) (D-map-id e)
-    D-map-id (D-β d) = cong D-β (D-map-id d)
+    D-map-id (D-def d) = cong D-def (D-map-id d)
     D-map-id (D-top d) = cong D-top (D-map-id d)
     D-map-id (D-pop d) = cong D-pop (D-map-id d)
     D-map-id (D-mu x) = cong D-mu (Dμ-map-id x)
@@ -170,7 +170,7 @@ module Diffing.Patches.Diff.Functor where
     forget (D-setl x x₁) = []
     forget (D-setr x x₁) = []
     forget (D-pair d d₁) = forget d ++ forget d₁
-    forget (D-β d) = forget d
+    forget (D-def d) = forget d
     forget (D-top d) = forget d
     forget (D-pop d) = forget d
     forget (D-mu x) = forgetμ x
@@ -238,7 +238,7 @@ module Diffing.Patches.Diff.Functor where
       = D-pair (uncast d (p1 (++-[] prf))) 
                (uncast e (p2 (++-[] {l = forget d} prf)))
     uncast (D-mu x) prf = D-mu (uncastμ x prf)
-    uncast (D-β d) prf = D-β (uncast d prf)
+    uncast (D-def d) prf = D-def (uncast d prf)
     uncast (D-top d) prf = D-top (uncast d prf)
     uncast (D-pop d) prf = D-pop (uncast d prf)
 
@@ -297,7 +297,7 @@ module Diffing.Patches.Diff.Functor where
     D-mult (D-setr x x₁) = D-setr x x₁
     D-mult (D-pair d d₁) = D-pair (D-mult d) (D-mult d₁)
     D-mult (D-mu x) = D-mu (Dμ-mult x)
-    D-mult (D-β d) = D-β (D-mult d)
+    D-mult (D-def d) = D-def (D-mult d)
     D-mult (D-top d) = D-top (D-mult d)
     D-mult (D-pop d) = D-pop (D-mult d)
 

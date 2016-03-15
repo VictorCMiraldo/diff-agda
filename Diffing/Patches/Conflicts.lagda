@@ -174,7 +174,7 @@ module Diffing.Patches.Conflicts where
         aux (D-setr x x₁) = D-setr x x₁
         aux (D-pair d d₁) = D-pair (aux d) (aux d₁)
         aux (D-mu x) = D-mu (aux* x)
-        aux (D-β d) = D-β (aux d)
+        aux (D-def d) = D-def (aux d)
         aux (D-top d) = D-top (aux d)
         aux (D-pop d) = D-pop (aux d)
 

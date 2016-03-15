@@ -222,7 +222,7 @@ Now we can start defining a few generic operations on terms.
     = let va , vb = vsplit (arity-lvl i ela) v
       in plug-lvl i ela va
        , plug-lvl i elb vb
-  plug-lvl {a = β F x} i (red el) v 
+  plug-lvl {a = def F x} i (red el) v 
      = red (plug-lvl (fs i) el (vmap pop v))
   plug-lvl {a = μ a} i (mu el) v 
     = mu (plug-lvl (fs i) el (vmap pop v))

@@ -17,7 +17,7 @@ module Diffing.Universe.Measures where
   countU i u1 = 0
   countU i (a ⊕ b) = countU i a + countU i b
   countU i (a ⊗ b) = countU i a + countU i b
-  countU i (β F x) = countU i x + countU (fs i) F
+  countU i (def F x) = countU i x + countU (fs i) F
   countU i (μ u) = countU (fs i) u
   countU fz vl = 1
   countU (fs i) vl = 0
@@ -33,7 +33,7 @@ module Diffing.Universe.Measures where
   sizeU u1 = 1
   sizeU (a ⊕ b) = sizeU a + sizeU b
   sizeU (a ⊗ b) = sizeU a * sizeU b
-  sizeU (β F x) = sizeU x * countU fz F + sizeU F
+  sizeU (def F x) = sizeU x * countU fz F + sizeU F
   sizeU (μ u) = sizeU u
   sizeU vl = 1
   sizeU (wk u) = sizeU u

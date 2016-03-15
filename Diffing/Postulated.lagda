@@ -1,7 +1,7 @@
 \begin{code}
 open import Prelude
 open import Diffing.Universe.Syntax
-open import Diffing.Patches.Diff hiding (Dμ)
+open import Diffing.Patches.Diff hiding (Dμ; D)
 
 module Diffing.Postulated where
 
@@ -22,10 +22,24 @@ All the complicated results are to be postulated here.
   correctness = T
 \end{code}
 
+%<*D-type>
+\begin{code}
+  data D (A : {n : ℕ} → Tel n → U n → Set) 
+    : {n : ℕ} → Tel n → U n → Set where
+\end{code}
+%</D-type>
+
+%<*Dmu-type>
+\begin{code}
+  data Dμ (A : {n : ℕ} → Tel n → U n → Set) 
+    : {n : ℕ} → Tel n → U (suc n) → Set where
+\end{code}
+%</Dmu-type>
+
 %<*Dmu-type-safe-type>
 \begin{code}
-  data Dμ {a}(A : {n : ℕ} → Tel n → U n → Set a)
-          {n : ℕ}(t : Tel n)(ty : U (suc n))
+  data Dμ₂ (A : {n : ℕ} → Tel n → U n → Set)
+           {n : ℕ}(t : Tel n)(ty : U (suc n))
        : ℕ → ℕ → Set where
 \end{code}
 %</Dmu-type-safe-type>

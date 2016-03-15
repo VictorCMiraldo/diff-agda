@@ -127,9 +127,9 @@ module Diffing.Patches.Residual.Symmetry where
          = (λ { (D-pair m n) → D-pair (op1 m) (op2 n) ; x → x }) 
          , refl
 
-      aux (D-β d1) (D-β d2) prf with <M>-elim prf
+      aux (D-def d1) (D-def d2) prf with <M>-elim prf
       ...| r , refl , q with aux d1 d2 q
-      ...| op , res = (λ { (D-β x) → D-β (op x) ; x → x })
+      ...| op , res = (λ { (D-def x) → D-def (op x) ; x → x })
                     , <M>-intro res   
       aux (D-top d1) (D-top d2) prf with <M>-elim prf
       ...| r , refl , q with aux d1 d2 q
