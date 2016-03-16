@@ -1850,26 +1850,24 @@ following simple example:
   
 \section{Conclusion}
 
-  We believe that by incorporating the changes proposed in sections
-\ref{sec:costremarks} and \ref{sec:typesafety}, we will be able to prove further
-results about our constructions. In particular we conjecture that our
-\emph{residual} operation, section \ref{sec:residual}, constitutes, in fact, a
-residual system as in \cite{Tieleman2006,Bezem2003}. Moreover, we expect to be
-able to formulate more accurate properties about which conditions a \emph{merge
-strategy}, section \ref{sec:residual}, must satisfy in order to converge.
-Moreover, we would like to have a formal categorical framework to speak about
-diffs. 
-  
-  From our proposals, we see that it is already possible to have much better
-merge tools to help automate the management of structured data. The applications
-are multiple. We can use our algorithms to create specialized merge tools for
-virtually every structured file format, as we just need a Haskell representation
-of this data to be able to diff it. This approach is easy to integrate on the
-already existing software version control systems but also allows us to develop
-one from scratch, for files and directories can also be represented in Haskell.
-Besides actual version control, we can also use the notion of \F{cost} we
-developed for a range of topics, given that we can always compute a non-trivial
-distance between values of an arbitrary datatype. 
+We believe that by incorporating the changes proposed in Sections
+\ref{sec:costremarks} and \ref{sec:typesafety}, we will be able to
+prove further results about our constructions. In particular we
+conjecture that our \emph{residual} operation (Section
+\ref{sec:residual}) constitutes a residual system in the
+term-rewriting sense~\cite{Tieleman2006,Bezem2003}. Moreover, we
+expect to be able to formulate more accurate properties about which
+conditions a \emph{merge strategy} (Section \ref{sec:residual}) must
+satisfy in order to converge.  
+
+This paper has demonstrated that it is feasible to define generic
+merge and diff algorithms to improve version control of structured
+data. We can use our algorithms to create specialized revision control
+systems for virtually every imaginable file format -- the only
+information we need to do so is a Haskell data type modelling the data
+under revision. These generic algorithms are more precise than the
+standard \texttt{diff} based tools, resulting in more accurate
+conflict information, and as a result, a better overall user experience.
   
   %% WARNING: Do NOT change the next comment, it's a tag for sed to
   %% glue the bibliography.
