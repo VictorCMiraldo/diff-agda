@@ -113,10 +113,10 @@ module Diffing.Patches.Residual where
 %<*res-ins-case>
 \begin{code}
     res (Dμ-ins x ∷ dp) (Dμ-ins y ∷ dq) with x == y
-    ...| True  = _∷_ (Dμ-dwn (cast (gdiff-id x))) <M> res dp dq
-    ...| False = _∷_ (Dμ-A (GrowLR x y)) <M> res dp dq
-    res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-A (GrowR x)) <M> res dp dq
-    res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-A (GrowL x)) <M> res dp dq
+    ...| True  = _∷_ (Dμ-dwn (cast (gdiff-id x))) <$> res dp dq
+    ...| False = _∷_ (Dμ-A (GrowLR x y)) <$> res dp dq
+    res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-A (GrowR x)) <$> res dp dq
+    res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-A (GrowL x)) <$> res dp dq
 \end{code}
 %</res-ins-case>
 \begin{code}
@@ -133,9 +133,9 @@ module Diffing.Patches.Residual where
     res (Dμ-dwn dx ∷ dp) (Dμ-del y ∷ dq)
       with gapply dx y
     ...| nothing = nothing
-    ...| just y' with y ≟-U y'
-    ...| yes _ = res dp dq
-    ...| no  _ = _∷_ (Dμ-A (UpdDel y' y)) <M> res dp dq    
+    ...| just y' with y == y'
+    ...| True  = res dp dq
+    ...| False = _∷_ (Dμ-A (UpdDel y' y)) <$> res dp dq    
 \end{code}
 %</res-dwn-del-case>
 \begin{code}

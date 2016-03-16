@@ -173,7 +173,7 @@
 \newcommand{\DCtty}{\F{D}\;\F{C}\;t\;ty}
 \newcommand{\Patchtty}{\F{Patch}\;t\;ty}
 \newcommand{\Ctty}{\F{C}\;t\;ty}
-\newcommand{\cons}{\; :\hskip -.1em : \;}
+\newcommand{\cons}{\; :~\hskip -.1em : \;}
 \newcommand{\cat}{\; + \hskip -.8em + \;}
 \newcommand{\DmuIns}{\IC{D$\mu$-ins} \;}
 \newcommand{\DmuDel}{\IC{D$\mu$-del} \;}
@@ -215,7 +215,7 @@
   This paper describes a data type generic approach to version control that
   exploits a file's structure to create more precise diff and merge
   algorithms.  We prototype and prove properties of these algorithms
-  using the functional language in Agda; transcribing these
+  using the dependently typed language Agda; transcribing these
   definitions to Haskell yields a more scalable implementation.
 \end{abstract}
 
@@ -251,7 +251,7 @@ line-based diffs generally work well when monitoring source code in
 most programming languages, they tend observe unnecessary conflicts in
 many situations.
 
-For exampl, consider the following example CSV file that records the
+For example, consider the following example CSV file that records the
 marks, unique identification numbers, and names three students:
 
 \begin{center}
@@ -327,7 +327,7 @@ when different changes must be merged, using tools such as
 \section{Structural Diffing}  
   
 To make version control systems aware of the \emph{types} of data they
-manage, we need to collection of data types that may be
+manage, we need the collection of data types that may be
 versioned. More specifically, we will define a universe of context
 free types~\cite{Altenkirch2006}, whose values may be diffed and
 patched. Our choice of universe is intended to closely resemble the
@@ -363,7 +363,7 @@ Recursive types are created through \IC{$\mu$}. Type application is
 denoted by \IC{def}. To control and select variables we use constructors
 that retrieve the \emph{value} on top of the variable stack, \IC{vl}, and that
 pop the variable stack, ignoring the top-most variable, \IC{wk}.
-We decouple weakening \IC{wk} from the variable occurences \IC{vl} and
+We decouple weakening \IC{wk} from the variable occurrences \IC{vl} and
 allow it anywhere in the code. This allows slightly more compact definitions
 later on. 
   
@@ -375,7 +375,7 @@ to take define a suitable environment that captures the meaning of
 free variables. More specifically, we will use a \F{Tel}escope of
 types to specify the elements of \F{U}, while still satisfying Agda's
 termination checker. Hence, we define the elements of \F{U} with
-repsect to a \emph{closing substitution}.  Imagine we want to
+respect to a \emph{closing substitution}.  Imagine we want to
 describe the elements of a type with $n$ variables, $ty :
 \F{U}\;n$. We can only speak about this type once all $n$ variables
 are bound to correspond to a given type.  We need, then,
@@ -412,7 +412,7 @@ constructors.
   Remember that our main objective is to define \emph{how to track differences
 between elements of a given type}. So far we showed how to define the universe
 of context free types and the elements that inhabit it. We can now define
-\emph{generic} functions that operate on any type representible in this universe
+\emph{generic} functions that operate on any type representable in this universe
 by induction over the representation type, \F{U}. In the coming sections, we
 define our diff algorithm using a handful of (generic) operations that we will
 define next.
@@ -615,7 +615,7 @@ by $\small \consff \;(\constt\;\cdot)$ and shrinks in the end.
 \end{figure}
 
   Note that Figure \ref{fig:listbool} is not the only possible representation of such change
-by means of grows and shrinks. In fact, the \texttt{diff3} tool pre-computes an aligment
+by means of grows and shrinks. In fact, the \texttt{diff3} tool pre-computes an alignment
 table for identifying where the file grows and shrinks before computing the actual differences.
 We chose to dynamically discover where the fixed-point value grows and shrinks instead
 of pre-computing such a table, since types other than \F{list} give rise to a
@@ -798,7 +798,7 @@ constructors to their dual counterpart. We will hence assign a cost $c_\oplus =
 \IC{D$\mu$-ins} = \F{cost } \IC{D$\mu$-del}$. This guarantees the second property by construction.
 If we define $c_\mu$ and $c_\oplus$ as constants, however,
 the cost of inserting a small subtree will have the same cost as inserting a very large subtree.
-This is probably undesirable and may lead to unexpected behaviour. Instead of constants, $c_\oplus$ and $c_\mu$,
+This is probably undesirable and may lead to unexpected behavior. Instead of constants, $c_\oplus$ and $c_\mu$,
 we will instead try to define a pair of functions,
 $c_\oplus\;x\;y = \F{cost }(\IC{D-setr}\;x\;y) = \F{cost }(\IC{D-setl}\;x\;y)$ and
 $c_\mu\;x = \F{cost }(\IC{D$\mu$-ins}\;x) = \F{cost }(\IC{D$\mu$-del}\;x)$, that may take
@@ -932,7 +932,7 @@ transitivity and the relations calculated above we get:
 
 Note that there are many definitions that satisfy the specification we
 have outlined above.  So far we have calculated a relation between
-$c_\mu$ and $c_\oplus$ that encourages the diff algorithm to favour
+$c_\mu$ and $c_\oplus$ that encourages the diff algorithm to favor
 (smaller) changes further down in the tree.
 
 
@@ -1002,7 +1002,7 @@ is reasonably straightforward.
   \Agda{Diffing/Patches/Diff}{gapplyL-def}
 
 The case for fixed points is handled by the \F{gapplyL} function. This function uses
-two auxiliar functions, \F{gIns} and \F{gDel}. They provide an easy way to \F{$\mu$-close}
+two auxiliary functions, \F{gIns} and \F{gDel}. They provide an easy way to \F{$\mu$-close}
 and to \F{$\mu$-open} a head and a list fixed-point values. 
 
   \Agda{Diffing/Patches/Diff}{gIns-def}
@@ -1010,7 +1010,7 @@ and to \F{$\mu$-open} a head and a list fixed-point values.
   \Agda{Diffing/Patches/Diff}{gDel-def}
 
   Intuitively, we can see \F{gIns} creates a new fixed-point value. It uses the
-supplied head and the corresopnding number of children from the supplied list.
+supplied head and the corresponding number of children from the supplied list.
 We then just return a list, with the newly created value and the remaining list. 
 The \F{gDel} function is the dual case. It will delete the head of the head of 
 the supplied list if it matches the supplied head. 
@@ -1040,11 +1040,11 @@ file. In the previous section, we defined generic algorithms for
 creating and applying patches. In this section, we turn our attention
 to the final point: merging different patches. It is precisely here
 that we expect to be able to exploit the structure of files to avoid
-unneccessary conflicts.
+unnecessary conflicts.
 
 The task of merging changes arise when we have multiple users changing
 the same file at the same time. Imagine Bob and Alice perform edits on
-a file $A_0$, resulting in two patches $p$ and $q$. We might visualise
+a file $A_0$, resulting in two patches $p$ and $q$. We might visualize
 this situation in the following diagram:
 
   \[ \xymatrix{ A_1 & A_0 \ar[l]_{p} \ar[r]^{q} & A_2} \]
@@ -1093,7 +1093,7 @@ a $\IC{inl}\;x$ as input whereas the later expects a $\IC{inr}\;y$.
 Even if we restrict ourselves to a partial residual function, there
 may be other issues that arise. In particular, suppose that both Bob
 and Alice change the same cell in the CSV file. There is no reason to
-favour one particular change over another. In that case, we report a
+favor one particular change over another. In that case, we report a
 \emph{conflict} and leave it to the end user to choose which value to
 use final result.
   
@@ -1106,11 +1106,11 @@ is in computing the residual $p_{Alice} / p_{Bob}$.
           with $a_2 \neq a_3$, we have an \emph{update-update} conflict;
     \item If Alice deletes information that was changed by Bob we have
           an \emph{delete-update} conflict;
-    \item Last but not least, if Alice changes information that was deleted by Bob
+    \item If Alice changes information that was deleted by Bob
           we have an \emph{update-delete} conflict.
-    \item If Alice adds information to a fixed-point, this is
-          a \emph{grow-left} conflict;
-    \item When Bob added information to a fixed-point, which Alice didn't,
+    \item If Alice adds information to a fixed-point, which Bob did not, 
+          this is a \emph{grow-left} conflict;
+    \item If Bob addes information to a fixed-point, which Alice did not,
           a \emph{grow-right} conflict arises;
     \item If both Alice and Bob add different information to a fixed-point,
           a \emph{grow-left-right} conflict arises;        
@@ -1148,9 +1148,9 @@ Although we now have fixed the data type used to represent conflicts,
 we still need to define our residual operator. As we discussed
 previously, the residual will return a new patch, but may fail in two
 possible ways. If the input patches are not aligned, we will return
-nothing; if there is a conflict, we will record the precise location
+\IC{nothing}; if there is a conflict, we will record the precise location
 of the conflict using the \IC{D-A} constructor. In this fashion, we
-have separate types to distinguish between patches without conflict
+have separate types to distinguish between patches without conflicts
 and patches arising from our residual computation containing
 unresolved conflicts.
 
@@ -1162,7 +1162,7 @@ The final type of our residual operation is:
   not defined for non-aligned patches. Instead of displaying the
   entire Agda definition\footnote{%
 %%% BEGIN FOOTNOTE
-The complete Agda code is publically available and can be found in \texttt{ommited for double-blind review}.
+The complete Agda code is publicly available and can be found in \texttt{omitted for double-blind review}.
 % \url{https://git.science.uu.nl/v.cacciarimiraldo/diff-agda/}.
 %%% END FOOTNOTE
 }, we will discuss the key branches in some
@@ -1174,8 +1174,8 @@ The complete Agda code is publically available and can be found in \texttt{ommit
   Here we are computing the residual:
 \[ (\DmuDwn dx \cons dp) / (\DmuDel y \cons dq) \]
 
-We want to describe how to apply the changes $\DmuDwn~dx~\cons~dp)$ to a structure
-that has been modified by the patch $\DmuDel~y~\cons~dq$. Note that the order is important.
+We want to describe how to apply the changes $(\DmuDwn~dx~\cons~dp)$ to a structure
+that has been modified by the patch $(\DmuDel~y~\cons~dq)$. Note that the order is important.
 The first thing we do is to check whether or not the patch $dx$ can be applied to $y$.
 If we can not apply $dx$ to $y$, then these two patches are not aligned, and we
 simply return \IC{nothing}. If we can apply $dx$ to $y$, however, this will
@@ -1186,25 +1186,24 @@ is the identity patch, and no new changes were introduced. Hence we can
 simply suppress the deletion, $\DmuDel$, and 
 continue recursively. 
 
-  Lets see how do \emph{grow} conflicts arise, by taking a look at the branches
+  Next, lets see how \emph{grow} conflicts are detected by taking a look at the branches
 that handle insertion.
 
   \AgdaI{Diffing/Patches/Residual}{res-ins-case}{-3em}
   
-  Whenever we find two insertions, we need to check whether the inserted values are equal.
+  Whenever we find two overlapping insertions, we need to check whether the inserted values are equal.
 If they turn out to be different, we have a \IC{GrowLR} conflict since we cannot
 decide if $x$ should come before $y$ or vice-versa.
-If they are equal, however, we need to give a patch that when applied to something that
-that grew by $x$ produces the effect of adding $y$ (remember $x$ and $y$ are equal in this branch). 
-We hence need to copy $x$ and ignore the second insertion when proceeding recursively.
- Unilateral insertions simply become
+If they are equal, however, we just copy $x$, since we do not want to insert $x$ twice,
+and continue recursively. The \F{cast} function will just cast a \F{Patch} to a \F{PatchC}
+without introducing any actual conflict. Unilateral insertions simply become
 \IC{GrowL} and \IC{GrowR} conflicts, that can later be easily solved if the context allows.
 
   The remaining cases follow a similar reasoning. The residual function is defined
 by structural induction over patches. The diagonal cases are easy to solve. The
 off-diagonal cases require a similar reasoning, in $p / q$ the idea is to come up with
-a patch, if possible, that can be applied to an object already modified by $p$ but
-still produces the changes specified by $q$. When not possible we need to distinguish
+a patch, if possible, that can be applied to an object already modified by $q$ but
+still produces the changes specified by $p$. When not possible we need to distinguish
 between two conflicting patches and two non-aligned patches. 
 
   The attentive reader might have noticed a symmetric structure on conflicts.
@@ -1266,7 +1265,7 @@ the calculation of a residual does introduce conflicts, however, we
 need further information to eliminate these conflicts and produce a
 pair of conflict-free patches. Since the conflicts of one residual
 will be the symmetric of the conflicts of the other residual,
-we want to have only one \emph{merge strategy} $e$ to resolve them. We can visualise
+we want to have a single \emph{merge strategy} $e$ to resolve them. We can visualize
 this in Figure \ref{fig:residualreal}.
 
 
@@ -1304,38 +1303,37 @@ a \emph{merge strategy} to be a function of type $\F{PatchC}\;A \rightarrow
 strategy would have $\F{B} = \F{IO}$, a partial merge strategy would have $\F{B} =
 \F{Maybe}$, etc. 
 
-  Hence important question becomes: how to define $e$? As it turns out, we cannot
+  Hence the key question becomes: how to define $e$? As it turns out, we cannot
 completely answer that. The \emph{merge strategy} $e$ depends on the semantics
 of the files being diffed. The users should be the ones defining their own
 \emph{merge strategies}, as they have the domain specific knowledge to do so. We
-must, however, provide suitable tools for them to do so. 
+must, however, provide them with the right tools for the job. 
 
-  It is important to understand that this problem can be divided in two: (A)
-how do we traverse the \F{PatchC} structure and (B) how do we solve the conflicts
-we found on the leaves. 
+  It is important to understand that this problem can be divided in two separate parts: (A)
+how do we traverse the \F{PatchC} structure and (B) how do we resolve the conflicts
+we find in the leaves. 
 
-  For example, a simple pointwise \emph{merge strategy} can be defined for a
+  For example, a simple pointwise, total, \emph{merge strategy} could be defined for a
 \emph{solver} $m : \forall \{t \; ty\} \rightarrow \Ctty \rightarrow \Dtty$,
 which can now be mapped over $\DCtty$ pointwise on its conflicts. We end up with
 an object of type $\F{D}\;(\F{D}\;\F{$\bot_p$})\;t\;ty$. This is not a problem,
 however, since the free-monad structure on \F{D} provides us with a
 multiplication $\mu_D : \F{D}\;(\F{D}\;A)\;t\;ty \rightarrow \F{D}\;A\;t\;ty$.
-Therefore, 
+Hence, 
 \[ 
 merge_{pw}\;m : \F{PatchC}\;t\;ty \xrightarrow{\mu_D \cdot \F{D-map}\; m} \Patchtty 
 \]
   
-  We can see that there are a plethora of options for defining how to merge
-patches. In the future we would like to have a library of \emph{solvers} and
-different traversals of a \F{PatchC} together with a calculus for them, allowing
-one to prove lemmas about the behavior of some \emph{merge strategies}, that is,
-a bunch of \emph{solvers} combined using different traversals. More importantly,
+  In the future we would like to have a library of \emph{solvers} and different
+traversals of a \F{PatchC} together with a calculus for them. Allowing one to
+prove lemmas about the behavior of some \emph{merge strategies}, that is, a
+bunch of \emph{solvers} combined using different traversals. More importantly,
 we are actively investigating how can one prove that a \emph{merge strategy}
-converges. We suspect we can give suficient conditions for guaranteeing the
-convergence of a \emph{merge strategy} by analyzing more carefully the proof of
-the symmetric structure of residuals. This is left as future work. Nevertheless,
-our Haskell prototype already provides some non-trivial traversals and solvers,
-as we shall see in the next section.
+converges. We conjecture that a sufficient condition for the convergence of a
+\emph{merge strategy} can be extracted from the proof of the symmetric structure
+of residuals. This is left as future work. Nevertheless, our Haskell prototype
+already provides some non-trivial traversals and solvers that converge
+for a large amount of practical cases, as we shall see in the next section.
 
 \section{The Haskell Prototype}
 \label{sec:haskell}
@@ -1348,7 +1346,7 @@ that we it closely follows the traditional `sums-of-products' view of Haskell da
 and can be readily transcribed to typeclasses in Haskell. 
 The source code of our prototype is available
 online~\footnote{ %\url{https://git.science.uu.nl/v.cacciarimiraldo/hs-diff}}.
-\texttt{Ommited for double-blind review} 
+\texttt{Omitted for double-blind review} 
 }
 
 The central type class in our prototype is |Diffable|, that gives the basic diffing
@@ -1560,7 +1558,7 @@ returns a |PatchC|, as the \emph{merge strategy} is \emph{partial}. It will
 leave the conflicts it cannot solve untouched. The predicate |resolved :: PatchC
 a -> Maybe (Patch a)| casts it back to a patch if no conflict is present. We
 stress that the maximum we can do is provide the user with different \emph{merge
-strategies} and a toolset to build custom ones, but since different domains will
+strategies} and a tool set to build custom ones, but since different domains will
 have different conflicts and conflict semantics, it is up to the user to program
 the best strategy for their particular domain. 
 
@@ -1569,8 +1567,8 @@ copy in order to obtain the result, by:
 
 \vskip .5em
 \begin{code}
-  Just pAR = resolved (solvePWithCtx sRefactor (pB / pA))
-  Just pBR = resolved (solvePWithCtx sRefactor (pA / pB))
+  Just pAR = resolved (walkPWithCtx sUpdCtx (pB / pA))
+  Just pBR = resolved (walkPWithCtx sUpdCtx (pA / pB))
 \end{code}
 \vskip .5em
 
@@ -1588,7 +1586,7 @@ copy in order to obtain the result, by:
 \vskip .5em
 
   And finally we can apply |pAR| to Alice's copy and |pBR| to Bob's copy
-and both will end up with the desired |lR = ki [[2] , [3, 12]]| as a result.
+and both will end up with the desired |lR = [[2] , [3, 12]]| as a result.
 
   As we can see from this example, our framework allows for a
 definition of different conflict resolution strategies. This fits
@@ -1606,7 +1604,7 @@ Haskell prototype, demonstrating the viability of our approach. Our algorithms
 can be readily applied to any algebraic data type in Haskell, as these can all
 be represented in our type universe. We have also shown how this approach allows
 one to define custom conflict resolution strategies, such as those that attempt
-to recognise the copying of subtrees. The work of Lempsink et al.~\cite{Loh2009}
+to recognize the copying of subtrees. The work of Lempsink et al.~\cite{Loh2009}
 and Vassena~\cite{Vassena2015} are the most similar to our. We use a drastically
 different definition of patches. The immediate pros of our approach are the
 ability to have more freedom in defining conflict resolution strategies and a
@@ -1649,7 +1647,7 @@ There are several pieces of related work that we would like to mention here:
       
       
     \item[Separation Logic]
-      Swierstra and L\"{o}h, in \cite{Swierstra2014}, use separation logic and Hoare calculus to 
+      Swierstra and L\"{o}h \cite{Swierstra2014} use separation logic and Hoare calculus to 
       be able to prove that certain patches do not overlap and, hence, can be merged.
       They provide increasingly more complicated models of a repository in which one
       can apply such reasoning. Our approach is more general in the file structures
@@ -1673,17 +1671,12 @@ did in fact satisfy the relation we stated:
 \[ \F{dist}\;x'\;y' < c_\mu\;(i_j\;x') + c_\mu\;(i_k\;y') < c_\oplus\;(i_j\;x')\;(i_k\;y') \]
 
   This is, in fact, deceptively complicated. Since \F{$\_\lubmu\_$} is not
-commutative nor associative, in general, we do not have much room to reason
-about the result of a \F{gdiffL}. A more careful definition of \F{$\_\lubmu\_$}
+commutative nor associative. In the presence of equal cost alternatives,
+it does not favor any particular patch. This may lead to different, yet
+observationally equaivalent results. In general, we do not have much room to reason
+about the result of a \F{gdiffL}. A better definition of \F{$\_\lubmu\_$},
 that can provide more properties is paramount for a more careful study of the
-\F{cost} function. Defining \F{$\_\lubmu\_$} in such a way that it gives us a
-lattice over patches and still respects patch inverses is very tricky, as for
-making it preserve inverses we need to have $\F{D-inv}(d_1 \F{$\lubmu$} d_2)
-\equiv \F{D-inv}\;d_1 \F{$\lubmu$} \F{D-inv}\;d_2$. A simpler option would be to
-aim for a quasi-metric $d$ instead of a metric (dropping symmetry; equation
-(2)), this way inverses need not to distribute over \F{$\_\lubmu\_$} and we can
-still define a metric $q$, but now with codomain $\mathbb{Q}$, as $q\;x\;y =
-\frac{1}{2}(d\;x\;y - d\;y\;x)$.
+\F{cost} function. 
 
 \subsection{A remark on Type Safety}
 \label{sec:typesafety}
@@ -1739,29 +1732,28 @@ The insight is that the patch $dx$ already has the information about the arity
 of both its source and destination elements. We then should be able
 to extract this information from $dx$ do provide correct indexes to $\DmuDwn~dx$.
 Proving that the arity extracted from a patch corresponds to the arity
-of an element is tricker than it looks at first sight. We already have started
+of an element is trickier than it looks at first sight. We already have started
 a better model of patches, which has type-safe diffs by construction. Further
 exploration of this subject is left as future work, nevertheless.
+
+  We believe that by incorporating the changes proposed in this Section we will
+be able to prove further results about our constructions. In particular we
+conjecture that our \emph{residual} operation, Section \ref{sec:residual},
+constitutes, in fact, a residual system as in \cite{Tieleman2006,Bezem2003}.
+Moreover, we expect to be able to formulate more accurate properties about which
+conditions a \emph{merge strategy}, Section \ref{sec:residual}, must satisfy in
+order to converge.
   
 \section{Conclusion}
-
-  We believe that by incorporating the changes proposed in sections
-\ref{sec:costremarks} and \ref{sec:typesafety}, we will be able to prove further
-results about our constructions. In particular we conjecture that our
-\emph{residual} operation, Section \ref{sec:residual}, constitutes, in fact, a
-residual system as in \cite{Tieleman2006,Bezem2003}. Moreover, we expect to be
-able to formulate more accurate properties about which conditions a \emph{merge
-strategy}, Section \ref{sec:residual}, must satisfy in order to converge.
-Moreover, we would like to have a formal categorical framework to speak about
-diffs. 
   
-  From our proposals, we see that it is already possible to have much better
-merge tools to help automate the management of structured data. The applications
+  From our proposals, it is already possible to have much better
+merge tools to help automate the management of structured data than what we
+currently use. The applications 
 are multiple. We can use our algorithms to create specialized merge tools for
 virtually every structured file format, as we just need a Haskell representation
 of this data to be able to diff it. This approach is easy to integrate on the
 already existing software version control systems but also allows us to develop
-one from scratch, for files and directories can also be represented in Haskell.
+one from scratch, for files and directories are trees.
 Besides actual version control, we can also use the notion of \F{cost} we
 developed for a range of topics, given that we can always compute a non-trivial
 distance between values of an arbitrary datatype. 
