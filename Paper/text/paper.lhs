@@ -191,7 +191,6 @@
 %\copyrightdata{...}
 %\copyrightdoi{nnnnnn.nnnnnn}
 \preprintfooter{some information here...}
-\titlebanner{DRAFT}
 
 \title{Structure-aware version control}
 \subtitle{A generic approach using Agda}
@@ -208,15 +207,15 @@
 \maketitle
 
 \begin{abstract}
-  Modern version control systems are largely based on the UNIX
-  \texttt{diff3} program for merging line-based edits on a given
-  file. Unfortunately, this bias towards line-based edits does not
-  work well for all file formats, leading to unnecessary conflicts.
-  This paper describes a data type generic approach to version control that
-  exploits a file's structure to create more precise diff and merge
-  algorithms.  We prototype and prove properties of these algorithms
-  using the dependently typed language Agda; transcribing these
-  definitions to Haskell yields a more scalable implementation.
+Modern version control systems are largely based on the UNIX
+\texttt{diff3} program for merging line-based edits on a given
+file. Unfortunately, this bias towards line-based edits does not
+work well for all file formats, leading to unnecessary conflicts.
+This paper describes a data type generic approach to version control that
+exploits a file's structure to create more precise diff and merge
+algorithms.  We prototype and prove properties of these algorithms
+using the dependently typed language Agda; transcribing these
+definitions to Haskell yields a more scalable implementation.
 \end{abstract}
 
 \category{D.1.1}{Programming Techniques}{Applicative (Functional) Programming}
@@ -243,7 +242,7 @@ modern software. There are various version control tools freely
 available, such as git or mercurial, that are used by thousands of
 developers worldwide. Collaborative repository hosting websites, such
 as GitHub and Bitbucket, haven triggered a huge growth in open source
-development. \warnme{Add citations}
+development.
 
 Yet all these tools are based on a simple, line-based diff algorithm
 to detect and merge changes made by individual developers. While such
@@ -1110,7 +1109,7 @@ is in computing the residual $p_{Alice} / p_{Bob}$.
           we have an \emph{update-delete} conflict.
     \item If Alice adds information to a fixed-point, which Bob did not, 
           this is a \emph{grow-left} conflict;
-    \item If Bob addes information to a fixed-point, which Alice did not,
+    \item If Bob adds information to a fixed-point, which Alice did not,
           a \emph{grow-right} conflict arises;
     \item If both Alice and Bob add different information to a fixed-point,
           a \emph{grow-left-right} conflict arises;        
@@ -1347,7 +1346,7 @@ and can be readily transcribed to typeclasses in Haskell.
 The source code of our prototype is available
 online~\footnote{ %\url{https://git.science.uu.nl/v.cacciarimiraldo/hs-diff}}.
 \texttt{Omitted for double-blind review} 
-}
+}.
 
 The central type class in our prototype is |Diffable|, that gives the basic diffing
 and merging functionality for objects of type |a|:
@@ -1540,7 +1539,7 @@ In the context provided by the current example, we will use a traversal
 |walkPWithCtx| with a \emph{solver} |sUpdCtx|.
 
 %format forall = "\forall"
-%format DOT    = "\cdot"
+%format DOT    = "."
 \vskip .5em
 \begin{code}
 sUpdCtx       :: Cf a -> [forall x DOT Cf x] -> Maybe (Patch a)
@@ -1673,7 +1672,7 @@ did in fact satisfy the relation we stated:
   This is, in fact, deceptively complicated. Since \F{$\_\lubmu\_$} is not
 commutative nor associative. In the presence of equal cost alternatives,
 it does not favor any particular patch. This may lead to different, yet
-observationally equaivalent results. In general, we do not have much room to reason
+observationally equivalent results. In general, we do not have much room to reason
 about the result of a \F{gdiffL}. A better definition of \F{$\_\lubmu\_$},
 that can provide more properties is paramount for a more careful study of the
 \F{cost} function. 
@@ -1691,29 +1690,28 @@ following simple example:
   
   Using \F{ill-patch}, we try to insert a \IC{suc} constructor, which
   requires one recursive argument, but instead of providing this
-  argument, the patch ends prematurely. Agda realizes that this patch
-  will lead nowhere in an instant. %Wouter: what do you mean, 'leads
-                                   %nowhere in an instant'? Does Agda
-                                   %give a type error?
+  argument, the patch ends prematurely. 
 
   Ideally, we would like to make \F{D$\mu$} type-safe by construction,
   thereby ruling out such ill-formed patches. To do so, we revisit our
   definition of patches, adding two new indices of type\F{$\mathbb{N}$}.
 
   \Agda{Diffing/Postulated}{Dmu-type-safe-type}
-  %Wouter shouldn't this below be mu2?
-  Then $\F{D$\mu$}\;A\;t\;ty\;i\;j$ will model a patch over elements
+
+\newcommand{\DmuDwnTwo}{\IC{D$\mu_2$-dwn} \;}
+
+  Then $\F{D$\mu_2$}\;A\;t\;ty\;i\;j$ will model a patch over elements
   that expects exactly $i$ child nodes and produces $j$ new children.
   This is very similar to how type-safety is guaranteed in previous
   work by Lempsink et al.~\cite{Loh2009}. As the type of the children
   is known, the only additional information required as this pair of a
   natural numbers.
   
-  Insertions, $\DmuIns~x$, (and symetrically, deletions $\DmuDel~x$) are easy to
+  Insertions, $\DmuIns~x$, (and symmetrically, deletions $\DmuDel~x$) are easy to
   adapt.  We can compute the number of children we require from the
   head, $x$, that we are inserting (or deleting).  Recursive
-  changes, $\DmuDwn~dx$, however, are more subtle. The easy fix would
-  be to say that $\DmuDwn~dx$ may never change a constructor, and
+  changes, $\DmuDwnTwo~dx$, however, are more subtle. The easy fix would
+  be to say that $\DmuDwnTwo~dx$ may never change a constructor, and
   hence it will not change its arity. However, for nested data
   types such as rose trees, this is condition is insufficient:
 
@@ -1732,7 +1730,7 @@ following simple example:
   information about the arity of both its source and destination
   elements. We should be able to extract this information from the
   patch and provide the correct indexes to
-  $\DmuDwn~dx$. %Wouter shouldn'th this be mu_2?
+  $\DmuDwnTwo~dx$.
   Proving that the arity extracted from a patch corresponds to the
   arity of an element is not entirely straightforward. We would like
   to address this issue in further work.
@@ -1753,7 +1751,7 @@ This paper has demonstrated that it is feasible to define generic
 merge and diff algorithms to improve version control of structured
 data. We can use our algorithms to create specialized revision control
 systems for virtually every imaginable file format -- the only
-information we need to do so is a Haskell data type modelling the data
+information we need to do so is a Haskell data type modeling the data
 under revision. These generic algorithms are more precise than the
 standard \texttt{diff} based tools, resulting in more accurate
 conflict information, and as a result, a better overall user experience.
