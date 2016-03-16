@@ -1681,82 +1681,82 @@ that can provide more properties is paramount for a more careful study of the
 \subsection{A remark on Type Safety}
 \label{sec:typesafety}
 
-  The main objectives of this project is to release a solid diffing and merging
-tool, that can provide formal guarantees, written in Haskell. The universe of
-user-defined Haskell types is smaller than context free types; in fact, we have
-fixed-points of sums-of-products. Therefore, we should be able to apply the
-knowledge acquired in Agda directly in Haskell. In fact, we did so! With a few
-adaptations here and there, to make the type-checker happy, the Haskell code is
-almost a direct translation. There is one minor detail we would like to point
-out in our approach so far. Our \F{D$\mu$} type admits ill-formed patches.
-Consider the following simple example:
+The main objectives of this project is to release a solid diffing and
+merging tool, that can provide formal guarantees, written in Haskell.
+There is one drawback of our approach, that we would like to point out
+here. Our \F{D$\mu$} type admits ill-formed patches.  Consider the
+following simple example:
 
   \Agda{Diffing/Patches/IllDiff}{ill-patch-example}
   
-  On \F{ill-patch} we try to insert a \IC{suc} constructor, which require one recursive
-argument, but then we simply end the patch. Agda realizes that this patch will
-lead nowhere in an instant.
+  Using \F{ill-patch}, we try to insert a \IC{suc} constructor, which
+  requires one recursive argument, but instead of providing this
+  argument, the patch ends prematurely. Agda realizes that this patch
+  will lead nowhere in an instant. %Wouter: what do you mean, 'leads
+                                   %nowhere in an instant'? Does Agda
+                                   %give a type error?
 
-  Making \F{D$\mu$} type-safe by construction should be simple. The type of the functor
-is always fixed, the telescope too. Hence they can become parameters. We just need 
-to add two \F{$\mathbb{N}$} as indexes.
+  Ideally, we would like to make \F{D$\mu$} type-safe by construction,
+  thereby ruling out such ill-formed patches. To do so, we revisit our
+  definition of patches, adding two new indices of type\F{$\mathbb{N}$}.
 
   \Agda{Diffing/Postulated}{Dmu-type-safe-type}
-
-  Then, $\F{D$\mu$}\;A\;t\;ty\;i\;j$ will model a patch
-over elements of type $T = \F{ElU} (\IC{$\mu$}\;ty)\;t$ and moreover, it expects a
-vector of length $i$ of $T$'s and produces a vector of length $j$ of $T$'s.
-This is very similar to how type-safety is guaranteed in \cite{Loh2009}, 
-but since we have the types fixed, we just need the arity of their elements. 
+  %Wouter shouldn't this below be mu2?
+  Then $\F{D$\mu$}\;A\;t\;ty\;i\;j$ will model a patch over elements
+  that expects exactly $i$ child nodes and produces $j$ new children.
+  This is very similar to how type-safety is guaranteed in previous
+  work by Lempsink et al.~\cite{Loh2009}. As the type of the children
+  is known, the only additional information required as this pair of a
+  natural numbers.
   
-  Insertions, $\DmuIns~x$, (resp. deletions, $\DmuDel~x$) are easy to fix, as we can extract
-the number of children we require from the head, $x$, that we are inserting (resp. deleting).
-Recursive changes, $\DmuDwn~dx$, however, are more subtle. The easy fix would be
-to say that $\DmuDwn~dx$ will never change a constructor, and hence it will not
-change its arity. This is not true for nested types, as is the case of rose trees:
+  Insertions, $\DmuIns~x$, (and symetrically, deletions $\DmuDel~x$) are easy to
+  adapt.  We can compute the number of children we require from the
+  head, $x$, that we are inserting (or deleting).  Recursive
+  changes, $\DmuDwn~dx$, however, are more subtle. The easy fix would
+  be to say that $\DmuDwn~dx$ may never change a constructor, and
+  hence it will not change its arity. However, for nested data
+  types such as rose trees, this is condition is insufficient:
 
   \Agda{Diffing/Universe/Syntax}{rt-def}
   
-Rose trees of $a$ have a single constructor that takes an $a$ and a list of
-rose trees of $a$ to produce a single rose tree. Lets call its constructor $RT$. 
-However, the arity of an element of a rose tree will vary. More precisely, 
-it will be equal to the length of the
-list of recursive rose trees. We therefore can have two \emph{heads} coming from the
-same constructor, as there is only one, with different arities, as we can see in:
+  The arity of the constructor for rose trees will vary. More
+  precisely, it will be equal to the length of the list of recursive
+  rose trees. We therefore can have two rose trees, with the same head
+  constructor, each applied to a different number of child nodes:
 
   \AgdaI{Diffing/Universe/MuUtils}{rt-els-def}{-2.2em}
   
   \AgdaI{Diffing/Universe/MuUtils}{r-ar-lemma}{-2.2em}
   
-The insight is that the patch $dx$ already has the information about the arity
-of both its source and destination elements. We then should be able
-to extract this information from $dx$ do provide correct indexes to $\DmuDwn~dx$.
-Proving that the arity extracted from a patch corresponds to the arity
-of an element is trickier than it looks at first sight. We already have started
-a better model of patches, which has type-safe diffs by construction. Further
-exploration of this subject is left as future work, nevertheless.
-
-  We believe that by incorporating the changes proposed in this Section we will
-be able to prove further results about our constructions. In particular we
-conjecture that our \emph{residual} operation, Section \ref{sec:residual},
-constitutes, in fact, a residual system as in \cite{Tieleman2006,Bezem2003}.
-Moreover, we expect to be able to formulate more accurate properties about which
-conditions a \emph{merge strategy}, Section \ref{sec:residual}, must satisfy in
-order to converge.
+  Fortunately, the insight is that the patch $dx$ already has the
+  information about the arity of both its source and destination
+  elements. We should be able to extract this information from the
+  patch and provide the correct indexes to
+  $\DmuDwn~dx$. %Wouter shouldn'th this be mu_2?
+  Proving that the arity extracted from a patch corresponds to the
+  arity of an element is not entirely straightforward. We would like
+  to address this issue in further work.
   
 \section{Conclusion}
-  
-  From our proposals, it is already possible to have much better
-merge tools to help automate the management of structured data than what we
-currently use. The applications 
-are multiple. We can use our algorithms to create specialized merge tools for
-virtually every structured file format, as we just need a Haskell representation
-of this data to be able to diff it. This approach is easy to integrate on the
-already existing software version control systems but also allows us to develop
-one from scratch, for files and directories are trees.
-Besides actual version control, we can also use the notion of \F{cost} we
-developed for a range of topics, given that we can always compute a non-trivial
-distance between values of an arbitrary datatype. 
+
+We believe that by incorporating the changes proposed in Sections
+\ref{sec:costremarks} and \ref{sec:typesafety}, we will be able to
+prove further results about our constructions. In particular we
+conjecture that our \emph{residual} operation (Section
+\ref{sec:residual}) constitutes a residual system in the
+term-rewriting sense~\cite{Tieleman2006,Bezem2003}. Moreover, we
+expect to be able to formulate more accurate properties about which
+conditions a \emph{merge strategy} (Section \ref{sec:residual}) must
+satisfy in order to converge.  
+
+This paper has demonstrated that it is feasible to define generic
+merge and diff algorithms to improve version control of structured
+data. We can use our algorithms to create specialized revision control
+systems for virtually every imaginable file format -- the only
+information we need to do so is a Haskell data type modelling the data
+under revision. These generic algorithms are more precise than the
+standard \texttt{diff} based tools, resulting in more accurate
+conflict information, and as a result, a better overall user experience.
   
   %% WARNING: Do NOT change the next comment, it's a tag for sed to
   %% glue the bibliography.
