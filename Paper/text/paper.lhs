@@ -1792,60 +1792,61 @@ still define a metric $q$, but now with codomain $\mathbb{Q}$, as $q\;x\;y =
 \subsection{A remark on Type Safety}
 \label{sec:typesafety}
 
-  The main objectives of this project is to release a solid diffing and merging
-tool, that can provide formal guarantees, written in Haskell. The universe of
-user-defined Haskell types is smaller than context free types; in fact, we have
-fixed-points of sums-of-products. Therefore, we should be able to apply the
-knowledge acquired in Agda directly in Haskell. In fact, we did so! With a few
-adaptations here and there, to make the type-checker happy, the Haskell code is
-almost a direct translation. There is one minor detail we would like to point
-out in our approach so far. Our \F{D$\mu$} type admits ill-formed patches.
-Consider the following simple example:
+The main objectives of this project is to release a solid diffing and
+merging tool, that can provide formal guarantees, written in Haskell.
+There is one drawback of our approach, that we would like to point out
+here. Our \F{D$\mu$} type admits ill-formed patches.  Consider the
+following simple example:
 
   \Agda{Diffing/Patches/IllDiff}{ill-patch-example}
   
-  On \F{ill-patch} we try to insert a \IC{suc} constructor, which require one recursive
-argument, but then we simply end the patch. Agda realizes that this patch will
-lead nowhere in an instant.
+  Using \F{ill-patch}, we try to insert a \IC{suc} constructor, which
+  requires one recursive argument, but instead of providing this
+  argument, the patch ends prematurely. Agda realizes that this patch
+  will lead nowhere in an instant. %Wouter: what do you mean, 'leads
+                                   %nowhere in an instant'? Does Agda
+                                   %give a type error?
 
-  Making \F{D$\mu$} type-safe by construction should be simple. The type of the functor
-is always fixed, the telescope too. Hence they can become parameters. We just need 
-to add two \F{$\mathbb{N}$} as indexes.
+  Ideally, we would like to make \F{D$\mu$} type-safe by construction,
+  thereby ruling out such ill-formed patches. To do so, we revisit our
+  definition of patches, adding two new indices of type\F{$\mathbb{N}$}.
 
   \Agda{Diffing/Postulated}{Dmu-type-safe-type}
-
-  Then, $\F{D$\mu$}\;A\;t\;ty\;i\;j$ will model a patch
-over elements of type $T = \F{ElU} (\IC{$\mu$}\;ty)\;t$ and moreover, it expects a
-vector of length $i$ of $T$'s and produces a vector of length $j$ of $T$'s.
-This is very similar to how type-safety is guaranteed in \cite{Loh2009}, 
-but since we have the types fixed, we just need the arity of their elements. 
+  %Wouter shouldn't this below be mu2?
+  Then $\F{D$\mu$}\;A\;t\;ty\;i\;j$ will model a patch over elements
+  that expects exactly $i$ child nodes and produces $j$ new children.
+  This is very similar to how type-safety is guaranteed in previous
+  work by Lempsink et al.~\cite{Loh2009}. As the type of the children
+  is known, the only additional information required as this pair of a
+  natural numbers.
   
-  Insertions, $\DmuIns~x$, (resp. deletions, $\DmuDel~x$) are easy to fix, as we can extract
-the number of children we require from the head, $x$, that we are inserting (resp. deleting).
-Recursive changes, $\DmuDwn~dx$, however, are more subtle. The easy fix would be
-to say that $\DmuDwn~dx$ will never change a constructor, and hence it will not
-change its arity. This is not true for nested types, as is the case of rose trees:
+  Insertions, $\DmuIns~x$, (and symetrically, deletions $\DmuDel~x$) are easy to
+  adapt.  We can compute the number of children we require from the
+  head, $x$, that we are inserting (or deleting).  Recursive
+  changes, $\DmuDwn~dx$, however, are more subtle. The easy fix would
+  be to say that $\DmuDwn~dx$ may never change a constructor, and
+  hence it will not change its arity. However, for nested data
+  types such as rose trees, this is condition is insufficient:
 
   \Agda{Diffing/Universe/Syntax}{rt-def}
   
-Rose trees of $a$ have a single constructor that takes an $a$ and a list of
-rose trees of $a$ to produce a single rose tree. Lets call its constructor $RT$. 
-However, the arity of an element of a rose tree will vary. More precisely, 
-it will be equal to the length of the
-list of recursive rose trees. We therefore can have two \emph{heads} coming from the
-same constructor, as there is only one, with different arities, as we can see in:
+  The arity of the constructor for rose trees will vary. More
+  precisely, it will be equal to the length of the list of recursive
+  rose trees. We therefore can have two rose trees, with the same head
+  constructor, each applied to a different number of child nodes:
 
   \AgdaI{Diffing/Universe/MuUtils}{rt-els-def}{-2.2em}
   
   \AgdaI{Diffing/Universe/MuUtils}{r-ar-lemma}{-2.2em}
   
-The insight is that the patch $dx$ already has the information about the arity
-of both its source and destination elements. We then should be able
-to extract this information from $dx$ do provide correct indexes to $\DmuDwn~dx$.
-Proving that the arity extracted from a patch corresponds to the arity
-of an element is tricker than it looks at first sight. We already have started
-a better model of patches, which has type-safe diffs by construction. Further
-exploration of this subject is left as future work, nevertheless.
+  Fortunately, the insight is that the patch $dx$ already has the
+  information about the arity of both its source and destination
+  elements. We should be able to extract this information from the
+  patch and provide the correct indexes to
+  $\DmuDwn~dx$. %Wouter shouldn'th this be mu_2?
+  Proving that the arity extracted from a patch corresponds to the
+  arity of an element is not entirely straightforward. We would like
+  to address this issue in further work.
   
 \section{Conclusion}
 
