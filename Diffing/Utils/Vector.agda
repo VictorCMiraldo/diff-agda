@@ -49,6 +49,11 @@ module Diffing.Utils.Vector where
   vec-toList (x ∷ v) 
     = cong (_∷_ x) (trans (vec-reduce (toList v)) (vec-toList v))
 
+  toList-vec : {k : ℕ}{A : Set}(l : List A){p : length l ≡ k}
+             → toList (vec l p) ≡ l
+  toList-vec [] {refl} = refl
+  toList-vec (x ∷ l) {refl} = cong (_∷_ x) (toList-vec l)
+
   vec-≡ : {k : ℕ}{A : Set}{l₁ l₂ : List A}
           {p : length l₁ ≡ k}{q : length l₂ ≡ k}
         → l₁ ≡ l₂ → vec l₁ p ≡ vec l₂ q
@@ -67,6 +72,13 @@ module Diffing.Utils.Vector where
     = cong (_∷_ (f x)) (trans (vmap-vec f l {q = suc-inj q}) 
                               (vec-reduce (map f l)))
 
+  vmap-lemma
+    : {k : ℕ}{A B : Set}{f : A → B}{g : B → A}
+    → (v : Vec A k)
+    → (∀ x → g (f x) ≡ x)
+    → vmap g (vmap f v) ≡ v
+  vmap-lemma [] prf      = refl
+  vmap-lemma (x ∷ k) prf = cong₂ _∷_ (prf x) (vmap-lemma k prf)
 
   vsplit : {n : ℕ}{A : Set}(m : ℕ) 
          → Vec A (m + n) → Vec A m × Vec A n

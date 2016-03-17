@@ -7,12 +7,13 @@ module Diffing.Universe.Equality where
 
 %<*equality-type>
 \begin{code}
-  _≟-U_ : {n : ℕ}{t : Tel n}{u : U n}(x y : ElU u t) → Dec (x ≡ y)
+  _≟-U_ : {n : ℕ}{t : T n}{u : U n}
+          (x y : ElU u t) → Dec (x ≡ y)
 \end{code}
 %</equality-type>
 %<*equality-def>
 \begin{code}
-  _≟-U_ {u = u1} void void = yes refl
+  _≟-U_ {u = u1} unit unit = yes refl
 
   _≟-U_ {u = a ⊕ b} (inl a1) (inl a2) with a1 ≟-U a2
   ...| yes p = yes (cong inl p)
@@ -32,20 +33,20 @@ module Diffing.Universe.Equality where
   _≟-U_ {u = μ u} (mu x) (mu y) with x ≟-U y
   ...| yes p = yes (cong mu p)
   ...| no  p = no (p ∘ inj-mu)
-  _≟-U_ {u = vl} (top x) (top y) with x ≟-U y
+  _≟-U_ {u = var} (top x) (top y) with x ≟-U y
   ...| yes p = yes (cong top p)
   ...| no  p = no (p ∘ inj-top)
   _≟-U_ {u = wk u} (pop x) (pop y) with x ≟-U y
   ...| yes p = yes (cong pop p)
   ...| no  p = no (p ∘ inj-pop)
-  _≟-U_ {u = β F a} (red x) (red y) with x ≟-U y
+  _≟-U_ {u = def F a} (red x) (red y) with x ≟-U y
   ...| yes p = yes (cong red p)
   ...| no  p = no (p ∘ inj-red)
 \end{code}
 %</equality-def>
 
 \begin{code}
-  ≟-U-refl : {n : ℕ}{t : Tel n}{ty : U n}
+  ≟-U-refl : {n : ℕ}{t : T n}{ty : U n}
            → (x : ElU ty t)
            → x ≟-U x ≡ yes refl
   ≟-U-refl x with x ≟-U x

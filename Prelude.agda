@@ -12,6 +12,10 @@
 --
 module Prelude where
 
+  open import Level
+    renaming (zero to lz; suc to ls)
+    public
+
   open import Data.Unit.NonEta
     using (Unit; unit)
     public
