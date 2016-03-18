@@ -1,18 +1,9 @@
 \begin{code}
 open import Prelude
 open import Data.Nat using (_≤_; z≤n; s≤s)
-open import Data.Nat.Properties.Simple
 
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.Ops
-open import Diffing.Universe.MuUtils
-open import Diffing.Universe.Measures
+open import Diffing.Universe
 open import Diffing.Patches.Diff.D
-open import Diffing.Utils.Propositions 
-  using (nat-≤-step; ≤-+; nat-≤-elim2; ¬≤; nat-≤-abs; 
-         ≤-pi; nat-≤-elim; nat-≤-unstep; ≤-trans; nat-≤-strict;
-         nat-≤-dec)
 
 module Diffing.Patches.Diff.Cost where
 \end{code}
@@ -52,40 +43,38 @@ module Diffing.Patches.Diff.Cost where
 \end{code}
 %<*cost-def>
 \begin{code}
-    cost : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → ℕ
+    cost : {n : ℕ}{t : T n}{ty : U n} → Patch t ty → ℕ
     cost (D-A ())
-    cost  D-void        = 0
+    cost D-unit         = 0
     cost (D-inl d)      = cost d
     cost (D-inr d)      = cost d
     cost (D-setl xa xb) = 2 * (sizeElU xa + sizeElU xb)
     cost (D-setr xa xb) = 2 * (sizeElU xa + sizeElU xb)
     cost (D-pair da db) = cost da + cost db
-    cost (D-β d)   = cost d
+    cost (D-def d) = cost d
     cost (D-top d) = cost d
     cost (D-pop d) = cost d
-    cost (D-mu l)  = costL l
+    cost (D-mu l)  = costμ l
 
-    costL : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Patchμ t ty → ℕ
-    costL = sum ∘ map costμ
-
-    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Dμ (const (const ⊥)) t ty → ℕ
-    costμ (Dμ-A ())
-    costμ (Dμ-ins x) = 1 + sizeElU x
-    costμ (Dμ-del x) = 1 + sizeElU x
-    costμ (Dμ-dwn x) = cost x
+    costμ : {n i j : ℕ}{t : T n}{ty : U (suc n)} → Dμ ⊥ₚ t ty i j → ℕ
+    costμ (Dμ-A () d)  
+    costμ (Dμ-ins x d) = 1 + sizeElU x + costμ d
+    costμ (Dμ-del x d) = 1 + sizeElU x + costμ d
+    costμ (Dμ-dwn x d) = cost x + costμ d
+    costμ Dμ-end = 0
 \end{code}
 %</cost-def>
 
 \begin{code}
-  infixr 20 _⊔_
-  infixr 20 _⊔μ_
+  infixr 20 _⊓_
+  infixr 20 _⊓μ_
 \end{code}
 
 %<*lub-def>
 \begin{code}
-  _⊔_ : {n : ℕ}{t : Tel n}{ty : U n}
+  _⊓_ : {n : ℕ}{t : T n}{ty : U n}
       → Patch t ty → Patch t ty → Patch t ty
-  _⊔_ {ty = ty} da db with cost da ≤?-ℕ cost db
+  _⊓_ {ty = ty} da db with cost da ≤?-ℕ cost db
   ...| yes _ = da
   ...| no  _ = db
 \end{code}
@@ -93,19 +82,33 @@ module Diffing.Patches.Diff.Cost where
 
 %<*lubmu-def>
 \begin{code}
-  _⊔μ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-      → Patchμ t ty → Patchμ t ty → Patchμ t ty
-  _⊔μ_ da db with costL da ≤?-ℕ costL db
+  _⊓μ_ : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+      → Dμ ⊥ₚ t ty i j → Dμ ⊥ₚ t ty i j → Dμ ⊥ₚ t ty i j
+  _⊓μ_ da db with costμ da ≤?-ℕ costμ db
   ...| yes _ = da
   ...| no  _ = db
 \end{code}
 %</lubmu-def>
 
 \begin{code}
-  ⊔μ-elim : {n : ℕ}{t : Tel n}{ty : U (suc n)}{P : Patchμ t ty → Set}
-          → (da db : Patchμ t ty)
-          → P da → P db → P (da ⊔μ db)
-  ⊔μ-elim da db pda pdb with costL da ≤?-ℕ costL db
+  ⊓μ-elim : {n i j : ℕ}{t : T n}{ty : U (suc n)}{P : {i j : ℕ} → Dμ ⊥ₚ t ty i j → Set}
+          → (da db : Dμ ⊥ₚ t ty i j)
+          → P da → P db → P (da ⊓μ db)
+  ⊓μ-elim da db pda pdb with costμ da ≤?-ℕ costμ db
   ...| yes _ = pda
   ...| no  _ = pdb
+
+  ⊓μ-elim3 : {n i j : ℕ}{t : T n}{ty : U (suc n)}{P : {i j : ℕ} → Dμ ⊥ₚ t ty i j → Set}
+           → (da db dc : Dμ ⊥ₚ t ty i j)
+           → P da → P db → P dc → P (da ⊓μ (db ⊓μ dc))
+  ⊓μ-elim3 {P = P} da db dc pda pdb pdc
+    = ⊓μ-elim {P = P} da (db ⊓μ dc) pda (
+        ⊓μ-elim {P = P} db dc pdb pdc)
+      
+
+  ⊓μ-elim-imp 
+    : {n i j : ℕ}{t : T n}{ty : U (suc n)}{P : {i j : ℕ} → Dμ ⊥ₚ t ty i j → Set}
+      {da db : Dμ ⊥ₚ t ty i j}
+    → P da → P db → P (da ⊓μ db)
+  ⊓μ-elim-imp {P = P} {da} {db} pda pdb = ⊓μ-elim {P = P} da db pda pdb
 \end{code}

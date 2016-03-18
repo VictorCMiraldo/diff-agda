@@ -95,24 +95,24 @@ module Diffing.Universe.Operations.Properties where
     ar*-zero-pop []       = refl
     ar*-zero-pop (x ∷ es) = ar*-zero-pop es
 
-    ar*-++-commute 
-      : {n : ℕ}{t : T n}{ty : U n}
-      → (i : ℕ)(xs ys : List (ElU ty t))
-      → ar* i (xs ++ ys) ≡ ar* i xs + ar* i ys
-    ar*-++-commute i [] ys = refl
-    ar*-++-commute i (x ∷ xs) ys 
-      = trans (cong (λ P → ar i x + P) (ar*-++-commute i xs ys))
-              (sym (+-assoc (ar i x) (ar* i xs) (ar* i ys)))
+  ar*-++-commute 
+    : {n : ℕ}{t : T n}{ty : U n}
+    → (i : ℕ)(xs ys : List (ElU ty t))
+    → ar* i (xs ++ ys) ≡ ar* i xs + ar* i ys
+  ar*-++-commute i [] ys = refl
+  ar*-++-commute i (x ∷ xs) ys 
+    = trans (cong (λ P → ar i x + P) (ar*-++-commute i xs ys))
+            (sym (+-assoc (ar i x) (ar* i xs) (ar* i ys)))
 
-    +-exch : (m n o p : ℕ)
-           → (m + n) + (o + p) ≡ (m + o) + (n + p)
-    +-exch m n o p = 
-      trans (sym (+-assoc (m + n) o p)) (
-        trans (cong (λ P → P + p) (+-assoc m n o)) (
-          trans (cong (λ P → m + P + p) (+-comm n o)) (
-            trans (cong (λ P → P + p) (sym (+-assoc m o n)))
-                  (+-assoc (m + o) n p)
-            )))
+  +-exch : (m n o p : ℕ)
+         → (m + n) + (o + p) ≡ (m + o) + (n + p)
+  +-exch m n o p = 
+    trans (sym (+-assoc (m + n) o p)) (
+      trans (cong (λ P → P + p) (+-assoc m n o)) (
+        trans (cong (λ P → m + P + p) (+-comm n o)) (
+          trans (cong (λ P → P + p) (sym (+-assoc m o n)))
+                (+-assoc (m + o) n p)
+          )))
 \end{code}
 
 %<*ar-lemma-type>

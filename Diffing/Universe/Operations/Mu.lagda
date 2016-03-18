@@ -163,3 +163,5 @@ module Diffing.Universe.Operations.Mu where
                    (cong (λ P → ar* i P) (sym (μ-ch-lemma x)))))
 \end{code}
 %</mu-ar-lemma>
+
+
