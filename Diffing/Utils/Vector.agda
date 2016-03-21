@@ -7,7 +7,8 @@ open import Data.Nat.Properties.Simple
 module Diffing.Utils.Vector where
 
   open import Data.Vec 
-    using (Vec; []; _∷_) 
+    using (Vec; []; _∷_; head; tail) 
+    renaming (_++_ to _++v_)
     public
 
   suc-inj : ∀{m n} → suc m ≡ suc n → m ≡ n
@@ -131,3 +132,18 @@ module Diffing.Utils.Vector where
   vsplit-elim-2 {m} l1 l2 {p} {q}
     rewrite vsplit-elim {m} l1 l2 {p} {length-elim-2 l1 l2 q p} {q}
       = refl
+
+  toList-vsplit-++
+    : {m n : ℕ}{A : Set}(as : Vec A (m + n))
+    → toList as ≡ toList (p1 (vsplit m as)) ++ toList (p2 (vsplit m as))
+  toList-vsplit-++ {zero} as = refl
+  toList-vsplit-++ {suc m} (x ∷ as) 
+    = cong (_∷_ x) (toList-vsplit-++ {m = m} as)
+
+  map-toList-lemma
+    : {m : ℕ}{A B : Set}(as : Vec A m)
+    → (f : A → B)
+    → map f (toList as) ≡ toList (vmap f as)
+  map-toList-lemma [] f = refl
+  map-toList-lemma (x ∷ as) f 
+    = cong (_∷_ (f x)) (map-toList-lemma as f)

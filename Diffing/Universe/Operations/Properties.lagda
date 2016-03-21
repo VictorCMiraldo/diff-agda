@@ -182,3 +182,13 @@ module Diffing.Universe.Operations.Properties where
             (cong (λ P → ar i (fgt j el) + P) 
                   (ar*-sum-map-lemma i (ch j el)))
 \end{code}
+
+\begin{code}
+  ar*v-reduce : {n j k : ℕ}{t : T n}{ty : U n}(i : ℕ)
+              → (xs : Vec (ElU ty t) j)(ys : Vec (ElU ty t) k)
+              → ar*v i (xs ++v ys) ≡ ar* i (toList xs) + ar*v i ys
+  ar*v-reduce i [] ys = refl
+  ar*v-reduce i (x ∷ xs) ys 
+    = trans (cong (λ P → ar i x + P) (ar*v-reduce i xs ys)) 
+            (sym (+-assoc (ar i x) (ar* i (toList xs)) (ar*v i ys)))
+\end{code}

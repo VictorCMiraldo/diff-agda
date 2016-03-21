@@ -77,6 +77,13 @@ module Diffing.Universe.Operations.Mu where
      = length-toList (vmap unpop (vec (ch 0 el) _))
 \end{code}
 
+%<*mu-chv-def>
+\begin{code}
+  μ-chv : {n : ℕ}{t : T n}{ty : U (suc n)} 
+        → (x : ElU (μ ty) t) → Vec (ElU (μ ty) t) (μ-ar x)
+  μ-chv x = vec (μ-ch x) (μ-open-ar-lemma x)
+\end{code}
+%</mu-chv-def>
 
 \begin{code}
   private
@@ -117,6 +124,55 @@ module Diffing.Universe.Operations.Mu where
      = just (mu (plug 0 HD (vmap pop (vec chA prf))) , rest)
 \end{code}
 %</mu-close>
+
+%<*mu-closev>
+\begin{code}
+  μ-closev : {n j : ℕ}{t : T n}{ty : U (suc n)} 
+           → (a : ElU ty (u1 ∷ t))
+           → Vec (ElU (μ ty) t) (ar 0 a + j) 
+           → Vec (ElU (μ ty) t) (suc j)
+  μ-closev a as
+    = let vas , vrs = vsplit (ar 0 a) as
+      in mu (plug 0 a (vmap pop vas)) ∷ vrs
+\end{code}
+%</mu-closev>
+
+\begin{code}
+  open import Relation.Binary.PropositionalEquality.TrustMe
+\end{code}
+
+%<*mu-closev-lemma>
+\begin{code}
+  μ-closev-lemma
+    : {n j : ℕ}{t : T n}{ty : U (suc n)}
+    → (a : ElU ty (u1 ∷ t))(ka : Vec (ElU (μ ty) t) (ar 0 a + j))
+    → (ys : Vec (ElU (μ ty) t) (suc j))
+    → μ-closev a ka ≡ ys
+    → Σ (a ≡ μ-hd (head ys)) 
+      (λ hda → p1 (vsplit (ar 0 a) ka) ≡ subst (λ P → Vec (ElU (μ ty) t) (ar 0 P)) (sym hda) (μ-chv (head ys))
+             × p2 (vsplit (ar 0 a) ka) ≡ tail ys)
+  μ-closev-lemma a ka ys hip
+    with vsplit (ar 0 a) ka
+  μ-closev-lemma a ka ._ refl 
+    | ka1 , ka2 
+    with fgt-plug-lemma 0 a (vmap pop ka1) | ch-plug-lemma 0 a (vmap pop ka1)
+  μ-closev-lemma a ka ._ refl | ka1 , ka2 | fgt-hip | ch-hip
+    rewrite erase (sym ch-hip) 
+          | erase (sym fgt-hip)
+          = {!!}
+
+  {-
+    rewrite vec-toList ((vmap unpop
+             (vec (ch 0 (plug 0 a (vmap pop ka1)))
+              (trans (ch-ar-lemma 0 (plug 0 a (vmap pop ka1)))
+               (fgt-ar-lemma 0 (plug 0 a (vmap pop ka1))))))) 
+            | sym (≡-pi fgt-hip trustMe)
+            = sym fgt-hip 
+            , {!!}
+            , refl
+  -}
+\end{code}
+%</mu-closev-lemma>
 
 
 %<*mu-close-correct-type>
@@ -165,3 +221,15 @@ module Diffing.Universe.Operations.Mu where
 %</mu-ar-lemma>
 
 
+%<*mu-ar-lemma-2>
+\begin{code}
+  μ-arity-lemma-2
+    : {n : ℕ}{t : T n}{ty : U (suc n)}(x : ElU (μ ty) t)
+    → (i : ℕ)
+    → ar i x ≡ ar (suc i) (μ-hd x) + ar* i (toList (μ-chv x))
+  μ-arity-lemma-2 {n} {t} {ty} x i
+    = trans (μ-arity-lemma x i) 
+            (cong (λ P → ar (suc i) (μ-hd x) + ar* i P)
+               (sym (toList-vec (μ-ch x))))
+\end{code}
+%</mu-ar-lemma-2>

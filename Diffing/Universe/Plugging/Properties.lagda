@@ -158,3 +158,70 @@ module Diffing.Universe.Plugging.Properties where
                 refl)) 
            (sym (plug-correct i elb))
 \end{code}
+
+\begin{code}
+  fgt-plug-lemma
+    : {n : ℕ}{t : T n}{ty : U n}(i : ℕ)
+    → (a : ElU ty (tel-forget i t))
+    → (as : Vec (ElU (tel-lkup i t) t) (ar i a)) 
+    → fgt i (plug i a as) ≡ a
+  fgt-plug-lemma {ty = u0} i () as
+  fgt-plug-lemma {ty = u1} i unit as = refl
+  fgt-plug-lemma {ty = ty ⊕ tv} i (inl a) as 
+    = cong inl (fgt-plug-lemma i a as)
+  fgt-plug-lemma {ty = ty ⊕ tv} i (inr a) as 
+    = cong inr (fgt-plug-lemma i a as)
+  fgt-plug-lemma {ty = ty ⊗ tv} i (a1 , a2) as 
+    = let vas1 , vas2 = vsplit (ar i a1) as
+       in cong₂ _,_ (fgt-plug-lemma i a1 vas1) (fgt-plug-lemma i a2 vas2)
+  fgt-plug-lemma {ty = def F ty} i (red a) as 
+    = cong red (fgt-plug-lemma (suc i) a (vmap pop as))
+  fgt-plug-lemma {ty = μ ty} i (mu a) as
+    = cong mu (fgt-plug-lemma (suc i) a (vmap pop as))
+  fgt-plug-lemma {t = t ∷ ts} {var} zero (top unit) (pop as ∷ [])
+    = refl
+  fgt-plug-lemma {t = t ∷ ts} {var} (suc i) (top a) as 
+    = cong top (fgt-plug-lemma i a (vmap unpop as))
+  fgt-plug-lemma {t = t ∷ ts} {wk ty} zero (pop a) as 
+    = refl
+  fgt-plug-lemma {t = t ∷ ts} {wk ty} (suc i) (pop a) as 
+    = cong pop (fgt-plug-lemma i a (vmap unpop as))
+\end{code}
+
+\begin{code}
+  ch-plug-lemma 
+    : {n : ℕ}{t : T n}{ty : U n}(i : ℕ)
+    → (a : ElU ty (tel-forget i t))
+    → (as : Vec (ElU (tel-lkup i t) t) (ar i a)) 
+    → ch i (plug i a as) ≡ toList as
+  ch-plug-lemma {ty = u0} i () as
+  ch-plug-lemma {ty = u1} i unit [] = refl
+  ch-plug-lemma {ty = ty ⊕ tv} i (inl a) as 
+    = ch-plug-lemma i a as
+  ch-plug-lemma {ty = ty ⊕ tv} i (inr a) as 
+    = ch-plug-lemma i a as
+  ch-plug-lemma {ty = ty ⊗ tv} i (a1 , a2) as 
+    = let vas1 , vas2 = vsplit (ar i a1) as
+       in trans (cong₂ _++_ (ch-plug-lemma i a1 vas1) (ch-plug-lemma i a2 vas2)) 
+                (sym (toList-vsplit-++ {m = ar i a1} as))
+  ch-plug-lemma {ty = def F ty} i (red a) as 
+    rewrite ch-plug-lemma (suc i) a (vmap pop as)
+          = trans (map-toList-lemma (vmap pop as) unpop) 
+                  (cong toList (vmap-lemma as (λ x → refl)))
+  ch-plug-lemma {ty = μ ty} i (mu a) as 
+    rewrite ch-plug-lemma (suc i) a (vmap pop as)
+          = trans (map-toList-lemma (vmap pop as) unpop) 
+                  (cong toList (vmap-lemma as (λ x → refl)))
+  ch-plug-lemma {t = t ∷ ts} {var} zero (top a) (pop as ∷ []) 
+    = refl
+  ch-plug-lemma {t = t ∷ ts} {var} (suc i) (top a) as 
+    rewrite ch-plug-lemma i a (vmap unpop as)
+          = trans (map-toList-lemma (vmap unpop as) pop) 
+                  (cong toList (vmap-lemma as (λ { (pop x) → refl })))
+  ch-plug-lemma {t = t ∷ ts} {ty = wk ty} zero (pop a) []
+    = refl
+  ch-plug-lemma {t = t ∷ ts} {ty = wk ty} (suc i) (pop a) as
+    rewrite ch-plug-lemma i a (vmap unpop as)
+          = trans (map-toList-lemma (vmap unpop as) pop) 
+                  (cong toList (vmap-lemma as (λ { (pop x) → refl })))
+\end{code}
