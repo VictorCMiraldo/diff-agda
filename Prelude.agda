@@ -29,7 +29,7 @@ module Prelude where
     public
 
   open import Data.Nat
-    using (ℕ; suc; zero; _+_; _*_; _∸_)
+    using (ℕ; suc; zero; _+_; _*_; _∸_; _≤_; z≤n; s≤s)
     renaming (_≟_ to _≟-ℕ_; _≤?_ to _≤?-ℕ_
              ; compare to compareℕ; Ordering to Ordℕ
              ; less to LE ; greater to GE ; equal to EQ)
@@ -82,6 +82,47 @@ module Prelude where
     using (Maybe; just; nothing)
     renaming (maybe′ to maybe)
     public
+
+  {- Usefull List Processing -}
+
+  lsplit : ∀{a}{A : Set a}(n : ℕ)(l : List A) → List A × List A
+  lsplit zero l          = [] , l
+  lsplit (suc n) []      = [] , []
+  lsplit (suc n) (x ∷ l) 
+    = let li , lo = lsplit n l
+       in x ∷ li , lo
+
+  lsplit-++-lemma
+    : ∀{a}{A : Set a}(l1 l2 : List A) 
+    → lsplit (length l1) (l1 ++ l2) ≡ (l1 , l2)
+  lsplit-++-lemma [] l2 = refl
+  lsplit-++-lemma (x ∷ l1) l2 
+    rewrite lsplit-++-lemma l1 l2 
+          = refl
+
+  lsplit-length-lemma
+    : ∀{a}{A : Set a}(l : List A)
+    → (m n : ℕ)
+    → m + n ≤ length l
+    → m ≤ length (p1 (lsplit m l))
+    × n ≤ length (p2 (lsplit m l))
+  lsplit-length-lemma l zero n hip = z≤n , hip
+  lsplit-length-lemma [] (suc m) n ()
+  lsplit-length-lemma (x ∷ l) (suc m) n (s≤s hip) 
+    = let r1 , r2 = lsplit-length-lemma l m n hip
+       in (s≤s r1) , r2
+    
+
+  lhead : ∀{a}{A : Set a} → List A → Maybe A
+  lhead []      = nothing
+  lhead (x ∷ _) = just x
+
+  map-lemma : {A B : Set}{f : A → B}{g : B → A}
+            → (l : List A)
+            → (∀ x → g (f x) ≡ x)
+            → map g (map f l) ≡ l
+  map-lemma [] prf      = refl
+  map-lemma (x ∷ l) prf = cong₂ _∷_ (prf x) (map-lemma l prf)
 
   {- Some Propositional Logic -}
   
@@ -161,6 +202,12 @@ module Prelude where
   <M>-Is-Just {x = nothing} ()
   <M>-Is-Just {x = just x} _ = indeed x
 
+  Is-Just-<M> : ∀{a b}{A : Set a}{B : Set b}
+                {f : A → B}{x : Maybe A}
+               → Is-Just x → Is-Just (f <M> x)
+  Is-Just-<M> {x = nothing} ()
+  Is-Just-<M> {f = f} {x = just x} (indeed .x) = indeed (f x)
+
   <M>-intro : ∀{a b}{A : Set a}{B : Set b}
               {f : A → B}{x : Maybe A}{k : A}
             → x ≡ just k
@@ -172,6 +219,13 @@ module Prelude where
   _       <M*> nothing = nothing
   nothing <M*> just _  = nothing
   just f  <M*> just x  = just (f x)
+
+  Is-Just-<M*> : ∀{a b}{A : Set a}{B : Set b}
+                 {f : Maybe (A → B)}{x : Maybe A}
+               → Is-Just f → Is-Just x → Is-Just (f <M*> x)
+  Is-Just-<M*> {f = nothing} () _
+  Is-Just-<M*> {x = nothing} _ ()
+  Is-Just-<M*> {f = just f} {x = just x} _ _ = indeed (f x)
 
   <M*>-nothing : ∀{a b}{A : Set a}{B : Set b}{x : Maybe A}
                → nothing {A = A → B} <M*> x ≡ nothing

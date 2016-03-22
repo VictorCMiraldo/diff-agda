@@ -73,6 +73,11 @@ module Diffing.Utils.Vector where
     = cong (_∷_ (f x)) (trans (vmap-vec f l {q = suc-inj q}) 
                               (vec-reduce (map f l)))
 
+  toList-vmap : {k : ℕ}{A B : Set}(f : A → B)(v : Vec A k)
+              → toList (vmap f v) ≡ map f (toList v)
+  toList-vmap f [] = refl
+  toList-vmap f (x ∷ v) = cong (_∷_ (f x)) (toList-vmap f v)
+
   vmap-lemma
     : {k : ℕ}{A B : Set}{f : A → B}{g : B → A}
     → (v : Vec A k)
@@ -95,6 +100,14 @@ module Diffing.Utils.Vector where
     = cong (_,_ []) (vec-reduce l2)
   vsplit-elim (x ∷ l1) l2 {q₁ = refl} {q₂} 
     = cong (λ P → x ∷ p1 P , p2 P) (vsplit-elim l1 l2)
+
+  vsplit-lemma 
+    : {m n : ℕ}{A : Set}(v1 : Vec A m)(v2 : Vec A n)(vres : Vec A (m + n))
+    → vsplit m vres ≡ (v1 , v2)
+    → vres ≡ (v1 ++v v2)
+  vsplit-lemma [] v2 .v2 refl = refl
+  vsplit-lemma {suc m} {n} (v ∷ ._) ._ (.v ∷ vres) refl 
+    = cong (_∷_ v) (vsplit-lemma (p1 (vsplit m vres)) (p2 (vsplit m vres)) vres refl)
 
   private
     length-elim-1 

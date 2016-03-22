@@ -75,6 +75,18 @@ module Diffing.Universe.Operations.Properties where
   fgt-ar-lemma i (red el) = fgt-ar-lemma (suc i) el
 \end{code}
 
+%<*fgt-ar-lemma-type>
+\begin{code}
+  ch-fgt-ar-lemma 
+    : {n : ℕ}{t : T n}{ty : U n}
+    → (i : ℕ)(el : ElU ty t)
+    → length (ch i el) ≡ ar i (fgt i el)
+\end{code}
+%</fgt-ar-lemma-type>
+\begin{code}
+  ch-fgt-ar-lemma i el = trans (ch-ar-lemma i el) (fgt-ar-lemma i el)
+\end{code}
+
 \begin{code}
   ar*-unpop : {n : ℕ}{t : T n}{a ty : U n}
             → (i : ℕ)(es : List (ElU (wk ty) (a ∷ t)))

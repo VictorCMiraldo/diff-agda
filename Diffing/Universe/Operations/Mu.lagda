@@ -20,16 +20,43 @@ module Diffing.Universe.Operations.Mu where
 \begin{code}
   μ-open : {n : ℕ}{t : T n}{ty : U (suc n)} 
          → ElU (μ ty) t → ElU ty (u1 ∷ t) × List (ElU (μ ty) t)
-  μ-open (mu el) with unplug 0 el
-  ...| HD , CH = HD , toList (vmap unpop CH)
+  μ-open (mu el) 
+    = let hdEl , chEl = unplug 0 el
+       in hdEl , map unpop chEl
 \end{code}
 %</mu-open>
+
+%<*mu-openv>
+\begin{code}
+  μ-openv : {n : ℕ}{t : T n}{ty : U (suc n)} 
+          → ElU (μ ty) t → Σ (ElU ty (u1 ∷ t)) (Vec (ElU (μ ty) t) ∘ (ar 0))
+  μ-openv (mu el) 
+    = let hdEl , chEl = unplugv 0 el
+       in hdEl , vmap unpop chEl
+\end{code}
+%</mu-openv>
 
 %<*mu-hd-def>
 \begin{code}
   μ-hd : {n : ℕ}{t : T n}{ty : U (suc n)} 
        → ElU (μ ty) t → ElU ty (u1 ∷ t)
   μ-hd = p1 ∘ μ-open
+\end{code}
+%</mu-hd-def>
+
+%<*mu-hdv-def>
+\begin{code}
+  μ-hdv : {n : ℕ}{t : T n}{ty : U (suc n)} 
+       → ElU (μ ty) t → ElU ty (u1 ∷ t)
+  μ-hdv = p1 ∘ μ-openv
+\end{code}
+%</mu-hdv-def>
+
+%<*mu-hd-def>
+\begin{code}
+  μ-hd-hdv-lemma : {n : ℕ}{t : T n}{ty : U (suc n)} 
+                 → (x : ElU (μ ty) t) → μ-hd x ≡ μ-hdv x
+  μ-hd-hdv-lemma (mu x) = refl
 \end{code}
 %</mu-hd-def>
 
@@ -49,20 +76,28 @@ module Diffing.Universe.Operations.Mu where
 \end{code}
 %</mu-ch-def>
 
+%<*mu-chv-def>
+\begin{code}
+  μ-chv : {n : ℕ}{t : T n}{ty : U (suc n)} 
+        → (x : ElU (μ ty) t) → Vec (ElU (μ ty) t) (μ-ar x)
+  μ-chv x rewrite (μ-hd-hdv-lemma x) = p2 (μ-openv x)
+\end{code}
+%</mu-chv-def>
+
 %<*mu-ch-lemma>
 \begin{code}
   μ-ch-lemma : {n : ℕ}{t : T n}{ty : U (suc n)}
              → (x : ElU ty (μ ty ∷ t))
              → μ-ch (mu x) ≡ map unpop (ch 0 x)
   μ-ch-lemma x with μ-open (mu x)
-  ...| HD , CH 
-     rewrite vmap-vec unpop (ch 0 x) 
+  ...| hdX , chX = refl
+\end{code}
+%</mu-ch-lemma>
+
+vmap-vec unpop (ch 0 x) 
              {trans (ch-ar-lemma 0 x) (fgt-ar-lemma 0 x)} 
              {trans (length-map unpop (ch 0 x)) 
                     (trans (ch-ar-lemma 0 x) (fgt-ar-lemma 0 x)) }
-           = toList-vec (map unpop (ch zero x))
-\end{code}
-%</mu-ch-lemma>
 
 %<*mu-open-ar-lemma>
 \begin{code}
@@ -74,14 +109,20 @@ module Diffing.Universe.Operations.Mu where
 %</mu-open-ar-lemma>
 \begin{code}
   μ-open-ar-lemma {n} {t} {ty} (mu el) 
-     = length-toList (vmap unpop (vec (ch 0 el) _))
+     = trans (length-map unpop (ch 0 el)) 
+             (ch-fgt-ar-lemma 0 el)
 \end{code}
 
 %<*mu-chv-def>
 \begin{code}
-  μ-chv : {n : ℕ}{t : T n}{ty : U (suc n)} 
-        → (x : ElU (μ ty) t) → Vec (ElU (μ ty) t) (μ-ar x)
-  μ-chv x = vec (μ-ch x) (μ-open-ar-lemma x)
+  μ-ch-chv-lemma 
+    : {n : ℕ}{t : T n}{ty : U (suc n)}
+    → (x : ElU (μ ty) t)
+    → μ-ch x ≡ toList (μ-chv x)
+  μ-ch-chv-lemma (mu x) 
+    = sym (trans (cong toList (vmap-vec unpop (ch 0 x) {p = ch-fgt-ar-lemma 0 x}
+                       {q = trans (length-map unpop (ch 0 x)) (ch-fgt-ar-lemma zero x)})) 
+                 (toList-vec (map unpop (ch zero x))))
 \end{code}
 %</mu-chv-def>
 
@@ -115,13 +156,13 @@ module Diffing.Universe.Operations.Mu where
 %<*mu-close>
 \begin{code}
   μ-close : {n : ℕ}{t : T n}{ty : U (suc n)} 
-          → ElU ty (u1 ∷ t) × List (ElU (μ ty) t) 
+          → ElU ty (u1 ∷ t) → List (ElU (μ ty) t) 
           → Maybe (ElU (μ ty) t × List (ElU (μ ty) t))
-  μ-close (HD , CH) with ar 0 HD ≤?-ℕ length CH
+  μ-close hdX chs with ar 0 hdX ≤?-ℕ length chs
   ...| no  _ = nothing
-  ...| yes p with list-split CH p
-  ...| (chA , rest) , prf 
-     = just (mu (plug 0 HD (vmap pop (vec chA prf))) , rest)
+  ...| yes p with list-split chs p
+  ...| (chX , rest) , prf 
+     = (λ x → mu x , rest) <M> plug 0 hdX (map pop chX)
 \end{code}
 %</mu-close>
 
@@ -133,7 +174,7 @@ module Diffing.Universe.Operations.Mu where
            → Vec (ElU (μ ty) t) (suc j)
   μ-closev a as
     = let vas , vrs = vsplit (ar 0 a) as
-      in mu (plug 0 a (vmap pop vas)) ∷ vrs
+      in mu (plugv 0 a (vmap pop vas)) ∷ vrs
 \end{code}
 %</mu-closev>
 
@@ -142,26 +183,36 @@ module Diffing.Universe.Operations.Mu where
 \end{code}
 
 %<*mu-closev-lemma>
-\begin{code}
-  μ-closev-lemma
+begin{code}
+  μ-closev-hd-lemma
     : {n j : ℕ}{t : T n}{ty : U (suc n)}
-    → (a : ElU ty (u1 ∷ t))(ka : Vec (ElU (μ ty) t) (ar 0 a + j))
     → (ys : Vec (ElU (μ ty) t) (suc j))
+    → (a : ElU ty (u1 ∷ t))(ka : Vec (ElU (μ ty) t) (ar 0 a + j))
     → μ-closev a ka ≡ ys
-    → Σ (a ≡ μ-hd (head ys)) 
+    → a ≡ μ-hd (head ys)
+  μ-closev-hd-lemma ._ a ka refl 
+    rewrite fgt-plug-lemma 0 a (vmap pop (p1 (vsplit (ar 0 a) ka))) 
+          = refl
+
+  μ-closev-ch-lemma 
+    : {n j : ℕ}{t : T n}{ty : U (suc n)}
+    → (ys : Vec (ElU (μ ty) t) (suc j))
+    → (a : ElU ty (u1 ∷ t))(ka : Vec (ElU (μ ty) t) (μ-ar (head ys) + j))
+    → μ-closev a ka ≡ ys
+    → p1 (vsplit (μ-ar (head ys)) ka) ≡ μ-chv (head ys)
+  μ-closev-ch-lemma ys a ka hip = ?
+
+  {-
       (λ hda → p1 (vsplit (ar 0 a) ka) ≡ subst (λ P → Vec (ElU (μ ty) t) (ar 0 P)) (sym hda) (μ-chv (head ys))
              × p2 (vsplit (ar 0 a) ka) ≡ tail ys)
+  
   μ-closev-lemma a ka ys hip
     with vsplit (ar 0 a) ka
   μ-closev-lemma a ka ._ refl 
     | ka1 , ka2 
     with fgt-plug-lemma 0 a (vmap pop ka1) | ch-plug-lemma 0 a (vmap pop ka1)
   μ-closev-lemma a ka ._ refl | ka1 , ka2 | fgt-hip | ch-hip
-    rewrite erase (sym ch-hip) 
-          | erase (sym fgt-hip)
-          = {!!}
-
-  {-
+    = {!!}
     rewrite vec-toList ((vmap unpop
              (vec (ch 0 (plug 0 a (vmap pop ka1)))
               (trans (ch-ar-lemma 0 (plug 0 a (vmap pop ka1)))
@@ -171,7 +222,7 @@ module Diffing.Universe.Operations.Mu where
             , {!!}
             , refl
   -}
-\end{code}
+end{code}
 %</mu-closev-lemma>
 
 
@@ -181,7 +232,7 @@ module Diffing.Universe.Operations.Mu where
     : {n : ℕ}{t : T n}{ty : U (suc n)}{a : ElU (μ ty) t}
       {hdA : ElU ty (u1 ∷ t)}{chA l : List (ElU (μ ty) t)}
     → μ-open a ≡ (hdA , chA)
-    → μ-close (hdA , chA ++ l) ≡ just (a , l)
+    → μ-close hdA (chA ++ l) ≡ just (a , l)
 \end{code}
 %</mu-close-correct-type>
 \begin{code}
@@ -189,22 +240,17 @@ module Diffing.Universe.Operations.Mu where
     with ar 0 (μ-hd (mu a)) ≤?-ℕ length (μ-ch (mu a) ++ l)
   ...| no ¬q = ⊥-elim (¬q (length-lemma (μ-ch (mu a)) l (μ-open-ar-lemma (mu a))))
   ...| yes q 
-    rewrite list-split-lemma 
-       (toList (vmap unpop (vec (ch 0 a) 
-               (trans (ch-ar-lemma 0 a) (fgt-ar-lemma 0 a))))) l
-       {p = q}
-       (length-toList (vmap unpop (vec (ch 0 a) 
-               (trans (ch-ar-lemma 0 a) (fgt-ar-lemma 0 a)))))
-     = cong (λ P → just (mu P , l)) 
-       (subst (λ P → plug 0 (fgt 0 a) (vmap pop P) ≡ a) 
-         (sym (vec-toList (vmap unpop (vec (ch 0 a)
-              (trans (ch-ar-lemma 0 a) (fgt-ar-lemma 0 a)))))) 
-         (subst (λ P → plug 0 (fgt 0 a) P ≡ a) 
-           (sym (vmap-lemma (vec (ch 0 a)
-                            (trans (ch-ar-lemma 0 a) (fgt-ar-lemma 0 a))) 
-                            (λ { (pop x) → refl }))) 
-           (sym (plug-correct 0 a))))
+    rewrite list-split-lemma (map unpop (ch 0 a)) l {p = q} 
+              (trans (length-map unpop (ch 0 a)) (ch-fgt-ar-lemma 0 a))
+          = <M>-intro 
+            (trans (cong (plug 0 (fgt 0 a)) (map-lemma (ch 0 a) (λ { (pop x) → refl }))) 
+                   (sym (plug-correct 0 a)))
 \end{code} 
+
+begin{code}
+  μ-close-spec
+    : {n : ℕ}{t : T n}{ty : U (suc n)}{a : ElU (μ ty) t}
+      {hdA : ElU ty (u1 ∷ t)}{chA l : List (ElU (μ-ty
 
 %<*mu-ar-lemma>
 \begin{code}
@@ -229,7 +275,6 @@ module Diffing.Universe.Operations.Mu where
     → ar i x ≡ ar (suc i) (μ-hd x) + ar* i (toList (μ-chv x))
   μ-arity-lemma-2 {n} {t} {ty} x i
     = trans (μ-arity-lemma x i) 
-            (cong (λ P → ar (suc i) (μ-hd x) + ar* i P)
-               (sym (toList-vec (μ-ch x))))
+            (cong (λ P → ar (suc i) (μ-hd x) + ar* i P) (μ-ch-chv-lemma x))
 \end{code}
 %</mu-ar-lemma-2>

@@ -7,6 +7,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Diffing.Universe
 open import Diffing.Universe.Operations.Properties
+open import Diffing.Universe.Plugging.Properties
 
 open import Diffing.Utils.Vector
 
@@ -367,6 +368,11 @@ module Diffing.Patches.Diff where
                → gapply d x ≡ just x'
                → (#i i d ≡ ar i x) × (#o i d ≡ ar i x')
 
+  gIns : {n j : ℕ}{t : T n}{ty : U (suc n)}
+       → (a : ValU ty t) → Vec (ElU (μ ty) t) (ar 0 a + j)
+       → Vec (ElU (μ ty) t) (suc j)
+  gIns a as = μ-closev a as
+
   gapplyL (Dμ-A () p) xs
   gapplyL Dμ-end [] = just []
   gapplyL (Dμ-del a p) (x ∷ xs) 
@@ -376,14 +382,14 @@ module Diffing.Patches.Diff where
   gapplyL (Dμ-del a p) (x ∷ xs) 
     | no  _ = nothing
   gapplyL (Dμ-ins a p) xs 
-    =  μ-closev a <M> (gapplyL p xs)
+    = gIns a <M> gapplyL p xs
   gapplyL {i = suc i} {j = suc j} (Dμ-dwn d p) (x ∷ xs) 
     with gapply d (μ-hd x) | inspect (gapply d) (μ-hd x)
   ...| nothing | _     = nothing
   ...| just x' | [ R ] 
      = let hipi , hipo = gapply-arity 0 d (μ-hd x) x' R
-        in μ-closev x' <M> gapplyL (μ-subst-io (cong (λ P → P + i) hipi) (cong (λ P → P + j) hipo) p) 
-                                               (μ-chv x ++v xs)
+        in gIns x' <M> gapplyL (μ-subst-io (cong (λ P → P + i) hipi) (cong (λ P → P + j) hipo) p) 
+                               (μ-chv x ++v xs)
 
   {-
      with gapply-arity 0 d (μ-hd x) x' R
@@ -459,13 +465,37 @@ module Diffing.Patches.Diff where
                 ) 
         , hipo
   gapplyL-arity i (Dμ-ins a d) xs (y ∷ ys) prf 
-    = {!<M>-elim prf!}
-  gapplyL-arity {n} {suc k} {suc j} {t} {ty} i (Dμ-dwn dx d) (x ∷ xs) (y ∷ ys) prf 
+    with gapplyL d xs | inspect (gapplyL d) xs
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym prf))
+  gapplyL-arity i (Dμ-ins a d) xs (._ ∷ ._) refl | just zs | [ R ]
+    with vsplit (ar 0 a) zs | inspect (vsplit (ar 0 a)) zs
+  ...| za , zb | [ R2 ]
+     = let hipi , hipo = gapplyL-arity i d xs zs R
+        in hipi , sym (
+          trans (cong (λ P → P + ar*v i zb) (ar-lemma (suc i) 0 (plugv 0 a (vmap pop za))))
+         (trans (cong (λ P → ar (suc i) P + ar* (suc i) (ch 0 (plugv 0 a (vmap pop za))) + ar*v i zb)
+                      (fgt-plugv-lemma 0 a (vmap pop za))) 
+         (trans (+-assoc (ar (suc i) a)
+                   (ar* (suc i) (ch 0 (plugv 0 a (vmap pop za)))) (ar*v i zb)) 
+                (cong (λ P → ar (suc i) a + P) (sym (trans hipo
+                  (trans (cong (λ P → ar*v i P) (vsplit-lemma za zb zs R2)) 
+                  (trans (ar*v-reduce i za zb) 
+                         (cong (λ P → P + ar*v i zb) (aux i a za)) )))
+                  ))
+           )))
+     where
+       aux : {n : ℕ}{t : T n}{ty : U (suc n)}(i : ℕ)
+           → (a : ValU ty t)(za : Vec (ElU (μ ty) t) (ar 0 a))
+           → ar* i (toList za) ≡ ar* (suc i) (ch 0 (plugv 0 a (vmap pop za)))
+       aux {n} {t} {ty} i a za 
+         rewrite ch-plugv-lemma 0 a (vmap pop za)
+               | toList-vmap (pop {a = μ ty}) za
+               = sym (ar*-pop i (toList za))
+  gapplyL-arity i (Dμ-dwn dx d) (x ∷ xs) (y ∷ ys) prf 
     with gapply dx (μ-hd x) | inspect (gapply dx) (μ-hd x)
   ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym prf))
   ...| just x' | [ R ] 
-    with <M>-elim prf
-  ...| el , r , q = {!!}
+    = {!!} 
   {-
     with #i 0 dx | gapply-arity 0 dx (μ-hd x) x' R
   ...| .(ar 0 (μ-hd x)) | refl , hip0o = {!!}
