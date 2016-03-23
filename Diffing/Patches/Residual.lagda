@@ -1,8 +1,6 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.MuUtils
+open import Diffing.Universe
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor using (cast; forget)
 open import Diffing.Patches.Diff.Id

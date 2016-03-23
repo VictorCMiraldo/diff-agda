@@ -87,23 +87,23 @@ module Diffing.Patches.Diff where
   to populate our bag of tricks.
 
 \begin{code}
+  μ-li-lemma : {n : ℕ}{t : T n}{ty : U (suc n)}
+             → (x y : ElU (μ ty) t)(xs : List (ElU (μ ty) t))
+             → length (μ-ch x ++ xs)
+             ≡ #i 0 (gdiff (μ-hd x) (μ-hd y)) + length xs
+  μ-li-lemma x y xs = trans (μ-lal x)
+                        (cong (λ P → P + length xs)
+                         (sym (gdiff-#i-lemma (μ-hd x) (μ-hd y) 0)))
+
+  μ-lo-lemma : {n : ℕ}{t : T n}{ty : U (suc n)}
+             → (x y : ElU (μ ty) t)(xs : List (ElU (μ ty) t))
+             → length (μ-ch x ++ xs)
+             ≡ #o 0 (gdiff (μ-hd y) (μ-hd x)) + length xs
+  μ-lo-lemma x y xs = trans (μ-lal x)
+                        (cong (λ P → P + length xs)
+                         (sym (gdiff-#o-lemma (μ-hd y) (μ-hd x) 0)))
+
   private
-    μ-li-lemma : {n : ℕ}{t : T n}{ty : U (suc n)}
-               → (x y : ElU (μ ty) t)(xs : List (ElU (μ ty) t))
-               → length (μ-ch x ++ xs)
-               ≡ #i 0 (gdiff (μ-hd x) (μ-hd y)) + length xs
-    μ-li-lemma x y xs = trans (μ-lal x)
-                          (cong (λ P → P + length xs)
-                           (sym (gdiff-#i-lemma (μ-hd x) (μ-hd y) 0)))
-
-    μ-lo-lemma : {n : ℕ}{t : T n}{ty : U (suc n)}
-               → (x y : ElU (μ ty) t)(xs : List (ElU (μ ty) t))
-               → length (μ-ch x ++ xs)
-               ≡ #o 0 (gdiff (μ-hd y) (μ-hd x)) + length xs
-    μ-lo-lemma x y xs = trans (μ-lal x)
-                          (cong (λ P → P + length xs)
-                           (sym (gdiff-#o-lemma (μ-hd y) (μ-hd x) 0)))
-
     gdiffL-#i-aux-del
       : {n : ℕ}{t : T n}{ty : U (suc n)}(i : ℕ)
       → (y : ElU (μ ty) t)(xs ys : List (ElU (μ ty) t))

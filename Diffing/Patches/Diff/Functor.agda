@@ -12,7 +12,7 @@ module Diffing.Patches.Diff.Functor where
     The proofs are trivial, it's just a matter of exhausting
     Agda's case analysis.
   -}
-{-
+  {-
   -- D-map definition
   mutual
     {-# TERMINATING #-}
@@ -22,8 +22,7 @@ module Diffing.Patches.Diff.Functor where
           → ({m : ℕ}{t' : T m}{ty' : U m} → A t' ty' → B t' ty') 
           → D A t ty → D B t ty
     D-map f (D-A x) = D-A (f x)
-    -- D-map f D-id   = D-id
-    D-map f D-void = D-void
+    D-map f D-unit = D-unit
     D-map f (D-inl d) = D-inl (D-map f d)
     D-map f (D-inr d) = D-inr (D-map f d)
     D-map f (D-setl x x₁) = D-setl x x₁
@@ -45,6 +44,7 @@ module Diffing.Patches.Diff.Functor where
     Dμ-map f (Dμ-del x d) = Dμ-del x (Dμ-map f d)
     Dμ-map f (Dμ-dwn dx d) 
       = Dμ-dwn (D-map f dx) {!Dμ-map f d!} 
+
   --
   -- D-map preserves composition
   --
