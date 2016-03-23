@@ -78,6 +78,11 @@ module Prelude where
     renaming (proof-irrelevance to ≡-pi)
     public
 
+  open import Relation.Binary.PropositionalEquality.TrustMe
+    hiding (trustMe)
+    renaming (erase to ∅_)
+    public
+
   open import Data.Maybe
     using (Maybe; just; nothing)
     renaming (maybe′ to maybe)

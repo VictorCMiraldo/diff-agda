@@ -84,7 +84,7 @@ module Diffing.Patches.Diff where
 %</gdiffL-ar-o-lemma-type>
 
   Before the actual diffing algorithm, we still need
-  to populate our back of tricks.
+  to populate our bag of tricks.
 
 \begin{code}
   private
@@ -301,8 +301,11 @@ module Diffing.Patches.Diff where
         (gdiffL-#o-aux-dwn i x y xs ys)
 \end{code}
 
-       Application
-  =========================
+        Application
+  =======================
+
+  Application follows the same idea. We first declare everything;
+  we then prove auxiliar lemmas and define the apply function.
 
 \begin{code}
   open import Diffing.Utils.Monads
@@ -310,6 +313,9 @@ module Diffing.Patches.Diff where
 
   {-# TERMINATING #-}
 \end{code}
+
+  Here we have the gapply and gapplyL declarations.
+
 %<*gapplyL-type>
 \begin{code}
   gapplyL : {n i j : ℕ}{t : T n}{ty : U (suc n)}
@@ -324,6 +330,9 @@ module Diffing.Patches.Diff where
          → Patch t ty → ElU ty t → Maybe (ElU ty t)
 \end{code}
 %</gapply-type>
+
+  Implementing gapply is easy.
+
 %<*gapply-def>
 \begin{code}
   gapply (D-A ())
@@ -355,24 +364,30 @@ module Diffing.Patches.Diff where
   gapply (D-pop diff) (pop el) = pop <M> gapply diff el
 
   gapply {ty = μ ty} (D-mu d) el = head <M> gapplyL d (el ∷ [])
+\end{code}
+%</gapply-def>
 
-  private
-    postulate
-      hipothesis : {n : ℕ}{t : T n}{ty : U (suc n)}
-                 → (d : Patch (u1 ∷ t) ty)(x x' : ValU ty t)
-                 → gapply d x ≡ just x'
-                 → (#i 0 d ≡ ar 0 x) × (#o 0 d ≡ ar 0 x')
+  The following lemma is the central piece for the type-safe variant
+  of the diff algorithm.
 
+  The idea is that if a patch can be correctly applied,
+  then its arities agree with the element we applied it into
+  and the element that we got as a result.
+
+%<*gapply-arity-type>
+\begin{code}
   gapply-arity : {n : ℕ}{t : T n}{ty : U n}(i : ℕ)
                → (d : Patch t ty)(x x' : ElU ty t)
                → gapply d x ≡ just x'
                → (#i i d ≡ ar i x) × (#o i d ≡ ar i x')
+\end{code}
+%</gapply-arity-type>
 
-  gIns : {n j : ℕ}{t : T n}{ty : U (suc n)}
-       → (a : ValU ty t) → Vec (ElU (μ ty) t) (ar 0 a + j)
-       → Vec (ElU (μ ty) t) (suc j)
-  gIns a as = μ-closev a as
+  We can now properly apply a Dμ-dwn patch, rewriting
+  the indices with gapply-arity.
 
+%<*gapplyL-def>
+\begin{code}
   gapplyL (Dμ-A () p) xs
   gapplyL Dμ-end [] = just []
   gapplyL (Dμ-del a p) (x ∷ xs) 
@@ -382,47 +397,91 @@ module Diffing.Patches.Diff where
   gapplyL (Dμ-del a p) (x ∷ xs) 
     | no  _ = nothing
   gapplyL (Dμ-ins a p) xs 
-    = gIns a <M> gapplyL p xs
+    = μ-closev a <M> gapplyL p xs
   gapplyL {i = suc i} {j = suc j} (Dμ-dwn d p) (x ∷ xs) 
     with gapply d (μ-hd x) | inspect (gapply d) (μ-hd x)
   ...| nothing | _     = nothing
   ...| just x' | [ R ] 
      = let hipi , hipo = gapply-arity 0 d (μ-hd x) x' R
-        in gIns x' <M> gapplyL (μ-subst-io (cong (λ P → P + i) hipi) (cong (λ P → P + j) hipo) p) 
+        in μ-closev x' <M> gapplyL (μ-subst-io (cong (λ P → P + i) hipi) (cong (λ P → P + j) hipo) p) 
                                (μ-chv x ++v xs)
+\end{code}
+%</gapplyL-def>
 
-  {-
-     with gapply-arity 0 d (μ-hd x) x' R
-  ...| hipi , hipo
-     rewrite hipi | hipo
-           = μ-closev x' <M> gapplyL p (μ-chv x ++v xs)
-  -}
+  Proving gapply-arity, however, is a whole other business. 
+  Unfortunately, the proof is very complicated and cluttered
+  for the gapplyL-arity lemma (which is used for recursive types).
 
+\begin{code}
+  private
+    aux : {n : ℕ}{t : T n}{ty : U (suc n)}(i : ℕ)
+        → (a : ValU ty t)(za : Vec (ElU (μ ty) t) (ar 0 a))
+        → ar* i (toList za) ≡ ar* (suc i) (ch 0 (plugv 0 a (vmap pop za)))
+    aux {n} {t} {ty} i a za 
+      rewrite ch-plugv-lemma 0 a (vmap pop za)
+            | toList-vmap (pop {a = μ ty}) za
+            = sym (ar*-pop i (toList za))
+
+    inl-inr-⊥ : {n : ℕ}{t : T n}{a b : U n}{xa : ElU a t}{xb : ElU b t}
+              → inl xa ≡ inr xb → ⊥
+    inl-inr-⊥ ()
+\end{code}
+
+
+%<*gapplyL-arity-type>
+\begin{code}
   gapplyL-arity : {n k j : ℕ}{t : T n}{ty : U (suc n)}(i : ℕ)
                 → (d : Dμ ⊥ₚ t ty k j)(x : Vec (ElU (μ ty) t) k)(x' : Vec (ElU (μ ty) t) j)
                 → gapplyL d x ≡ just x'
                 → (#i* i d ≡ ar*v i x) × (#o* i d ≡ ar*v i x')
+\end{code}
+%</gapplyL-arity-type>
 
+%<*gapply-arity-def>
+\begin{code}
   gapply-arity i (D-A ()) x y prf 
   gapply-arity i D-unit unit unit prf = refl , refl
   gapply-arity i (D-inl d) (inl x) (inl y) prf 
     with <M>-elim prf
   ...| .y , refl , prf2 = gapply-arity i d x y prf2
-  gapply-arity i (D-inl d) (inl x) (inr y) prf = {!<M>-elim prf!}
-  gapply-arity i (D-inl d) (inr x) (inl y) prf = {!!}
-  gapply-arity i (D-inl d) (inr x) (inr y) prf = {!!}
-  gapply-arity i (D-inr d) (inl x) (inl y) prf = {!!}
-  gapply-arity i (D-inr d) (inl x) (inr y) prf = {!!}
-  gapply-arity i (D-inr d) (inr x) (inl y) prf = {!!}
-  gapply-arity i (D-inr d) (inr x) (inr y) prf = {!!}
-  gapply-arity i (D-setl a b) (inl x) (inl y) prf = {!!}
-  gapply-arity i (D-setl a b) (inl x) (inr y) prf = {!!}
-  gapply-arity i (D-setl a b) (inr x) (inl y) prf = {!!}
-  gapply-arity i (D-setl a b) (inr x) (inr y) prf = {!!}
-  gapply-arity i (D-setr a b) (inl x) (inl y) prf = {!!}
-  gapply-arity i (D-setr a b) (inl x) (inr y) prf = {!!}
-  gapply-arity i (D-setr a b) (inr x) (inl y) prf = {!!}
-  gapply-arity i (D-setr a b) (inr x) (inr y) prf = {!!}
+  gapply-arity i (D-inr d) (inr x) (inr y) prf
+    with <M>-elim prf
+  ...| .y , refl , prf2 = gapply-arity i d x y prf2
+  gapply-arity i (D-setl a b) (inl x) (inr y) prf
+    with a ≟-U x
+  ...| no _  = ⊥-elim (Maybe-⊥ (sym prf))
+  ...| yes p = cong (ar i) p , cong (ar i) (inj-inr (just-inj prf))
+  gapply-arity i (D-setr a b) (inr x) (inl y) prf
+    with a ≟-U x
+  ...| no _  = ⊥-elim (Maybe-⊥ (sym prf))
+  ...| yes p = cong (ar i) p , cong (ar i) (inj-inl (just-inj prf))
+
+  gapply-arity i (D-inl d) (inl x) (inr y) prf 
+    = ⊥-elim (inl-inr-⊥ (sym (p1 (p2 (<M>-elim prf)))))
+  gapply-arity i (D-inl d) (inr x) (inl y) ()
+  gapply-arity i (D-inl d) (inr x) (inr y) ()
+  gapply-arity i (D-inr d) (inl x) (inl y) ()
+  gapply-arity i (D-inr d) (inl x) (inr y) ()
+  gapply-arity i (D-inr d) (inr x) (inl y) prf 
+    = ⊥-elim (inl-inr-⊥ (p1 (p2 (<M>-elim prf))))
+  
+  gapply-arity i (D-setl a b) (inl x) (inl y)
+    with a ≟-U x
+  ...| no _  = λ ()
+  ...| yes _ = λ ()
+  gapply-arity i (D-setr a b) (inr x) (inr y)
+    with a ≟-U x
+  ...| no _  = λ ()
+  ...| yes _ = λ ()
+  gapply-arity i (D-setl a b) (inr x) (inl y)
+    = λ ()
+  gapply-arity i (D-setl a b) (inr x) (inr y)
+    = λ ()
+  gapply-arity i (D-setr a b) (inl x) (inl y)
+    = λ ()
+  gapply-arity i (D-setr a b) (inl x) (inr y)
+    = λ ()
+  
   gapply-arity i (D-pair da db) (xa , xb) (ya , yb) prf 
     with gapply da xa | inspect (gapply da) xa
   ...| nothing  | _     = ⊥-elim (Maybe-⊥ (sym prf))
@@ -451,7 +510,11 @@ module Diffing.Patches.Diff where
      = let pi , po = gapplyL-arity i d (mu x ∷ []) (mu y ∷ []) prf2  
         in trans pi (+-comm (ar (suc i) x) zero)
          , trans po (+-comm (ar (suc i) y) zero)
+\end{code}
+%</gapply-arity-def>
 
+%<*gapplyL-arity-def>
+\begin{code}
   gapplyL-arity i (Dμ-A () d) xs ys prf
   gapplyL-arity i Dμ-end [] [] prf = refl , refl
   gapplyL-arity i (Dμ-del a d) (x ∷ xs) ys prf 
@@ -483,83 +546,60 @@ module Diffing.Patches.Diff where
                          (cong (λ P → P + ar*v i zb) (aux i a za)) )))
                   ))
            )))
-     where
-       aux : {n : ℕ}{t : T n}{ty : U (suc n)}(i : ℕ)
-           → (a : ValU ty t)(za : Vec (ElU (μ ty) t) (ar 0 a))
-           → ar* i (toList za) ≡ ar* (suc i) (ch 0 (plugv 0 a (vmap pop za)))
-       aux {n} {t} {ty} i a za 
-         rewrite ch-plugv-lemma 0 a (vmap pop za)
-               | toList-vmap (pop {a = μ ty}) za
-               = sym (ar*-pop i (toList za))
-  gapplyL-arity i (Dμ-dwn dx d) (x ∷ xs) (y ∷ ys) prf 
+  gapplyL-arity i (Dμ-dwn {i = k} {j = l} dx d) (x ∷ xs) (y ∷ ys) prf
     with gapply dx (μ-hd x) | inspect (gapply dx) (μ-hd x)
   ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym prf))
-  ...| just x' | [ R ] 
-    = {!!} 
-  {-
-    with #i 0 dx | gapply-arity 0 dx (μ-hd x) x' R
-  ...| .(ar 0 (μ-hd x)) | refl , hip0o = {!!}
-  -}
-  
-  {-
-    with gapply dx (μ-hd x) | inspect (gapply dx) (μ-hd x)
-  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym prf))
-  ...| just x' | [ R ] 
+  ...| just x' | [ R ]
     with gapply-arity 0 dx (μ-hd x) x' R
-  ...| hip0i , hip0o 
-     = let resi , reso = gapplyL-arity i d 
-                           (subst (Vec (ElU (μ ty) t)) (cong (λ P → P + k) (sym hip0i)) (μ-chv x ++v xs)) 
-                           (subst (Vec (ElU (μ ty) t)) {!!} (μ-chv y ++v ys)) 
-                           {!!}
-        in {!!} , {!!}
-  -}
+  ...| hipi , hipo
+    with gapplyL (μ-subst-io (cong (λ P → P + k) hipi) (cong (λ P → P + l) hipo) d) 
+                 (μ-chv x ++v xs)
+       | inspect (gapplyL (μ-subst-io (cong (λ P → P + k) hipi) (cong (λ P → P + l) hipo) d))
+                 (μ-chv x ++v xs)
+  ...| nothing  | _ = ⊥-elim (Maybe-⊥ (sym prf))
+  ...| just xs' | [ R2 ] 
+    with gapplyL-arity i (μ-subst-io (cong (λ P → P + k) hipi) (cong (λ P → P + l) hipo) d)
+                       (μ-chv x ++v xs) xs' R2
+  ...| HI , HO 
+    with gapply-arity (suc i) dx (μ-hd x) x' R
+  gapplyL-arity i (Dμ-dwn {i = k} {j = l} dx d) (x ∷ xs) (._ ∷ ._) refl
+    | just x' | [ R ] | hipi , hipo | just xs' | [ R2 ] 
+    | HI , HO | Hi , Ho
+    rewrite #i*-substio-lemma (cong (λ P → P + k) hipi) (cong (λ P → P + l) hipo) d i
+          | #o*-substio-lemma (cong (λ P → P + k) hipi) (cong (λ P → P + l) hipo) d i
+          = magic-#i i dx d x xs Hi HI 
+          , magic-#o i dx d x' xs' Ho HO
+    where
+      magic-#i
+        : {n k l : ℕ}{t : T n}{ty : U (suc n)}
+        → (i : ℕ)(dx : D ⊥ₚ (u1 ∷ t) ty)(d : Dμ ⊥ₚ t ty (#i 0 dx + k) (#o 0 dx + l))
+        → (x : ElU (μ ty) t)(xs : Vec (ElU (μ ty) t) k)
+        → (h1 : #i (suc i) dx ≡ ar (suc i) (μ-hd x))
+        → (h2 : #i* i d ≡ ar*v i (μ-chv x ++v xs))
+        → #i (suc i) dx + #i* i d ≡ ar i x + ar*v i xs
+      magic-#i i dx d x xs h1 h2 
+        rewrite h1 | h2 = μ-ar-open-lemma x xs i
+
+      magic-#o
+        : {n k l : ℕ}{t : T n}{ty : U (suc n)}
+        → (i : ℕ)(dx : D ⊥ₚ (u1 ∷ t) ty)(d : Dμ ⊥ₚ t ty (#i 0 dx + k) (#o 0 dx + l))
+        → (x' : ValU ty t)(xs' : Vec (ElU (μ ty) t) (ar 0 x' + l))
+        → (h1 : #o (suc i) dx ≡ ar (suc i) x')
+        → (h2 : #o* i d ≡ ar*v i xs')
+        → #o (suc i) dx + #o* i d
+        ≡ ar (suc i) (plugv 0 x' (vmap pop (p1 (vsplit (ar 0 x') xs'))))
+        + ar*v i (p2 (vsplit (ar 0 x') xs'))
+      magic-#o i dx d x' xs' h1 h2
+        with vsplit (ar 0 x') xs' | inspect (vsplit (ar 0 x')) xs'
+      ...| xa , xb | [ R ]
+        rewrite h1 | h2 | vsplit-lemma xa xb xs' R 
+              | ar-lemma (suc i) 0 (plugv 0 x' (vmap pop xa))
+              = sym (trans (cong₂ (λ P Q → ar (suc i) P + Q + ar*v i xb) 
+                                  (fgt-plugv-lemma 0 x' (vmap pop xa)) 
+                                  (sym (aux i x' xa)))
+                           (trans (+-assoc (ar (suc i) x') (ar* i (toList xa)) (ar*v i xb)) 
+                                  (cong (_+_ (ar (suc i) x')) 
+                                  (sym (ar*v-reduce i xa xb))))
+                    )
 \end{code}
-%</gapply-def>
-
-%<*safeHead-def>
-begin{code}
-    safeHead : ∀{a}{A : Set a} → List A → Maybe A
-    safeHead []       = nothing
-    safeHead (x ∷ []) = just x
-    safeHead _        = nothing
-end{code}
-%</safeHead-def>
-
-%<*gIns-def>
-begin{code}
-    gIns : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-         → ElU ty (tcons u1 t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
-    gIns x l with μ-close (x , l)
-    ...| nothing = nothing
-    ...| just (r , l') = just (r ∷ l')
-end{code}
-%</gIns-def>
-
-%<*gDel-def>
-begin{code}
-    gDel : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-         → ElU ty (tcons u1 t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
-    gDel x [] = nothing
-    gDel {ty = ty} x (y ∷ ys) with μ-open y
-    ...| hdY , chY with x ≟-U hdY
-    ...| yes _ = just (chY ++ ys)
-    ...| no  _ = nothing
-end{code}
-%</gDel-def>
-
-%<*gapplyL-def>
-begin{code}
-    gapplyL : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → Patchμ t ty → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
-    gapplyL [] [] = just []
-    gapplyL [] _  = nothing
-    gapplyL (Dμ-A () ∷ _)
-    gapplyL (Dμ-ins x  ∷ d) l = gapplyL d l >>= gIns x
-    gapplyL (Dμ-del x  ∷ d) l = gDel x l    >>= gapplyL d 
-    gapplyL (Dμ-dwn dx ∷ d) [] = nothing
-    gapplyL (Dμ-dwn dx ∷ d) (y ∷ l) with μ-open y
-    ...| hdY , chY with gapply dx hdY
-    ...| nothing = nothing
-    ...| just y' = gapplyL d (chY ++ l) >>= gIns y' 
-end{code}
-%</gapplyL-def>
+%</gapplyL-arity-def>

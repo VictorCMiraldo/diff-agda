@@ -1,8 +1,8 @@
 \begin{code}
 open import Prelude
 
-open import Data.Nat
-  using (_≤_; s≤s; z≤n)
+open import Data.Nat.Properties.Simple
+  using (+-assoc)
 open import Data.List.Properties
   using (length-map)
 
@@ -80,7 +80,8 @@ module Diffing.Universe.Operations.Mu where
 \begin{code}
   μ-chv : {n : ℕ}{t : T n}{ty : U (suc n)} 
         → (x : ElU (μ ty) t) → Vec (ElU (μ ty) t) (μ-ar x)
-  μ-chv x rewrite (μ-hd-hdv-lemma x) = p2 (μ-openv x)
+  μ-chv x rewrite ∅ (μ-hd-hdv-lemma x)
+                = p2 (μ-openv x)      
 \end{code}
 %</mu-chv-def>
 
@@ -278,3 +279,20 @@ begin{code}
             (cong (λ P → ar (suc i) (μ-hd x) + ar* i P) (μ-ch-chv-lemma x))
 \end{code}
 %</mu-ar-lemma-2>
+
+%<*mu-ar-open>
+\begin{code}
+  μ-ar-open-lemma
+    : {n k : ℕ}{t : T n}{ty : U (suc n)}
+    → (x : ElU (μ ty) t)(xs : Vec (ElU (μ ty) t) k)
+    → (i : ℕ)
+    → ar (suc i) (μ-hd x) + ar*v i (μ-chv x ++v xs)
+    ≡ ar i x + ar*v i xs
+  μ-ar-open-lemma {n} {k} {t} {ty} x xs i 
+    rewrite ar*v-reduce i (μ-chv x) xs
+          = trans (sym (+-assoc (ar (suc i) (μ-hd x)) 
+                                (ar* i (toList (μ-chv x))) 
+                                (ar*v i xs))) 
+                  (cong (λ P → P + ar*v i xs) (sym (μ-arity-lemma-2 x i)))
+\end{code}
+%</mu-ar-open>
