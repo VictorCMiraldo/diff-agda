@@ -60,7 +60,7 @@ module Diffing.Patches.Diff.Cost where
     costμ (Dμ-A () d)  
     costμ (Dμ-ins x d) = 1 + sizeElU x + costμ d
     costμ (Dμ-del x d) = 1 + sizeElU x + costμ d
-    costμ (Dμ-dwn x d) = cost x + costμ d
+    costμ (Dμ-dwn x y d) = sizeElU x + sizeElU y + costμ d
     costμ Dμ-end = 0
 \end{code}
 %</cost-def>

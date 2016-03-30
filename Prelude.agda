@@ -74,8 +74,14 @@ module Prelude where
     public
 
   open import Relation.Binary.PropositionalEquality
-    using (_≡_; refl; sym; trans; cong; cong₂; subst)
+    using (_≡_; refl; sym; trans; cong; cong₂; subst; inspect; [_])
     renaming (proof-irrelevance to ≡-pi)
+    public
+
+  open import Relation.Binary.HeterogeneousEquality 
+    using (_≅_; ≅-to-≡; ≡-to-≅) 
+    renaming ( refl to HErefl; trans to HEtrans; sym to HEsym
+             ; subst to HEsubst; cong to HEcong)
     public
 
   open import Relation.Binary.PropositionalEquality.TrustMe
