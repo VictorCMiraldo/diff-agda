@@ -1,4 +1,5 @@
 \begin{code}
+{-# OPTIONS --rewriting #-}
 open import Prelude
 open import Diffing.Universe
 open import Diffing.Utils.Vector
@@ -41,23 +42,22 @@ module Diffing.Patches.Diff where
   AND taking care of their indicies.
 
 \begin{code}
+  {-# REWRITE μ-lal-sym #-}
   gdiffL-ins : {n : ℕ}{t : T n}{ty : U (suc n)}
              → (y : ElU (μ ty) t)(xs ys : List (ElU (μ ty) t))
              → Dμ ⊥ₚ t ty (length xs) (suc (length ys))
-  gdiffL-ins y xs ys = Dμ-ins (μ-hd y) (μ-subst.o (μ-lal y) (gdiffL xs (μ-ch y ++ ys)))
+  gdiffL-ins y xs ys = Dμ-ins (μ-hd y) (gdiffL xs (μ-ch y ++ ys))
 
   gdiffL-del : {n : ℕ}{t : T n}{ty : U (suc n)}
              → (x : ElU (μ ty) t)(xs ys : List (ElU (μ ty) t))
              → Dμ ⊥ₚ t ty (suc (length xs)) (length ys)
-  gdiffL-del x xs ys = Dμ-del (μ-hd x) (μ-subst.i (μ-lal x) (gdiffL (μ-ch x ++ xs) ys))
+  gdiffL-del x xs ys = Dμ-del (μ-hd x) (gdiffL (μ-ch x ++ xs) ys)
 
   gdiffL-dwn : {n : ℕ}{t : T n}{ty : U (suc n)}
              → (x y : ElU (μ ty) t)(xs ys : List (ElU (μ ty) t))
              → Dμ ⊥ₚ t ty (suc (length xs)) (suc (length ys))
   gdiffL-dwn x y xs ys 
-    = Dμ-dwn (μ-hd x) (μ-hd y) 
-             (μ-subst.io (μ-lal x) (μ-lal y) 
-             (gdiffL (μ-ch x ++ xs) (μ-ch y ++ ys)))
+    = Dμ-dwn (μ-hd x) (μ-hd y) (gdiffL (μ-ch x ++ xs) (μ-ch y ++ ys))
 \end{code}
 
   Finally, the actual diffing algorithm.
@@ -154,6 +154,14 @@ module Diffing.Patches.Diff where
   gapply {ty = μ ty} (D-mu d) el = head <M> gapplyL d (el ∷ [])
 \end{code}
 %</gapply-def>
+\begin{code}
+  apply-dwn-fix : {n i : ℕ}{t : T n}{ty : U (suc n)}
+                → (x : ElU (μ ty) t)(ex : ValU ty t)
+                → (hip : μ-hd x ≡ ex)
+                → Vec (ElU (μ ty) t) (μ-ar x + i)
+                → Vec (ElU (μ ty) t) (ar 0 ex + i)
+  apply-dwn-fix x .(μ-hd x) refl v = v
+\end{code}
 %<*gapplyL-def>
 \begin{code}
   gapplyL (Dμ-A () p) xs
@@ -166,9 +174,10 @@ module Diffing.Patches.Diff where
     | no  _ = nothing
   gapplyL (Dμ-ins a p) xs 
     = μ-closev a <M> gapplyL p xs
-  gapplyL {i = suc i} {j = suc j} (Dμ-dwn ex ey p) (x ∷ xs) 
+  gapplyL {i = suc i} {j = suc j} {t} {ty} (Dμ-dwn ex ey p) (x ∷ xs) 
     with μ-hd x ≟-U ex
   ...| no  _ = nothing
+  -- ...| yes q = μ-closev ey <M> gapplyL p (apply-dwn-fix x ex q (μ-chv x ++v xs))
   gapplyL {i = suc i} {j = suc j} (Dμ-dwn .(μ-hd x) ey p) (x ∷ xs)
      | yes refl = μ-closev ey <M> gapplyL p (μ-chv x ++v xs)
 \end{code}

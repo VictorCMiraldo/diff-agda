@@ -53,3 +53,10 @@ module Diffing.Universe.Equality where
   ...| no absurd = ⊥-elim (absurd refl)
   ...| yes refl  = refl
 \end{code}
+
+\begin{code}
+  ≟-U-≡ : {n : ℕ}{t : T n}{ty : U n}
+        → {x y : ElU ty t}(hip : x ≡ y)
+        → x ≟-U y ≡ yes hip
+  ≟-U-≡ {x = x} {.x} refl = ≟-U-refl x
+\end{code}

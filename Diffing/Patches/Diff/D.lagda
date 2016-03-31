@@ -124,17 +124,24 @@ module Diffing.Patches.Diff.D where
 %</D-src-type>
 %<*Dmu-src-type>
 \begin{code}
-  Dμ-src : {n i j : ℕ}{t : T n}{ty : U (suc n)}
-         → Dμ ⊥ₚ t ty i j → Vec (ElU (μ ty) t) i
+  Dμ-srcv : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+          → Dμ ⊥ₚ t ty i j → Vec (ElU (μ ty) t) i
 \end{code}
 %</Dmu-src-type>
+%<*Dmu-srcv-def>
+\begin{code}
+  Dμ-srcv (Dμ-A () d)
+  Dμ-srcv (Dμ-del a d) = μ-closev a (Dμ-srcv d)
+  Dμ-srcv (Dμ-ins a d) = Dμ-srcv d
+  Dμ-srcv (Dμ-dwn a b d) = μ-closev a (Dμ-srcv d)
+  Dμ-srcv Dμ-end = []
+\end{code}
+%</Dmu-srcv-def>
 %<*Dmu-src-def>
 \begin{code}
-  Dμ-src (Dμ-A () d)
-  Dμ-src (Dμ-del a d) = μ-closev a (Dμ-src d)
-  Dμ-src (Dμ-ins a d) = Dμ-src d
-  Dμ-src (Dμ-dwn a b d) = μ-closev a (Dμ-src d)
-  Dμ-src Dμ-end = []
+  Dμ-src : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+         → Dμ ⊥ₚ t ty i j → List (ElU (μ ty) t)
+  Dμ-src = toList ∘ Dμ-srcv
 \end{code}
 %</Dmu-src-def>
 %<*D-src-def>
@@ -146,7 +153,7 @@ module Diffing.Patches.Diff.D where
   D-src (D-setl x _) = inl x
   D-src (D-setr x _) = inr x
   D-src (D-pair d e) = D-src d , D-src e
-  D-src (D-mu x) = head (Dμ-src x)
+  D-src (D-mu x) = head (Dμ-srcv x)
   D-src (D-def d) = red (D-src d)
   D-src (D-top d) = top (D-src d)
   D-src (D-pop d) = pop (D-src d)
@@ -158,21 +165,28 @@ module Diffing.Patches.Diff.D where
         → D ⊥ₚ t ty → ElU ty t
 \end{code}
 %</D-dst-type>
-%<*Dmu-dst-type>
+%<*Dmu-dstv-type>
 \begin{code}
-  Dμ-dst : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+  Dμ-dstv : {n i j : ℕ}{t : T n}{ty : U (suc n)}
          → Dμ ⊥ₚ t ty i j → Vec (ElU (μ ty) t) j
 \end{code}
-%</Dmu-dst-type>
+%</Dmu-dstv-type>
+%<*Dmu-dstv-def>
+\begin{code}
+  Dμ-dstv (Dμ-A () d)
+  Dμ-dstv (Dμ-del a d) = Dμ-dstv d
+  Dμ-dstv (Dμ-ins a d) = μ-closev a (Dμ-dstv d)
+  Dμ-dstv (Dμ-dwn a b d) = μ-closev b (Dμ-dstv d)
+  Dμ-dstv Dμ-end = []
+\end{code}
+%</Dmu-dstv-def>
 %<*Dmu-dst-def>
 \begin{code}
-  Dμ-dst (Dμ-A () d)
-  Dμ-dst (Dμ-del a d) = Dμ-dst d
-  Dμ-dst (Dμ-ins a d) = μ-closev a (Dμ-dst d)
-  Dμ-dst (Dμ-dwn a b d) = μ-closev b (Dμ-dst d)
-  Dμ-dst Dμ-end = []
+  Dμ-dst : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+         → Dμ ⊥ₚ t ty i j → List (ElU (μ ty) t)
+  Dμ-dst = toList ∘ Dμ-dstv
 \end{code}
-%</Dmu-dst-def>
+%</Dmu-src-def>
 %<*D-dst-def>
 \begin{code}
   D-dst (D-A ())
@@ -182,7 +196,7 @@ module Diffing.Patches.Diff.D where
   D-dst (D-setl _ x) = inr x
   D-dst (D-setr _ x) = inl x
   D-dst (D-pair d e) = D-dst d , D-dst e
-  D-dst (D-mu x) = head (Dμ-dst x)
+  D-dst (D-mu x) = head (Dμ-dstv x)
   D-dst (D-def d) = red (D-dst d)
   D-dst (D-top d) = top (D-dst d)
   D-dst (D-pop d) = pop (D-dst d)
@@ -202,13 +216,20 @@ module Diffing.Patches.Diff.D where
     → {ys : List (ElU (μ ty) t)}(y : ElU (μ ty) t)
     → length (μ-ch y ++ ys) ≡ μ-ar y + length ys
   μ-lal {ys = ys} y = μ-length-arity-lemma y ys
+
+  μ-lal-sym
+    : {n : ℕ}{t : T n}{ty : U (suc n)}
+    → {ys : List (ElU (μ ty) t)}(y : ElU (μ ty) t)
+    → μ-ar y + length ys ≡ length (p2 (μ-open y) ++ ys)
+  μ-lal-sym {ys = ys} y = sym (μ-length-arity-lemma y ys)
 \end{code}
+  
 
   Finally, a bunch of usefull lemmas to manipulate indices
   and call some well-known facts (meaning that we proved their
   general version on Diffing.Universe.Operations.Properties)
 
-\begin{code}
+begin{code}
   module μ-subst where
 
     i : {n i j k : ℕ}{t : T n}{ty : U (suc n)}
@@ -247,4 +268,4 @@ module Diffing.Patches.Diff.D where
       → (p : k ≡ h)(q : l ≡ j)(d : Dμ ⊥ₚ t ty k l)
       → io p q d ≅ d
     io-elim refl refl d = HErefl
-\end{code}
+end{code}

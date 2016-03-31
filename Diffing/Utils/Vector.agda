@@ -1,6 +1,7 @@
 open import Prelude
 open import Data.List.Properties
     using (length-map; length-++)
+    renaming (∷-injective to ∷-inj)
 open import Data.Nat.Properties.Simple
      using (+-comm)
 
@@ -55,6 +56,14 @@ module Diffing.Utils.Vector where
   toList-vec [] {refl} = refl
   toList-vec (x ∷ l) {refl} = cong (_∷_ x) (toList-vec l)
 
+  toList-vec-≡ : {A : Set}(l : List A)
+               → (v : Vec A (length l))
+               → toList v ≡ l
+               → v ≡ vec l refl
+  toList-vec-≡ [] [] hip = refl
+  toList-vec-≡ (x ∷ l) (x₁ ∷ v) hip 
+    = cong₂ _∷_ (p1 (∷-inj hip)) (toList-vec-≡ l v (p2 (∷-inj hip)))
+
   vec-≡ : {k : ℕ}{A : Set}{l₁ l₂ : List A}
           {p : length l₁ ≡ k}{q : length l₂ ≡ k}
         → l₁ ≡ l₂ → vec l₁ p ≡ vec l₂ q
@@ -100,6 +109,13 @@ module Diffing.Utils.Vector where
     = cong (_,_ []) (vec-reduce l2)
   vsplit-elim (x ∷ l1) l2 {q₁ = refl} {q₂} 
     = cong (λ P → x ∷ p1 P , p2 P) (vsplit-elim l1 l2)
+
+  vsplit-ump 
+    : {m n : ℕ}{A : Set}(v1 : Vec A m)(v2 : Vec A n)
+    → vsplit m (v1 ++v v2) ≡ (v1 , v2)
+  vsplit-ump [] v2 = refl
+  vsplit-ump (x ∷ v1) v2 
+    rewrite vsplit-ump v1 v2 = refl
 
   vsplit-lemma 
     : {m n : ℕ}{A : Set}(v1 : Vec A m)(v2 : Vec A n)(vres : Vec A (m + n))

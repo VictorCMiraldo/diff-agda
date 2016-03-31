@@ -1,10 +1,11 @@
 \begin{code}
+{-# OPTIONS --rewriting #-}
 open import Prelude
 
 open import Data.Nat.Properties.Simple
-  using (+-assoc)
+  using (+-assoc; +-comm)
 open import Data.List.Properties
-  using (length-map)
+  using (length-map; length-++)
 
 open import Diffing.Universe.Syntax
 open import Diffing.Universe.Operations
@@ -55,7 +56,7 @@ module Diffing.Universe.Operations.Mu where
 %<*mu-hd-def>
 \begin{code}
   μ-hd-hdv-lemma : {n : ℕ}{t : T n}{ty : U (suc n)} 
-                 → (x : ElU (μ ty) t) → μ-hd x ≡ μ-hdv x
+                 → (x : ElU (μ ty) t) → p1 (μ-openv x) ≡ p1 (μ-open x)
   μ-hd-hdv-lemma (mu x) = refl
 \end{code}
 %</mu-hd-def>
@@ -78,10 +79,10 @@ module Diffing.Universe.Operations.Mu where
 
 %<*mu-chv-def>
 \begin{code}
+  {-# REWRITE μ-hd-hdv-lemma #-}
   μ-chv : {n : ℕ}{t : T n}{ty : U (suc n)} 
         → (x : ElU (μ ty) t) → Vec (ElU (μ ty) t) (μ-ar x)
-  μ-chv x rewrite ∅ (μ-hd-hdv-lemma x)
-                = p2 (μ-openv x)      
+  μ-chv x = p2 (μ-openv x)      
 \end{code}
 %</mu-chv-def>
 
@@ -112,6 +113,20 @@ vmap-vec unpop (ch 0 x)
   μ-open-ar-lemma {n} {t} {ty} (mu el) 
      = trans (length-map unpop (ch 0 el)) 
              (ch-fgt-ar-lemma 0 el)
+\end{code}
+
+%<*mu-open-ar-++-lemma>
+\begin{code}
+  μ-open-ar-++-lemma 
+    : {n : ℕ}{t : T n}{ty : U (suc n)} 
+    → (el : ElU (μ ty) t)(xs : List (ElU (μ ty) t))
+    → length (μ-ch el ++ xs) ≡ μ-ar el + length xs
+\end{code}
+%</mu-open-ar-++-lemma>
+\begin{code}
+  μ-open-ar-++-lemma {n} {t} {ty} (mu el) xs
+     = trans (length-++ (μ-ch (mu el))) 
+             (cong (λ P → P + length xs) (μ-open-ar-lemma (mu el)))
 \end{code}
 
 %<*mu-chv-def>
@@ -180,52 +195,55 @@ vmap-vec unpop (ch 0 x)
 %</mu-closev>
 
 \begin{code}
-  open import Relation.Binary.PropositionalEquality.TrustMe
+  private
+    j+0 : ∀ j → j + 0 ≡ j
+    j+0 j = +-comm j 0
+
+    vsplit-hd-ch : {n : ℕ}{t : T n}{ty : U (suc n)}
+                 → (a : ElU (μ ty) t) 
+                 → vsplit (ar 0 (μ-hd a)) (μ-chv a ++v []) ≡ (μ-chv a , [])
+    vsplit-hd-ch a 
+      rewrite vsplit-ump (μ-chv a) [] = refl
+
+    {-# REWRITE j+0 #-}
+    ++v-id : {A : Set}{n : ℕ}(v : Vec A n)
+         → v ≡ v ++v []
+    ++v-id [] = refl
+    ++v-id (x ∷ v) = cong (_∷_ x) (++v-id v)
 \end{code}
 
-%<*mu-closev-lemma>
-begin{code}
-  μ-closev-hd-lemma
-    : {n j : ℕ}{t : T n}{ty : U (suc n)}
-    → (ys : Vec (ElU (μ ty) t) (suc j))
-    → (a : ElU ty (u1 ∷ t))(ka : Vec (ElU (μ ty) t) (ar 0 a + j))
-    → μ-closev a ka ≡ ys
-    → a ≡ μ-hd (head ys)
-  μ-closev-hd-lemma ._ a ka refl 
-    rewrite fgt-plug-lemma 0 a (vmap pop (p1 (vsplit (ar 0 a) ka))) 
-          = refl
+%<*mu-closev>
+\begin{code}
+  μ-plugv-correct : {n : ℕ}{t : T n}{ty : U (suc n)} 
+           → (a : ElU (μ ty) t)
+           → mu (plugv 0 (μ-hd a) (vmap pop (vec (p2 (μ-open a)) (μ-open-ar-lemma a)))) 
+           ≡ a
+  μ-plugv-correct (mu a) with vsplit-hd-ch (mu a)
+  ...| prf rewrite sym (++v-id (μ-chv (mu a))) | prf
+     = cong mu (trans (cong (λ P → plugv 0 (fgt 0 a) (vmap pop P))
+                         (sym (vmap-vec unpop (ch 0 a) {ch-fgt-ar-lemma 0 a} 
+                               {trans (length-map unpop (ch 0 a)) (ch-fgt-ar-lemma 0 a)}))) 
+               (trans (cong (λ P → plugv 0 (fgt 0 a) P)
+                         (vmap-lemma {f = unpop} {pop} (vec (ch 0 a) _) (λ { (pop x) → refl }))) 
+                      (sym (plugv-correct 0 a)))) 
+\end{code}
+%</mu-closev>
 
-  μ-closev-ch-lemma 
-    : {n j : ℕ}{t : T n}{ty : U (suc n)}
-    → (ys : Vec (ElU (μ ty) t) (suc j))
-    → (a : ElU ty (u1 ∷ t))(ka : Vec (ElU (μ ty) t) (μ-ar (head ys) + j))
-    → μ-closev a ka ≡ ys
-    → p1 (vsplit (μ-ar (head ys)) ka) ≡ μ-chv (head ys)
-  μ-closev-ch-lemma ys a ka hip = ?
-
-  {-
-      (λ hda → p1 (vsplit (ar 0 a) ka) ≡ subst (λ P → Vec (ElU (μ ty) t) (ar 0 P)) (sym hda) (μ-chv (head ys))
-             × p2 (vsplit (ar 0 a) ka) ≡ tail ys)
-  
-  μ-closev-lemma a ka ys hip
-    with vsplit (ar 0 a) ka
-  μ-closev-lemma a ka ._ refl 
-    | ka1 , ka2 
-    with fgt-plug-lemma 0 a (vmap pop ka1) | ch-plug-lemma 0 a (vmap pop ka1)
-  μ-closev-lemma a ka ._ refl | ka1 , ka2 | fgt-hip | ch-hip
-    = {!!}
-    rewrite vec-toList ((vmap unpop
-             (vec (ch 0 (plug 0 a (vmap pop ka1)))
-              (trans (ch-ar-lemma 0 (plug 0 a (vmap pop ka1)))
-               (fgt-ar-lemma 0 (plug 0 a (vmap pop ka1))))))) 
-            | sym (≡-pi fgt-hip trustMe)
-            = sym fgt-hip 
-            , {!!}
-            , refl
-  -}
-end{code}
-%</mu-closev-lemma>
-
+%<*mu-closev>
+\begin{code}
+  μ-closev-correct : {n : ℕ}{t : T n}{ty : U (suc n)} 
+           → (a : ElU (μ ty) t)
+           → μ-closev {j = 0} (μ-hd a) (μ-chv a) ≡ a ∷ []
+  μ-closev-correct (mu a) with vsplit-hd-ch (mu a)
+  ...| prf rewrite sym (++v-id (μ-chv (mu a))) | prf 
+     = cong (λ P → mu P ∷ []) 
+       (trans
+        (cong (λ P → plugv 0 (fgt 0 a) P)
+              (vmap-lemma {f = unpop} {pop}
+              (vec (ch 0 a) (trans (ch-ar-lemma 0 a) (fgt-ar-lemma 0 a))) (λ { (pop x) → refl })))
+        (sym (plugv-correct 0 a)))
+\end{code}
+%</mu-closev>
 
 %<*mu-close-correct-type>
 \begin{code}

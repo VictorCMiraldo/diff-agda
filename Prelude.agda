@@ -1,3 +1,4 @@
+{-# OPTIONS --rewriting #-}
 -- A Simple selection of modules with some renamings to
 -- make my (your) life easier when starting a new agda module.
 --
@@ -93,6 +94,8 @@ module Prelude where
     using (Maybe; just; nothing)
     renaming (maybe′ to maybe)
     public
+
+  {-# BUILTIN REWRITE _≡_ #-}
 
   {- Usefull List Processing -}
 
