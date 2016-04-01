@@ -180,6 +180,7 @@ module Diffing.Patches.Diff where
   -- ...| yes q = μ-closev ey <M> gapplyL p (apply-dwn-fix x ex q (μ-chv x ++v xs))
   gapplyL {i = suc i} {j = suc j} (Dμ-dwn .(μ-hd x) ey p) (x ∷ xs)
      | yes refl = μ-closev ey <M> gapplyL p (μ-chv x ++v xs)
+  
 \end{code}
 %</gapplyL-def>
 

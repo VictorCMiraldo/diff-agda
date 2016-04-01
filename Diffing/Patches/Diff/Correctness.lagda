@@ -2,11 +2,12 @@
 {-# OPTIONS --rewriting #-}
 open import Prelude
 open import Data.List.Properties
-  using (length-++)
+  using (length-++; length-map)
 open import Diffing.Universe
 open import Diffing.Universe.Operations.Properties
 open import Diffing.Universe.Plugging.Properties
 open import Diffing.Patches.Diff
+open import Diffing.Patches.Diff.Equality
 open import Diffing.Utils.Vector
 
 module Diffing.Patches.Diff.Correctness where
@@ -165,6 +166,41 @@ module Diffing.Patches.Diff.Correctness where
 \end{code}
 %</gdiff-dst-lemma-def>
 
+  Now we need to prove the other side of the isomorphism.
+
+%<*src-dst-gdiff-lemma-type>
+\begin{code}
+  src-dst-gdiff-lemma 
+    : {n : ℕ}{t : T n}{ty : U n}(p : D ⊥ₚ t ty)
+    → gdiff (D-src p) (D-dst p) ≡ p
+\end{code}
+%</src-dst-gdiff-lemma-type>
+%<*src-dst-gdiffL-lemma-type>
+\begin{code}
+  src-dst-gdiffL-lemma 
+    : {n i j : ℕ}{t : T n}{ty : U (suc n)}(p : Dμ ⊥ₚ t ty i j)
+    → gdiffL (Dμ-src p) (Dμ-dst p) ~=*ₚ p
+\end{code}
+%</src-dst-gdiffL-lemma-type>
+%<*src-dst-gdiffL-lemma-def>
+\begin{code}
+  src-dst-gdiffL-lemma (Dμ-A () p)
+  src-dst-gdiffL-lemma Dμ-end refl refl x = refl
+  src-dst-gdiffL-lemma (Dμ-dwn a b p) h1 h2 x
+    = {!!}
+  src-dst-gdiffL-lemma (Dμ-del a p) h1 h2 x
+    = {!h1 h2!}
+  src-dst-gdiffL-lemma (Dμ-ins a p) = {!!}
+\end{code}
+%</src-dst-gdiffL-lemma-def>
+%<*src-dst-gdiff-lemma-def>
+\begin{code}
+  src-dst-gdiff-lemma p = {!!}
+\end{code}
+%</src-dst-gdiff-lemma-def>
+
+
+
   Now that we know that a patch has both a source and a destination,
   moreover, gdiff is the algorithm that construct the patch from
   the source and the destination; we just need to make sure that
@@ -186,32 +222,93 @@ module Diffing.Patches.Diff.Correctness where
 %</gapplyL-correct-type>
 \begin{code}
   private
-    open import Relation.Binary.PropositionalEquality.TrustMe
-
     aux1 : {n i : ℕ}{t : T n}{ty : U (suc n)}
          → (a : ValU ty t)(v : Vec (ElU (μ ty) t) (ar 0 a + i))
          → μ-hd (mu (plugv 0 a (vmap pop (p1 (vsplit (ar 0 a) v))))) ≡ a
     aux1 a v = fgt-plugv-lemma 0 a
                      (vmap pop (p1 (vsplit (ar 0 a) v)))
+
+    hd-lemma : {n : ℕ}{t : T n}{ty : U (suc n)}
+             → (x : Dμ ⊥ₚ t ty 1 1)
+             → head (Dμ-srcv x) ∷ [] ≡ Dμ-srcv x
+    hd-lemma x with Dμ-srcv x
+    hd-lemma x | e ∷ [] = refl
+
+    aux-lemma-2
+      : {n k : ℕ}{t : T n}{a : U n}{ty : U n}(v : Vec (ElU ty t) k)
+      → {p : length (toList (vmap (pop {a = a}) v)) ≡ k}
+      → vmap unpop (vec (toList (vmap pop v)) p) ≡ v
+    aux-lemma-2 v {p}
+      = trans (vmap-vec unpop (toList (vmap pop v))) 
+       (trans (cong (λ P → vec P _) (sym (toList-vmap unpop (vmap pop v)))) 
+       (trans {!!} {!!}))
+
+  {-
+    (cong (λ P → vec P ) (sym (toList-vmap unpop (vmap pop v))))
+       (trans (cong (λ P → vec (toList P) _)
+                 (vmap-lemma {f = pop} {unpop} v (λ { x → refl }))) 
+       (vec-toList v))) 
+  -}
+
+  {-# REWRITE ch-plugv-lemma #-}
+  {-# REWRITE fgt-plugv-lemma #-}
+
+  private
+    aux-lemma-1 : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+                → (a : ValU ty t)(p : Dμ ⊥ₚ t ty (ar 0 a + i) j)
+                → Dμ-srcv p
+                ≡ μ-chv
+                  (mu (plugv 0 a (vmap pop (p1 (vsplit (ar 0 a) (Dμ-srcv p))))))
+                  ++v p2 (vsplit (ar 0 a) (Dμ-srcv p))
+    aux-lemma-1 a p with Dμ-srcv p
+    ...| SRC with vsplit (ar 0 a) SRC | inspect (vsplit (ar 0 a)) SRC
+    ...| P0 , P1 | [ R ] 
+       = sym {!!}
 \end{code}
 %<*gapplyL-correct-def>
 \begin{code}
   gapplyL-correct (Dμ-A () p)
   gapplyL-correct Dμ-end = refl
-  gapplyL-correct {n} {suc i} {suc j} {t} {ty} (Dμ-dwn a b p) 
-    rewrite ≟-U-≡ (aux1 a (Dμ-srcv p)) 
-          = {!gapplyL-correct p!}
-  {-
-    rewrite fgt-plugv-lemma 0 a
-                     (vmap pop (p1 (vsplit (ar 0 a) (Dμ-srcv p))))
-           = ?
-  -}
-  gapplyL-correct (Dμ-del a p) = {!!}
-  gapplyL-correct (Dμ-ins a p) = {!!}
+  gapplyL-correct {n} {suc i} {suc j} {t} {ty} (Dμ-dwn a b p)
+    with μ-hd (mu (plugv 0 a (vmap pop (p1 (vsplit (ar 0 a) (Dμ-srcv p))))))
+         ≟-U a
+  ...| no  abs = ⊥-elim (abs (aux1 a (Dμ-srcv p)))
+  ...| yes refl = sym (trans (sym (<M>-intro {f = μ-closev b} (gapplyL-correct p)))
+                             (cong (_<M>_ (μ-closev b)) (cong (gapplyL p) 
+                               (aux-lemma-1 a p)))) 
+  gapplyL-correct (Dμ-del a p)
+    with μ-hd (mu (plugv 0 a (vmap pop (p1 (vsplit (ar 0 a) (Dμ-srcv p))))))
+         ≟-U a
+  ...| no  abs  = ⊥-elim (abs (aux1 a (Dμ-srcv p)))
+  ...| yes refl = trans (cong (gapplyL p) (sym (aux-lemma-1 a p))) (gapplyL-correct p) 
+  gapplyL-correct (Dμ-ins a p) 
+    rewrite gapplyL-correct p = refl
 \end{code}
 %</gapplyL-correct-def>
 %<*gapply-correct-def>
 \begin{code}
-  gapply-correct p = {!!}
+  gapply-correct (D-A ())
+  gapply-correct D-unit = refl
+  gapply-correct (D-inl p) 
+    rewrite gapply-correct p = refl
+  gapply-correct (D-inr p) 
+    rewrite gapply-correct p = refl
+  gapply-correct (D-setl x y) 
+    rewrite ≟-U-refl x = refl
+  gapply-correct (D-setr x y)
+    rewrite ≟-U-refl x = refl
+  gapply-correct (D-pair p q) 
+    rewrite gapply-correct p
+          | gapply-correct q
+          = refl
+  gapply-correct (D-mu x)
+    = <M>-intro (subst (λ P → gapplyL x P ≡ just (Dμ-dstv x)) 
+                (sym (hd-lemma x)) (gapplyL-correct x))     
+  gapply-correct (D-def p)
+    rewrite gapply-correct p = refl
+  gapply-correct (D-top p) 
+    rewrite gapply-correct p = refl
+  gapply-correct (D-pop p)
+    rewrite gapply-correct p = refl
 \end{code}
 %</gapply-correct-def>

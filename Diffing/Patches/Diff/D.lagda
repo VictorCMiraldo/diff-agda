@@ -203,6 +203,20 @@ module Diffing.Patches.Diff.D where
 \end{code}
 %</D-dst-def>
 
+  Some lemmas about lengths and sources/dests.
+
+\begin{code}
+  Dμ-src-length : {n : ℕ}{t : T n}{ty : U (suc n)}
+                → (i j : ℕ)(d : Dμ ⊥ₚ t ty i j)
+                → length (Dμ-src d) ≡ i
+  Dμ-src-length i j d = length-toList (Dμ-srcv d)
+
+  Dμ-dst-length : {n : ℕ}{t : T n}{ty : U (suc n)}
+                → (i j : ℕ)(d : Dμ ⊥ₚ t ty i j)
+                → length (Dμ-dst d) ≡ j
+  Dμ-dst-length i j d = length-toList (Dμ-dstv d)
+\end{code}
+
 \begin{code}
   μ-length-arity-lemma
     : {n : ℕ}{t : T n}{ty : U (suc n)}
