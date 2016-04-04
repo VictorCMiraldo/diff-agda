@@ -3,23 +3,24 @@
 open import Prelude
 open import Diffing.Universe
 open import Diffing.Utils.Vector
+open import Diffing.Patches.Diff.Cost
+open import Diffing.Patches.Diff.D
 
-module Diffing.Patches.Diff where
+module Diffing.Patches.Diff (Δ : Cost)
+  where
 
-  open import Diffing.Patches.Diff.D public
-  open import Diffing.Patches.Diff.Cost public
+  open Cost
 \end{code}
 
-          Diffing
-  =======================
+            Diffing
+  ===========================
 
-  The type-safe variant of the diff algorithm is defined just like
-  its type-UNsafe cousin.
+  We start by introducing a "generic" notion of cost. 
 
-  We do need, however, a bunch of lemmas to manipulate the indices of Dμ
-  in order to make Agda happy.
-
-  We start by declaring both gdiff and gdiffL
+\begin{code}
+  infixr 20 _⊓_
+  infixr 20 _⊓μ_
+\end{code}
 
 %<*gdiff-type>
 \begin{code}
@@ -28,6 +29,78 @@ module Diffing.Patches.Diff where
         → ElU ty t → ElU ty t → Patch t ty
 \end{code}
 %</gdiff-type>
+
+\begin{code}
+  mutual
+    {-# TERMINATING #-}
+\end{code}
+%<*cost-def>
+\begin{code}
+    cost : {n : ℕ}{t : T n}{ty : U n} → Patch t ty → ℕ
+    cost (D-A ())
+    cost D-unit         = 0
+    cost (D-inl d)      = cost d
+    cost (D-inr d)      = cost d
+    cost (D-setl xa xb) = c⊕ Δ xa xb
+    cost (D-setr xa xb) = c⊕ Δ xb xa
+    cost (D-pair da db) = cost da + cost db
+    cost (D-def d) = cost d
+    cost (D-top d) = cost d
+    cost (D-pop d) = cost d
+    cost (D-mu l)  = costμ l
+
+    costμ : {n i j : ℕ}{t : T n}{ty : U (suc n)} → Dμ ⊥ₚ t ty i j → ℕ
+    costμ (Dμ-A () d)  
+    costμ (Dμ-ins x d) = cμ Δ x + costμ d
+    costμ (Dμ-del x d) = cμ Δ x + costμ d
+    costμ (Dμ-dwn x y d) = cost (gdiff x y) + costμ d
+    costμ Dμ-end = 0
+\end{code}
+%</cost-def>
+
+%<*lub-def>
+\begin{code}
+  _⊓_ : {n : ℕ}{t : T n}{ty : U n}
+      → Patch t ty → Patch t ty → Patch t ty
+  _⊓_ {ty = ty} da db with cost da ≤?-ℕ cost db
+  ...| yes _ = da
+  ...| no  _ = db
+\end{code}
+%</lub-def>
+
+%<*lubmu-def>
+\begin{code}
+  _⊓μ_ : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+      → Dμ ⊥ₚ t ty i j → Dμ ⊥ₚ t ty i j → Dμ ⊥ₚ t ty i j
+  _⊓μ_ da db with costμ da ≤?-ℕ costμ db
+  ...| yes _ = da
+  ...| no  _ = db
+\end{code}
+%</lubmu-def>
+
+\begin{code}
+  ⊓μ-elim : {n i j : ℕ}{t : T n}{ty : U (suc n)}{P : {i j : ℕ} → Dμ ⊥ₚ t ty i j → Set}
+          → (da db : Dμ ⊥ₚ t ty i j)
+          → P da → P db → P (da ⊓μ db)
+  ⊓μ-elim da db pda pdb with costμ da ≤?-ℕ costμ db
+  ...| yes _ = pda
+  ...| no  _ = pdb
+
+  ⊓μ-elim3 : {n i j : ℕ}{t : T n}{ty : U (suc n)}{P : {i j : ℕ} → Dμ ⊥ₚ t ty i j → Set}
+           → (da db dc : Dμ ⊥ₚ t ty i j)
+           → P da → P db → P dc → P (da ⊓μ (db ⊓μ dc))
+  ⊓μ-elim3 {P = P} da db dc pda pdb pdc
+    = ⊓μ-elim {P = P} da (db ⊓μ dc) pda (
+        ⊓μ-elim {P = P} db dc pdb pdc)
+      
+
+  ⊓μ-elim-imp 
+    : {n i j : ℕ}{t : T n}{ty : U (suc n)}{P : {i j : ℕ} → Dμ ⊥ₚ t ty i j → Set}
+      {da db : Dμ ⊥ₚ t ty i j}
+    → P da → P db → P (da ⊓μ db)
+  ⊓μ-elim-imp {P = P} {da} {db} pda pdb = ⊓μ-elim {P = P} da db pda pdb
+\end{code}
+
 %<*gdiffL-type>
 \begin{code}
   gdiffL : {n : ℕ}{t : T n}{ty : U (suc n)} 
@@ -88,99 +161,3 @@ module Diffing.Patches.Diff where
     ⊓μ gdiffL-dwn x y xs ys
 \end{code}
 %</gdiffL-def>
-
-        Application
-  =======================
-
-  Application follows the same idea. We first declare everything;
-  we then prove auxiliar lemmas and define the apply function.
-
-\begin{code}
-  open import Diffing.Utils.Monads
-  open Monad {{...}}
-
-  {-# TERMINATING #-}
-\end{code}
-
-  Here we have the gapply and gapplyL declarations.
-
-%<*gapplyL-type>
-\begin{code}
-  gapplyL : {n i j : ℕ}{t : T n}{ty : U (suc n)}
-          → Dμ ⊥ₚ t ty i j 
-          → Vec (ElU (μ ty) t) i → Maybe (Vec (ElU (μ ty) t) j)
-\end{code}
-%</gapplyL-type>
-\end{code}
-%<*gapply-type>
-\begin{code}
-  gapply : {n : ℕ}{t : T n}{ty : U n}
-         → Patch t ty → ElU ty t → Maybe (ElU ty t)
-\end{code}
-%</gapply-type>
-
-  Implementing gapply is easy.
-
-%<*gapply-def>
-\begin{code}
-  gapply (D-A ())
-
-  gapply D-unit unit = just unit
-
-  gapply (D-inl diff) (inl el) = inl <M> gapply diff el
-  gapply (D-inl diff) (inr el) = nothing
-
-  gapply (D-inr diff) (inl el) = nothing
-  gapply (D-inr diff) (inr el) = inr <M> gapply diff el
-
-  gapply (D-setl x y) (inl el) with x ≟-U el
-  ...| yes _ = just (inr y)
-  ...| no  _ = nothing
-  gapply (D-setl _ _) (inr _) = nothing
-
-  gapply (D-setr y x) (inr el) with y ≟-U el
-  ...| yes _ = just (inl x)
-  ...| no  _ = nothing
-  gapply (D-setr _ _) (inl _) = nothing
-
-  gapply (D-pair da db) (a , b) with gapply da a
-  ...| nothing = nothing
-  ...| just ra = _,_ ra <M> gapply db b
-
-  gapply (D-def diff) (red el) = red <M> gapply diff el
-  gapply (D-top diff) (top el) = top <M> gapply diff el
-  gapply (D-pop diff) (pop el) = pop <M> gapply diff el
-
-  gapply {ty = μ ty} (D-mu d) el = head <M> gapplyL d (el ∷ [])
-\end{code}
-%</gapply-def>
-\begin{code}
-  apply-dwn-fix : {n i : ℕ}{t : T n}{ty : U (suc n)}
-                → (x : ElU (μ ty) t)(ex : ValU ty t)
-                → (hip : μ-hd x ≡ ex)
-                → Vec (ElU (μ ty) t) (μ-ar x + i)
-                → Vec (ElU (μ ty) t) (ar 0 ex + i)
-  apply-dwn-fix x .(μ-hd x) refl v = v
-\end{code}
-%<*gapplyL-def>
-\begin{code}
-  gapplyL (Dμ-A () p) xs
-  gapplyL Dμ-end [] = just []
-  gapplyL (Dμ-del a p) (x ∷ xs) 
-    with μ-hd x ≟-U a
-  gapplyL (Dμ-del .(μ-hd x) p) (x ∷ xs) 
-    | yes refl = gapplyL p (μ-chv x ++v xs)
-  gapplyL (Dμ-del a p) (x ∷ xs) 
-    | no  _ = nothing
-  gapplyL (Dμ-ins a p) xs 
-    = μ-closev a <M> gapplyL p xs
-  gapplyL {i = suc i} {j = suc j} {t} {ty} (Dμ-dwn ex ey p) (x ∷ xs) 
-    with μ-hd x ≟-U ex
-  ...| no  _ = nothing
-  -- ...| yes q = μ-closev ey <M> gapplyL p (apply-dwn-fix x ex q (μ-chv x ++v xs))
-  gapplyL {i = suc i} {j = suc j} (Dμ-dwn .(μ-hd x) ey p) (x ∷ xs)
-     | yes refl = μ-closev ey <M> gapplyL p (μ-chv x ++v xs)
-  
-\end{code}
-%</gapplyL-def>
-

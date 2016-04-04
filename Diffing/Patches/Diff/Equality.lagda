@@ -1,7 +1,8 @@
 \begin{code}
 open import Prelude
 open import Diffing.Universe
-open import Diffing.Patches.Diff
+open import Diffing.Patches.Diff.D
+open import Diffing.Patches.Apply
 open import Diffing.Utils.Vector using (Vec)
 
 module Diffing.Patches.Diff.Equality where

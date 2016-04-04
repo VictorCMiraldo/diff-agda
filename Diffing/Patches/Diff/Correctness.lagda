@@ -6,11 +6,15 @@ open import Data.List.Properties
 open import Diffing.Universe
 open import Diffing.Universe.Operations.Properties
 open import Diffing.Universe.Plugging.Properties
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Equality
 open import Diffing.Utils.Vector
+open import Diffing.Patches.Diff.Cost
+open import Diffing.Patches.Diff.D
 
-module Diffing.Patches.Diff.Correctness where
+module Diffing.Patches.Diff.Correctness (Δ : Cost) where
+
+  open import Diffing.Patches.Diff Δ
+  open import Diffing.Patches.Apply
+  open import Diffing.Patches.Diff.Equality
 
   open import Diffing.Utils.Monads
   open Monad {{...}}
@@ -30,6 +34,7 @@ module Diffing.Patches.Diff.Correctness where
 %</gdiffL-src-lemma-type>
 \begin{code}
   private
+    {-# REWRITE μ-lal-sym #-}
     src-del : {n : ℕ}{t : T n}{ty : U (suc n)}
             → (x : ElU (μ ty) t)(xs ys : List (ElU (μ ty) t))
             → Dμ-srcv (gdiffL-del x xs ys) ≡ vec (x ∷ xs) refl
@@ -168,6 +173,12 @@ module Diffing.Patches.Diff.Correctness where
 
   Now we need to prove the other side of the isomorphism.
 
+
+\begin{code}
+  {-# REWRITE ch-plugv-lemma #-}
+  {-# REWRITE fgt-plugv-lemma #-}
+\end{code}
+
 %<*src-dst-gdiff-lemma-type>
 \begin{code}
   src-dst-gdiff-lemma 
@@ -179,23 +190,42 @@ module Diffing.Patches.Diff.Correctness where
 \begin{code}
   src-dst-gdiffL-lemma 
     : {n i j : ℕ}{t : T n}{ty : U (suc n)}(p : Dμ ⊥ₚ t ty i j)
-    → gdiffL (Dμ-src p) (Dμ-dst p) ~=*ₚ p
+    → gdiffL (Dμ-src p) (Dμ-dst p) ≡ Dμ-unlink-nats p
 \end{code}
 %</src-dst-gdiffL-lemma-type>
 %<*src-dst-gdiffL-lemma-def>
 \begin{code}
   src-dst-gdiffL-lemma (Dμ-A () p)
-  src-dst-gdiffL-lemma Dμ-end refl refl x = refl
-  src-dst-gdiffL-lemma (Dμ-dwn a b p) h1 h2 x
+  src-dst-gdiffL-lemma Dμ-end = refl
+  src-dst-gdiffL-lemma (Dμ-dwn a b p) 
     = {!!}
-  src-dst-gdiffL-lemma (Dμ-del a p) h1 h2 x
-    = {!h1 h2!}
+  src-dst-gdiffL-lemma (Dμ-del a p) = {!h1 h2!}
   src-dst-gdiffL-lemma (Dμ-ins a p) = {!!}
 \end{code}
 %</src-dst-gdiffL-lemma-def>
 %<*src-dst-gdiff-lemma-def>
 \begin{code}
-  src-dst-gdiff-lemma p = {!!}
+  src-dst-gdiff-lemma (D-A ())
+  src-dst-gdiff-lemma D-unit = refl
+  src-dst-gdiff-lemma (D-inl p) 
+    rewrite src-dst-gdiff-lemma p = refl
+  src-dst-gdiff-lemma (D-inr p) 
+    rewrite src-dst-gdiff-lemma p = refl
+  src-dst-gdiff-lemma (D-setl x y) 
+    = refl
+  src-dst-gdiff-lemma (D-setr x y) 
+    = refl
+  src-dst-gdiff-lemma (D-pair p q) 
+    rewrite src-dst-gdiff-lemma p 
+          | src-dst-gdiff-lemma q
+          = refl
+  src-dst-gdiff-lemma (D-mu x) 
+    with Dμ-srcv x | inspect Dμ-srcv x | Dμ-dstv x | inspect Dμ-dstv x
+  ...| mu y ∷ [] | [ R0 ] | mu y' ∷ [] | [ R1 ]
+     = cong D-mu (src-dst-gdiffL-lemma {i = 1} {1} {!!})
+  src-dst-gdiff-lemma (D-def p) = {!!}
+  src-dst-gdiff-lemma (D-top p) = {!!}
+  src-dst-gdiff-lemma (D-pop p) = {!!}
 \end{code}
 %</src-dst-gdiff-lemma-def>
 
@@ -238,20 +268,11 @@ module Diffing.Patches.Diff.Correctness where
       : {n k : ℕ}{t : T n}{a : U n}{ty : U n}(v : Vec (ElU ty t) k)
       → {p : length (toList (vmap (pop {a = a}) v)) ≡ k}
       → vmap unpop (vec (toList (vmap pop v)) p) ≡ v
-    aux-lemma-2 v {p}
-      = trans (vmap-vec unpop (toList (vmap pop v))) 
-       (trans (cong (λ P → vec P _) (sym (toList-vmap unpop (vmap pop v)))) 
-       (trans {!!} {!!}))
-
-  {-
-    (cong (λ P → vec P ) (sym (toList-vmap unpop (vmap pop v))))
-       (trans (cong (λ P → vec (toList P) _)
-                 (vmap-lemma {f = pop} {unpop} v (λ { x → refl }))) 
-       (vec-toList v))) 
-  -}
-
-  {-# REWRITE ch-plugv-lemma #-}
-  {-# REWRITE fgt-plugv-lemma #-}
+    aux-lemma-2 v {p} 
+      = trans (cong (vmap unpop) 
+                    (trans (vec-reduce (toList (vmap pop v))) 
+                           (vec-toList (vmap pop v))))
+              (vmap-lemma v (λ _ → refl))
 
   private
     aux-lemma-1 : {n i j : ℕ}{t : T n}{ty : U (suc n)}
@@ -260,10 +281,10 @@ module Diffing.Patches.Diff.Correctness where
                 ≡ μ-chv
                   (mu (plugv 0 a (vmap pop (p1 (vsplit (ar 0 a) (Dμ-srcv p))))))
                   ++v p2 (vsplit (ar 0 a) (Dμ-srcv p))
-    aux-lemma-1 a p with Dμ-srcv p
-    ...| SRC with vsplit (ar 0 a) SRC | inspect (vsplit (ar 0 a)) SRC
+    aux-lemma-1 a p with vsplit (ar 0 a) (Dμ-srcv p) | inspect (vsplit (ar 0 a)) (Dμ-srcv p)
     ...| P0 , P1 | [ R ] 
-       = sym {!!}
+       = sym (trans (cong (λ Q → Q ++v P1) (aux-lemma-2 P0)) 
+                    (sym (vsplit-lemma P0 P1 (Dμ-srcv p) R)) )
 \end{code}
 %<*gapplyL-correct-def>
 \begin{code}

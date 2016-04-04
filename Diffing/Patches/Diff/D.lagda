@@ -206,15 +206,23 @@ module Diffing.Patches.Diff.D where
   Some lemmas about lengths and sources/dests.
 
 \begin{code}
-  Dμ-src-length : {n : ℕ}{t : T n}{ty : U (suc n)}
-                → (i j : ℕ)(d : Dμ ⊥ₚ t ty i j)
+  Dμ-src-length : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+                → (d : Dμ ⊥ₚ t ty i j)
                 → length (Dμ-src d) ≡ i
-  Dμ-src-length i j d = length-toList (Dμ-srcv d)
+  Dμ-src-length d = length-toList (Dμ-srcv d)
 
-  Dμ-dst-length : {n : ℕ}{t : T n}{ty : U (suc n)}
-                → (i j : ℕ)(d : Dμ ⊥ₚ t ty i j)
+  Dμ-dst-length : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+                → (d : Dμ ⊥ₚ t ty i j)
                 → length (Dμ-dst d) ≡ j
-  Dμ-dst-length i j d = length-toList (Dμ-dstv d)
+  Dμ-dst-length d = length-toList (Dμ-dstv d)
+
+  Dμ-unlink-nats : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+                 → (d : Dμ ⊥ₚ t ty i j)
+                 → Dμ ⊥ₚ t ty (length (Dμ-src d)) (length (Dμ-dst d))
+  Dμ-unlink-nats {n} d 
+    rewrite Dμ-src-length d
+          | Dμ-dst-length d
+          = d
 \end{code}
 
 \begin{code}
@@ -237,49 +245,3 @@ module Diffing.Patches.Diff.D where
     → μ-ar y + length ys ≡ length (p2 (μ-open y) ++ ys)
   μ-lal-sym {ys = ys} y = sym (μ-length-arity-lemma y ys)
 \end{code}
-  
-
-  Finally, a bunch of usefull lemmas to manipulate indices
-  and call some well-known facts (meaning that we proved their
-  general version on Diffing.Universe.Operations.Properties)
-
-begin{code}
-  module μ-subst where
-
-    i : {n i j k : ℕ}{t : T n}{ty : U (suc n)}
-            → k ≡ i
-            → Dμ ⊥ₚ t ty k j
-            → Dμ ⊥ₚ t ty i j
-    i refl x = x
-
-    i-elim
-      : {n h j k : ℕ}{t : T n}{ty : U (suc n)}
-      → (p : k ≡ h)(d : Dμ ⊥ₚ t ty k j)
-      → i p d ≅ d
-    i-elim refl d = HErefl
-
-    o : {n h j k : ℕ}{t : T n}{ty : U (suc n)}
-            → k ≡ h
-            → Dμ ⊥ₚ t ty j k 
-            → Dμ ⊥ₚ t ty j h
-    o refl x = x
-
-    o-elim
-      : {n h j k : ℕ}{t : T n}{ty : U (suc n)}
-      → (p : k ≡ h)(d : Dμ ⊥ₚ t ty j k)
-      → o p d ≅ d
-    o-elim refl x = HErefl
-
-    io : {n h j k l : ℕ}{t : T n}{ty : U (suc n)}
-               → l ≡ j
-               → k ≡ h
-               → Dμ ⊥ₚ t ty l k 
-               → Dμ ⊥ₚ t ty j h
-    io refl refl x = x
-
-    io-elim
-      : {n h j k l : ℕ}{t : T n}{ty : U (suc n)}
-      → (p : k ≡ h)(q : l ≡ j)(d : Dμ ⊥ₚ t ty k l)
-      → io p q d ≅ d
-    io-elim refl refl d = HErefl
-end{code}
