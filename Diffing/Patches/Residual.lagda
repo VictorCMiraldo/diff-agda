@@ -1,12 +1,18 @@
 \begin{code}
 open import Prelude
 open import Diffing.Universe
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor using (cast; forget)
-open import Diffing.Patches.Diff.Id
-open import Diffing.Patches.Conflicts
+open import Diffing.Patches.Diff.D
+open import Diffing.Patches.Diff.Cost
 
 module Diffing.Patches.Residual where
+
+  postulate Δ : Cost
+
+  open import Diffing.Patches.Diff Δ
+  open import Diffing.Patches.Apply
+  open import Diffing.Patches.Diff.Functor using (cast; forget)
+  open import Diffing.Patches.Diff.Id
+  open import Diffing.Patches.Conflicts
 \end{code}
 
   Residuals are the heart of a merge. the patch (p / q),
@@ -42,12 +48,12 @@ module Diffing.Patches.Residual where
 \end{code}
 %<*residual-type>
 \begin{code}
-    _/_ : {n : ℕ}{t : Tel n}{ty : U n} 
+    _/_ : {n : ℕ}{t : T n}{ty : U n} 
         → Patch t ty → Patch t ty → Maybe (D C t ty)
 \end{code}
 %</residual-type>
 \begin{code}
-    _/_ {ty = u1} p q = just D-void
+    _/_ {ty = u1} p q = just D-unit
 
     _/_ {ty = a ⊕ b} (D-inl p) (D-inl q) = D-inl <M> (p / q)
     _/_ {ty = a ⊕ b} (D-inr p) (D-inr q) = D-inr <M> (p / q)
@@ -87,29 +93,41 @@ module Diffing.Patches.Residual where
     _/_ {ty = a ⊗ b} (D-pair p1 p2) (D-pair q1 q2) 
       = D-pair <M> (p1 / q1) <M*> (p2 / q2)
 
-    _/_ {ty = β F x} (D-β p) (D-β q) = D-β <M> (p / q)
-    _/_ {ty = vl} (D-top p) (D-top q) = D-top <M> (p / q)
+    _/_ {ty = def F x} (D-def p) (D-def q) = D-def <M> (p / q)
+    _/_ {ty = var} (D-top p) (D-top q) = D-top <M> (p / q)
     _/_ {ty = wk ty} (D-pop p) (D-pop q) = D-pop <M> (p / q)
 
-    _/_ {ty = μ ty} (D-mu p) (D-mu q) = D-mu <M> res p q
+    _/_ {ty = μ ty} (D-mu p) (D-mu q) = D-mu <M> {!!} -- res p q
 
     -- Every other scenarios are non-aligned patches.
     _ / _ = nothing
 
-    res : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-        → (a b : Patchμ t ty) → Maybe (List (Dμ C t ty))
+    res : {n i j k : ℕ}{t : T n}{ty : U (suc n)}
+        → (a : Dμ ⊥ₚ t ty i j)(b : Dμ ⊥ₚ t ty i k)
+        → Maybe (∃ (λ l → Dμ C t ty k l))
 
-    res _ (Dμ-A () ∷ _)
-    res (Dμ-A () ∷ _) _
+    res _ (Dμ-A () _)
+    res (Dμ-A () _) _
 
     -- if both patches finishes together, easy.
-    res [] [] = just []
+    res Dμ-end Dμ-end = just (0 , Dμ-end)
    
     -- we can always keep inserting things, though.
     -- If we find the same exact insert, though, we simply copy it.
-    res (Dμ-ins x ∷ dp) (Dμ-ins y ∷ dq) with x ≟-U y
-    ...| yes _ = _∷_ (Dμ-dwn (cast (gdiff-id x))) <M> res dp dq
-    ...| no  _ = _∷_ (Dμ-A (GrowLR x y)) <M> res dp dq
+    res (Dμ-ins x dp) (Dμ-ins y dq) with x ≟-U y
+    ...| yes p with res dp dq
+    res (Dμ-ins x dp) (Dμ-ins y dq) | yes p | nothing
+       = nothing 
+    res (Dμ-ins x dp) (Dμ-ins y dq) | yes p | just (0 , pq)
+       = just {!!}
+    res (Dμ-ins x dp) (Dμ-ins y dq) | yes p | just (suc l , pq)
+      = just (suc l , Dμ-dwn x y {!pq!})
+    res (Dμ-ins x dp) (Dμ-ins y dq) | no  _ 
+       = {!!} -- Dμ-A (GrowLR x y) <M> res dp dq
+
+    res dp dq = {!!} 
+
+    {-
     res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-A (GrowR x)) <M> res dp dq
     res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-A (GrowL x)) <M> res dp dq
 
@@ -131,13 +149,14 @@ module Diffing.Patches.Residual where
 
     res [] _  = nothing
     res _ []  = nothing
+    -}
 \end{code}
 
 The simple residuals are the ones defined and
 without conflicts!
 
 \begin{code}
-  /-simple : {n : ℕ}{t : Tel n}{ty : U n}
+  /-simple : {n : ℕ}{t : T n}{ty : U n}
            → Maybe (D C t ty) → Set
   /-simple nothing  = ⊥
   /-simple (just d) = forget d ≡ []

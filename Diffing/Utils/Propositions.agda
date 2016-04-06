@@ -119,6 +119,9 @@ module Diffing.Utils.Propositions where
   nat-≤-abs {m = zero} (s≤s p) ()
   nat-≤-abs {m = suc m} (s≤s p) q = nat-≤-abs p (suc-inj q)
 
+  nat-≤-abs-0 : {m : ℕ} → suc m ≤ 0 → ⊥
+  nat-≤-abs-0 ()
+
   ≤-+ : {m n o p : ℕ} 
       → m ≤ o → n ≤ p → m + n ≤ o + p
   ≤-+ {o = zero} z≤n s = s

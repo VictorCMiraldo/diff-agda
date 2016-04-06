@@ -12,13 +12,13 @@ module Diffing.Patches.Diff.Functor where
     The proofs are trivial, it's just a matter of exhausting
     Agda's case analysis.
   -}
-  {-
+
   -- D-map definition
   mutual
     {-# TERMINATING #-}
-    D-map : ∀{a}{n : ℕ}{t : T n}{ty : U n}
+    D-map : ∀{a b}{n : ℕ}{t : T n}{ty : U n}
              {A : {n : ℕ} → T n → U n → Set a}
-             {B : {n : ℕ} → T n → U n → Set a} 
+             {B : {n : ℕ} → T n → U n → Set b} 
           → ({m : ℕ}{t' : T m}{ty' : U m} → A t' ty' → B t' ty') 
           → D A t ty → D B t ty
     D-map f (D-A x) = D-A (f x)
@@ -33,17 +33,17 @@ module Diffing.Patches.Diff.Functor where
     D-map f (D-top d) = D-top (D-map f d)
     D-map f (D-pop d) = D-pop (D-map f d)
 
-    Dμ-map : ∀{a}{n i j : ℕ}{t : T n}{ty : U (suc n)}
+    Dμ-map : ∀{a b}{n i j : ℕ}{t : T n}{ty : U (suc n)}
              {A : {n : ℕ} → T n → U n → Set a}
-             {B : {n : ℕ} → T n → U n → Set a} 
+             {B : {n : ℕ} → T n → U n → Set b} 
            → ({m : ℕ}{t' : T m}{ty' : U m} → A t' ty' → B t' ty')
            → Dμ A t ty i j → Dμ B t ty i j
     Dμ-map f Dμ-end = Dμ-end
     Dμ-map f (Dμ-A x   d) = Dμ-A (f x) (Dμ-map f d)
     Dμ-map f (Dμ-ins x d) = Dμ-ins x (Dμ-map f d)
     Dμ-map f (Dμ-del x d) = Dμ-del x (Dμ-map f d)
-    Dμ-map f (Dμ-dwn dx d) 
-      = Dμ-dwn (D-map f dx) {!Dμ-map f d!} 
+    Dμ-map f (Dμ-dwn dx dy d) 
+      = Dμ-dwn dx dy (Dμ-map f d) 
 
   --
   -- D-map preserves composition
@@ -59,7 +59,7 @@ module Diffing.Patches.Diff.Functor where
                → D-map f (D-map g d) ≡ D-map (f ∘ g) d
     D-map-join f g (D-A x) = refl
     -- D-map-join f g D-id   = refl
-    D-map-join f g D-void = refl
+    D-map-join f g D-unit = refl
     D-map-join f g (D-inl d) = cong D-inl (D-map-join f g d)
     D-map-join f g (D-inr d) = cong D-inr (D-map-join f g d)
     D-map-join f g (D-setl x y) = refl
@@ -71,21 +71,21 @@ module Diffing.Patches.Diff.Functor where
     D-map-join f g (D-pop d) = cong D-pop (D-map-join f g d)
     D-map-join f g (D-mu x) = cong D-mu (Dμ-map-join f g x)
 
-    Dμ-map-join : ∀{a b c}{n : ℕ}{t : T n}{ty : U (suc n)}
+    Dμ-map-join : ∀{a b c}{n i j : ℕ}{t : T n}{ty : U (suc n)}
                   {A : {n : ℕ} → T n → U n → Set a}
                   {B : {n : ℕ} → T n → U n → Set b}
                   {C : {n : ℕ} → T n → U n → Set c}
                   (f : {m : ℕ}{t' : T m}{ty' : U m} → B t' ty' → C t' ty')
                   (g : {m : ℕ}{t' : T m}{ty' : U m} → A t' ty' → B t' ty')
-                  (d : List (Dμ A t ty))
+                  (d : Dμ A t ty i j)
                → Dμ-map f (Dμ-map g d) ≡ Dμ-map (f ∘ g) d
-    Dμ-map-join f g [] = refl
-    Dμ-map-join f g (Dμ-A x ∷ d) = cong (_∷_ (Dμ-A (f (g x)))) (Dμ-map-join f g d)
-    Dμ-map-join f g (Dμ-ins x ∷ d) = cong (_∷_ (Dμ-ins x)) (Dμ-map-join f g d)
-    Dμ-map-join f g (Dμ-del x ∷ d) = cong (_∷_ (Dμ-del x)) (Dμ-map-join f g d)
-    Dμ-map-join f g (Dμ-dwn dx ∷ d) 
-      = cong₂ (λ P Q → Dμ-dwn P ∷ Q) (D-map-join f g dx) (Dμ-map-join f g d)
-
+    Dμ-map-join f g Dμ-end = refl
+    Dμ-map-join f g (Dμ-A x d) = cong (Dμ-A (f (g x))) (Dμ-map-join f g d)
+    Dμ-map-join f g (Dμ-ins x d) = cong (Dμ-ins x) (Dμ-map-join f g d)
+    Dμ-map-join f g (Dμ-del x d) = cong (Dμ-del x) (Dμ-map-join f g d)
+    Dμ-map-join f g (Dμ-dwn dx dy d) 
+      = cong (Dμ-dwn dx dy) (Dμ-map-join f g d)
+{-
   --
   -- And identities
   --
@@ -107,16 +107,17 @@ module Diffing.Patches.Diff.Functor where
     D-map-id (D-pop d) = cong D-pop (D-map-id d)
     D-map-id (D-mu x) = cong D-mu (Dμ-map-id x)
 
-    Dμ-map-id : ∀{a}{n : ℕ}{t : T n}{ty : U (suc n)}
+    Dμ-map-id : ∀{a}{n i j : ℕ}{t : T n}{ty : U (suc n)}
                 {A : {n : ℕ} → T n → U n → Set a}
-                (d : List (Dμ A t ty)) → Dμ-map id d ≡ d
+                (d : Dμ A t ty i j) → Dμ-map id d ≡ d
     Dμ-map-id [] = refl
-    Dμ-map-id (Dμ-A x ∷ d) = cong (_∷_ (Dμ-A x)) (Dμ-map-id d)
-    Dμ-map-id (Dμ-ins x ∷ d) = cong (_∷_ (Dμ-ins x)) (Dμ-map-id d)
-    Dμ-map-id (Dμ-del x ∷ d) = cong (_∷_ (Dμ-del x)) (Dμ-map-id d)
-    Dμ-map-id (Dμ-dwn dx ∷ d) 
+    Dμ-map-id (Dμ-A x d) = cong (_∷_ (Dμ-A x)) (Dμ-map-id d)
+    Dμ-map-id (Dμ-ins x d) = cong (_∷_ (Dμ-ins x)) (Dμ-map-id d)
+    Dμ-map-id (Dμ-del x d) = cong (_∷_ (Dμ-del x)) (Dμ-map-id d)
+    Dμ-map-id (Dμ-dwn dx dy d) 
       = cong₂ (λ P Q → Dμ-dwn P ∷ Q) (D-map-id dx) (Dμ-map-id d)
 
+-}
   --
   -- Here we define a forgetful functor from D's to Lists.
   --
@@ -162,7 +163,7 @@ module Diffing.Patches.Diff.Functor where
            → D A t ty → List (↓ A)
     forget (D-A {n} {t} {ty} x) = unIdx x ∷ []
     -- forget D-id   = []
-    forget D-void = []
+    forget D-unit = []
     forget (D-inl d) = forget d
     forget (D-inr d) = forget d
     forget (D-setl x x₁) = []
@@ -173,15 +174,16 @@ module Diffing.Patches.Diff.Functor where
     forget (D-pop d) = forget d
     forget (D-mu x) = forgetμ x
 
-    forgetμ : ∀{a}{n : ℕ}{t : T n}{ty : U (suc n)}
+    forgetμ : ∀{a}{n i j : ℕ}{t : T n}{ty : U (suc n)}
               {A : {n : ℕ} → T n → U n → Set a}
-            → List (Dμ A t ty) → List (↓ A)
-    forgetμ [] = []
-    forgetμ (Dμ-A x ∷ ds)      = unIdx x ∷ forgetμ ds
-    forgetμ (Dμ-dwn dx ∷ ds) = forget dx ++ forgetμ ds
-    forgetμ (_ ∷ ds)           = forgetμ ds
+            → Dμ A t ty i j → List (↓ A)
+    forgetμ Dμ-end = []
+    forgetμ (Dμ-A x ds)       = unIdx x ∷ forgetμ ds
+    forgetμ (Dμ-dwn dx dy ds) = forgetμ ds
+    forgetμ (Dμ-ins _ ds)     = forgetμ ds
+    forgetμ (Dμ-del _ ds)     = forgetμ ds
 
-  
+ 
   {-
   {- forget is a natural transformation -}
   mutual
@@ -210,11 +212,12 @@ module Diffing.Patches.Diff.Functor where
        → Patch t ty → D A t ty
   cast {A = A} = D-map (({m : ℕ}{t : T m}{ty : U m} → ⊥ → A t ty) ∋ (λ ()))
 
-  castμ : ∀{a}{n : ℕ}{t : T n}{ty : U (suc n)}
+  castμ : ∀{a}{n i j : ℕ}{t : T n}{ty : U (suc n)}
           {A : {n : ℕ} → T n → U n → Set a}
-        → Patchμ t ty → List (Dμ A t ty)
+        → Dμ ⊥ₚ t ty i j → Dμ A t ty i j
   castμ {A = A} = Dμ-map (({m : ℕ}{t : T m}{ty : U m} → ⊥ → A t ty) ∋ (λ ()))
 
+{- 
   {- We can always "uncast" a (D A) to a Patch as long 
      as it doesn't have any (D-A _) inside.
   -}

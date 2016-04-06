@@ -1,13 +1,15 @@
 \begin{code}
+{-# OPTIONS --rewriting #-}
 open import Prelude
 
-open import Data.Nat.Properties.Simple using (+-comm)
-
 open import Diffing.Universe
-open import Diffing.Patches.Diff
+open import Diffing.Patches.Diff.D
+open import Diffing.Patches.Diff.Cost
 open import Diffing.Utils.Propositions
 
-module Diffing.Patches.Diff.Id where
+module Diffing.Patches.Diff.Id (Δ : Cost) where
+
+  open import Diffing.Patches.Diff Δ
 \end{code}
 
   It is easy to check whether a diff is the identity
@@ -20,7 +22,7 @@ module Diffing.Patches.Diff.Id where
 %<*Is-diff-id-type>
 \begin{code}
     Is-diff-id : {n : ℕ}{t : T n}{ty : U n}
-               → (d : Patch t ty) → Set
+               → (d : D ⊥ₚ t ty) → Set
 \end{code}
 %</Is-diff-id-type>
 \begin{code}
@@ -47,17 +49,15 @@ module Diffing.Patches.Diff.Id where
     Is-diffL-id (Dμ-A () p)
     Is-diffL-id (Dμ-ins x p) = ⊥
     Is-diffL-id (Dμ-del x p) = ⊥
-    Is-diffL-id (Dμ-dwn dx p) = Is-diff-id dx × Is-diffL-id p
+    Is-diffL-id (Dμ-dwn dx dy p) = dx ≡ dy × Is-diffL-id p
 \end{code}
 
   The identity patch is the same as (gdiff x x) but
   much easier to compute, as no comparisons are needed.
 
-\begin{code}
-  open Substs
-\end{code}
 %<*gdiff-id-def>
 \begin{code}
+  -- {-# REWRITE μ-lal-sym #-}
   mutual
     gdiff-id : {n : ℕ}{t : T n}{ty : U n}
              → (a : ElU ty t) → Patch t ty
@@ -74,51 +74,9 @@ module Diffing.Patches.Diff.Id where
     gdiffL-id : {n : ℕ}{t : T n}{ty : U (suc n)}
              → (as : List (ElU (μ ty) t)) → Dμ ⊥ₚ t ty (length as) (length as)
     gdiffL-id [] = Dμ-end
-    gdiffL-id (x ∷ as)
-     = Dμ-dwn (gdiff-id (μ-hd x)) 
-              (μ-subst-io 
-                {!!} 
-                {!!} 
-                (gdiffL-id (μ-ch x ++ as))) -- (gdiffL-id (μ-ch x ++ as))
+    gdiffL-id (a ∷ as) = Dμ-dwn (μ-hd a) (μ-hd a) (gdiffL-id (μ-ch a ++ as))
 \end{code}
 %</gdiff-id-def>
-
-  gdiff id has to have cost 0, as it is the identity.
-
-\begin{code}
-  mutual
-\end{code}
-%<*gdiff-id-cost-type>
-\begin{code}
-    gdiff-id-cost : {n : ℕ}{t : T n}{ty : U n}
-                  → (a : ElU ty t) → cost (gdiff-id a) ≡ 0
-\end{code}
-%</gdiff-id-cost-type>
-\begin{code}
-    gdiff-id-cost unit = refl
-    gdiff-id-cost (inl a) = gdiff-id-cost a
-    gdiff-id-cost (inr a) = gdiff-id-cost a
-    gdiff-id-cost (a1 , a2) 
-      = subst (λ P → P + cost (gdiff-id a2) ≡ 0) 
-              (sym (gdiff-id-cost a1)) (gdiff-id-cost a2)
-    gdiff-id-cost (top a) = gdiff-id-cost a
-    gdiff-id-cost (pop a) = gdiff-id-cost a
-    gdiff-id-cost (mu a) = gdiffL-id-cost (mu a ∷ [])
-    gdiff-id-cost (red a) = gdiff-id-cost a 
-
-    {-# TERMINATING #-}
-    gdiffL-id-cost : {n : ℕ}{t : T n}{ty : U (suc n)}
-                  → (a : List (ElU (μ ty) t)) → costμ (gdiffL-id a) ≡ 0
-    gdiffL-id-cost [] = refl
-    gdiffL-id-cost (a ∷ as) = {!!}
-      {-
-      = subst (λ P → P + costμ (gdiffL-id (μ-ch a ++ as)) ≡ 0) 
-              (sym (gdiff-id-cost (μ-hd a))) 
-              (gdiffL-id-cost (μ-ch a ++ as))
-      -}
-\end{code}
-
-  It turns out that we were indeed correct in computing our diff-id:
 
 \begin{code}
   mutual
@@ -141,66 +99,57 @@ module Diffing.Patches.Diff.Id where
     gdiff-id-correct (mu a) = cong D-mu (gdiffL-id-correct (mu a ∷ []))
     gdiff-id-correct (red a) = cong D-def (gdiff-id-correct a)
 
-  {-
-    private
-      mkDel : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-            → Patchμ t ty
-      mkDel a as = (Dμ-del (μ-hd a) ∷ gdiffL (μ-ch a ++ as) (a ∷ as))
-
-      mkDwn : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-            → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-            → Patchμ t ty
-      mkDwn a as = (Dμ-dwn (gdiff (μ-hd a) (μ-hd a)) ∷
-                    gdiffL (μ-ch a ++ as) (μ-ch a ++ as)) 
-
-      cost-dwn : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-               → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t))
-               → sum costμ (mkDwn a as) ≡ 0
-      cost-dwn a as 
-        = cong₂ _+_ 
-                (trans (cong cost (sym (gdiff-id-correct (μ-hd a)))) 
-                       (gdiff-id-cost (μ-hd a))) 
-                (trans (cong (sum costμ) (sym (gdiffL-id-correct (μ-ch a ++ as)))) 
-                       (gdiffL-id-cost (μ-ch a ++ as)))
-
-      dwn<del : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-              → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-              → suc (cost (D-mu (mkDwn a as))) ≤ cost (D-mu (mkDel a as))
-      dwn<del a as rewrite cost-dwn a as
-        = s≤s z≤n
-
-      ss : {n m : ℕ} → suc n ≤ m → n ≤ m
-      ss (s≤s p) = nat-≤-step p
-
-      pi : {n m : ℕ}(a b : n ≤ m) → a ≡ b
-      pi z≤n z≤n = refl
-      pi (s≤s a) (s≤s b) = cong s≤s (pi a b)
-
-      dwn<del? : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-              → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-              → (cost (D-mu (mkDwn a as)) ≤?-ℕ cost (D-mu (mkDel a as)))
-              ≡ yes (ss (dwn<del a as))
-      dwn<del? a as with (cost (D-mu (mkDwn a as)) ≤?-ℕ cost (D-mu (mkDel a as)))
-      ...| yes q = cong yes (pi q (ss (dwn<del a as)))
-      ...| no  q = {!!}
-
-      lemma-1 : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-              → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t))            
-              → mkDwn a as
-              ≡  mkDel a as
-              ⊔μ mkDwn a as
-      lemma-1 a as with ss (dwn<del a as)
-      lemma-1 a as | prf = {!!}
-    -}   
-
     {-# TERMINATING #-}
     gdiffL-id-correct
       : {n : ℕ}{t : T n}{ty : U (suc n)}
       → (as : List (ElU (μ ty) t)) → gdiffL-id as ≡ gdiffL as as
     gdiffL-id-correct [] = refl
     gdiffL-id-correct (a ∷ as) 
-      = trustme
-      where
-        postulate trustme : ∀{a}{A : Set a} → A
+      with costμ (gdiffL-del a as (a ∷ as)) ≤?-ℕ costμ (gdiffL-dwn a a as as) 
+    ...| yes r1 
+       rewrite sym (gdiff-id-correct (μ-hd a)) 
+             | gdiff-id-cost (μ-hd a)
+             | sym (gdiffL-id-correct (μ-ch a ++ as))
+             | gdiffL-id-cost (μ-ch a ++ as)
+             = ⊥-elim (nat-≤-abs-0 r1)
+    ...| no ¬r1 
+      with costμ (gdiffL-ins a (a ∷ as) as) ≤?-ℕ costμ (gdiffL-dwn a a as as) 
+    ...| yes r2
+        rewrite sym (gdiff-id-correct (μ-hd a)) 
+             | gdiff-id-cost (μ-hd a)
+             | sym (gdiffL-id-correct (μ-ch a ++ as))
+             | gdiffL-id-cost (μ-ch a ++ as)
+             = ⊥-elim (nat-≤-abs-0 r2)
+    ...| no ¬r2 = cong (Dμ-dwn (μ-hd a) (μ-hd a)) (gdiffL-id-correct (μ-ch a ++ as))
+\end{code}
+
+  gdiff id has to have cost 0, as it is the identity.
+
+%<*gdiff-id-cost-type>
+\begin{code}
+    gdiff-id-cost : {n : ℕ}{t : T n}{ty : U n}
+                  → (a : ElU ty t) → cost (gdiff-id a) ≡ 0
+\end{code}
+%</gdiff-id-cost-type>
+\begin{code}
+    gdiff-id-cost unit = refl
+    gdiff-id-cost (inl a) = gdiff-id-cost a
+    gdiff-id-cost (inr a) = gdiff-id-cost a
+    gdiff-id-cost (a1 , a2) 
+      = subst (λ P → P + cost (gdiff-id a2) ≡ 0) 
+              (sym (gdiff-id-cost a1)) (gdiff-id-cost a2)
+    gdiff-id-cost (top a) = gdiff-id-cost a
+    gdiff-id-cost (pop a) = gdiff-id-cost a
+    gdiff-id-cost (mu a) = gdiffL-id-cost (mu a ∷ [])
+    gdiff-id-cost (red a) = gdiff-id-cost a 
+
+    {-# TERMINATING #-}
+    gdiffL-id-cost : {n : ℕ}{t : T n}{ty : U (suc n)}
+                  → (a : List (ElU (μ ty) t)) → costμ (gdiffL-id a) ≡ 0
+    gdiffL-id-cost [] = refl
+    gdiffL-id-cost (a ∷ as) 
+      rewrite gdiffL-id-cost (μ-ch a ++ as)
+            | sym (gdiff-id-correct (μ-hd a))
+            | gdiff-id-cost (μ-hd a)
+            = refl
 \end{code}
