@@ -41,7 +41,8 @@ module Diffing.Patches.Diff.E (Δ : Cost) where
            → (ea : ValU a t) → Vec (E A t (μ a)) (ar 0 ea)
            → E A t (μ a)
     Eμ-dwn : {n : ℕ}{t : T n}{a : U (suc n)}
-           → E A (u1 ∷ t) a → List (E A t (μ a))
+           → (ea : ValU a t)(d : E A (u1 ∷ t) a) 
+           → Vec (E A t (μ a)) (ar 0 ea)
            → E A t (μ a)
 \end{code}
 
@@ -59,7 +60,7 @@ module Diffing.Patches.Diff.E (Δ : Cost) where
        → Dμ ⊥ₚ t ty i j → E ⊥ₚ t (μ ty)
   Dμ→E (Dμ-A () d)
   Dμ→E Dμ-end = Eμ-end
-  Dμ→E (Dμ-dwn a b d) = Eμ-dwn (D→E (gdiff a b)) {!!}
+  Dμ→E (Dμ-dwn a b d) = Eμ-dwn a (D→E (gdiff a b)) {!!}
   Dμ→E (Dμ-del a d) = Eμ-del a {!!}
   Dμ→E (Dμ-ins a d) = Eμ-ins a {!!}
 

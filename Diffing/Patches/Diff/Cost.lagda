@@ -1,6 +1,7 @@
 \begin{code}
 open import Prelude
 open import Data.Nat using (_≤_; z≤n; s≤s)
+open import Data.Nat.Properties.Simple using (+-comm)
 
 open import Diffing.Universe
 
@@ -24,4 +25,23 @@ module Diffing.Patches.Diff.Cost where
                    → c⊕ ex ey ≡ c⊕ ey ex
 \end{code}
 %</Cost-rec>
+
+\begin{code}
+  open Cost {{...}}
+\end{code}
+
+%<*top-down-cost-type>
+\begin{code}
+  top-down-cost : Cost
+\end{code}
+%</top-down-cost-type>
+%<*top-down-cost-def>
+\begin{code}
+  top-down-cost 
+    = cost-rec (λ ex ey → sizeElU ex + sizeElU ey) 
+               sizeElU 
+               (λ ex ey → (+-comm (sizeElU ex) (sizeElU ey)))
+\end{code}
+%</top-down-cost-def>
+
 

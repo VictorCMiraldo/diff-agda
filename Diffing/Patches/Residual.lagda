@@ -119,7 +119,7 @@ module Diffing.Patches.Residual where
     res (Dμ-ins x dp) (Dμ-ins y dq) | yes p | nothing
        = nothing 
     res (Dμ-ins x dp) (Dμ-ins y dq) | yes p | just (0 , pq)
-       = just {!!}
+       = just ({!!} , Dμ-dwn x y {!pq!})
     res (Dμ-ins x dp) (Dμ-ins y dq) | yes p | just (suc l , pq)
       = just (suc l , Dμ-dwn x y {!pq!})
     res (Dμ-ins x dp) (Dμ-ins y dq) | no  _ 
