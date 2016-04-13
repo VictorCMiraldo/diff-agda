@@ -148,9 +148,9 @@ vmap-vec unpop (ch 0 x)
                → m ≤ length l
                → Σ (List A × List A) (λ ls → length (p1 ls) ≡ m)
     list-split [] z≤n = ([] , []) , refl
-    list-split (x ∷ l) z≤n = ([] , x ∷ l) , refl
+    list-split (x ∷ l) z≤n = ([] , (x ∷ l)) , refl
     list-split (x ∷ l) (s≤s p) with list-split l p
-    ...| (la , lb) , prf = (x ∷ la , lb) , (cong suc prf)
+    ...| (la , lb) , prf = ((x ∷ la) , lb) , (cong suc prf)
 
     list-split-lemma 
       : {m : ℕ}{A : Set}(l1 l2 : List A){p : m ≤ length (l1 ++ l2)}

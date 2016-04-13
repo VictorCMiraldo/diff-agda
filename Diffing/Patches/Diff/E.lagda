@@ -37,8 +37,8 @@ module Diffing.Patches.Diff.E (Δ : Cost) where
     Eμ-ins : {n : ℕ}{t : T n}{a : U (suc n)}
            → (ea : ValU a t) → Vec (E A t (μ a)) (ar 0 ea)
            → E A t (μ a)
-    Eμ-del : {n : ℕ}{t : T n}{a : U (suc n)}
-           → (ea : ValU a t) → Vec (E A t (μ a)) (ar 0 ea)
+    Eμ-sub : {n j : ℕ}{t : T n}{a : U (suc n)}
+           → {!!} 
            → E A t (μ a)
     Eμ-dwn : {n : ℕ}{t : T n}{a : U (suc n)}
            → (ea : ValU a t)(d : E A (u1 ∷ t) a) 
@@ -57,12 +57,14 @@ module Diffing.Patches.Diff.E (Δ : Cost) where
       → D ⊥ₚ t ty → E ⊥ₚ t ty
 
   Dμ→E : {n i j : ℕ}{t : T n}{ty : U (suc n)}
-       → Dμ ⊥ₚ t ty i j → E ⊥ₚ t (μ ty)
-  Dμ→E (Dμ-A () d)
-  Dμ→E Dμ-end = Eμ-end
-  Dμ→E (Dμ-dwn a b d) = Eμ-dwn a (D→E (gdiff a b)) {!!}
-  Dμ→E (Dμ-del a d) = Eμ-del a {!!}
-  Dμ→E (Dμ-ins a d) = Eμ-ins a {!!}
+       → Dμ ⊥ₚ t ty i j → Vec (ElU (μ ty) t) i
+       → E ⊥ₚ t (μ ty)
+  Dμ→E (Dμ-A () d) xs
+  Dμ→E Dμ-end [] = {!!}
+  Dμ→E (Dμ-dwn a b d) (x ∷ xs) = {!!}
+  Dμ→E (Dμ-del a d) (x ∷ xs) = {!!}
+  Dμ→E (Dμ-ins a d) xs
+    = Eμ-ins a {!!}
 
   D→E d = {!!}
 \end{code}
