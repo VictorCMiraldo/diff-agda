@@ -8,6 +8,17 @@ open import Diffing.Patches.Diff top-down-cost
 
 module Diffing.Patches.Lab where
 
+  δ : {n i j : ℕ}{t : T n}{ty : U (suc n)}
+    → Dμ ⊥ₚ t ty i j → List ((ℕ × ℕ) × (ℕ × ℕ))
+  δ (Dμ-A () p)
+  δ Dμ-end = []
+  δ {i = .(suc pi)} {.(suc pj)} (Dμ-dwn {i = pi} {pj} a b p) 
+    = ((suc pi , suc pj) , pi , pj) ∷ δ p
+  δ {i = .(suc pi)} {.pj}       (Dμ-del {i = pi} {pj} a p) 
+    = ((suc pi , pj) , pi , pj) ∷ δ p
+  δ {i = .pi} {.(suc pj)}       (Dμ-ins {i = pi} {pj} a p) 
+    = ((pi , suc pj) , pi , pj) ∷ δ p
+
   module LIST-test where
     l1 l2 l3 : ElU LIST (BOOL ∷ [])
 
@@ -52,6 +63,29 @@ module Diffing.Patches.Lab where
       (Dμ-dwn {i = 1} {1} (inl (unit )) (inl (unit )) 
       (Dμ-dwn {i = 0} {0} (inl (unit )) (inl (unit ))
       Dμ-end))))))
+    
+
+    d13-1 : Dμ ⊥ₚ (BOOL ∷ []) FORKSEQ-sop 1 1
+    d13-2 : Dμ ⊥ₚ (BOOL ∷ []) FORKSEQ-sop 1 1
+    d13-3 : Dμ ⊥ₚ (BOOL ∷ []) FORKSEQ-sop 2 2
+    d13-4 : Dμ ⊥ₚ (BOOL ∷ []) FORKSEQ-sop 2 1
+    d13-5 : Dμ ⊥ₚ (BOOL ∷ []) FORKSEQ-sop 3 2
+    d13-6 : Dμ ⊥ₚ (BOOL ∷ []) FORKSEQ-sop 2 2
+    d13-7 : Dμ ⊥ₚ (BOOL ∷ []) FORKSEQ-sop 1 1
+
+    d13-1 = Dμ-ins {i = 1} {0} (inr (inr (pop (top (inr unit)) , top unit)))
+              d13-2
+    d13-2 = Dμ-dwn {i = 0} {0}
+              (inr (inl (pop (top (inl unit)) , top unit , top unit)))
+              (inr (inl (pop (top (inl unit)) , top unit , top unit))) d13-3
+    d13-3 = Dμ-ins {i = 2} {1} (inl unit) d13-4
+    d13-4 = Dμ-dwn {i = 1} {0}
+              (inr (inl (pop (top (inr unit)) , top unit , top unit)))
+              (inr (inl (pop (top (inr unit)) , top unit , top unit))) d13-5
+    d13-5 = Dμ-del {i = 2} {2} (inl unit) d13-6
+    d13-6 = Dμ-dwn {i = 1} {1} (inl unit) (inl unit) d13-7
+    d13-7 = Dμ-dwn {i = 0} {0} (inl unit) (inl unit) Dμ-end
+
     d13-nf = D-mu 
       (Dμ-ins {i = 1} {0} (inr (inr (_,_ (pop (top (inr (unit )))) (top (unit )))))
       (Dμ-dwn {i = 0} {0} 
@@ -85,9 +119,11 @@ module Diffing.Patches.Lab where
               (inl (unit )) 
       Dμ-end)))))))
 
-
+    
     both : D ⊥ₚ (BOOL ∷ []) FS × D ⊥ₚ (BOOL ∷ []) FS
     both = d12 , d13
+
+    
 
 
   module RT-test where
