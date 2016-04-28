@@ -15,11 +15,11 @@ MASTER2:
   
   ```haskell
   data Color (f :: * -> *)
-    = Cpy (f (Color f))
+    = Cpy (f (Patch (Fix f)))
     | Add (Ctx f) (Color f)
     | Rm  (Ctx f) (Color f)
   
-  Patch (Fix f) = Color (Patch f)
+  Patch (Fix f) = Color f
   ```
   
   Where *Ctx f* represents the derivative of *f x* on *x*;
