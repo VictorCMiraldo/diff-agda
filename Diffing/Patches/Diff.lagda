@@ -2,11 +2,17 @@
 open import Prelude
 open import Prelude.Vector
 open import CF
-open import CF.Derivative
+open import CF.Derivative.Operations
+open import CF.Operations.Properties
+  using (ch-v)
 
 open import Diffing.Patches.D
+open import Diffing.Patches.Cost
 
-module Diffing.Patches.Diff where
+module Diffing.Patches.Diff (Δ : Cost) where
+  open Cost
+  
+  infixr 20 _⊓_
 \end{code}
 
   Another way of writing the type of gdiff
@@ -24,6 +30,54 @@ module Diffing.Patches.Diff where
         → ElU ty t → ElU ty t → Patch ty t
 \end{code}
 %</gdiff-type>
+
+%<*cost-def>
+\begin{code}
+  cost : {n : ℕ}{t : T n}{ty : U n} → Patch ty t → ℕ
+  cost (D-A ())
+  cost D-unit         = 0
+  cost (D-inl d)      = cost d
+  cost (D-inr d)      = cost d
+  cost (D-setl xa xb) = 1 + c⊕ Δ xa xb
+  cost (D-setr xa xb) = 1 + c⊕ Δ xb xa
+  cost (D-pair da db) = cost da + cost db
+  cost (D-def d) = cost d
+  cost (D-top d) = cost d
+  cost (D-pop d) = cost d
+  cost (D-μ-add ctx d) = cμ Δ ctx + cost d
+  cost (D-μ-rmv ctx d) = cμ Δ ctx + cost d
+  cost (D-μ-dwn x y hip d)
+    = cost (gdiff x y) + vsum (vmap cost d)
+    where
+      vsum : {k : ℕ} → Vec ℕ k → ℕ
+      vsum []       = 0
+      vsum (x ∷ xs) = x + vsum xs
+\end{code}
+%</cost-def>
+
+%<*lub-def>
+\begin{code}
+  _⊓_ : {n : ℕ}{t : T n}{ty : U n}
+      → Patch ty t → Patch ty t → Patch ty t
+  _⊓_ {ty = ty} da db with cost da ≤?-ℕ cost db
+  ...| yes _ = da
+  ...| no  _ = db
+\end{code}
+%</lub-def>
+
+%<*lub-def>
+\begin{code}
+  postulate
+    impossible : {n : ℕ}{t : T n}{ty : U n} → Patch ty t
+
+  ⊓* : {n : ℕ}{t : T n}{ty : U n}
+      → List (Patch ty t) → Patch ty t
+  ⊓* []       = impossible
+  ⊓* (x ∷ []) = x
+  ⊓* (x ∷ l)  = x ⊓ (⊓* l)
+\end{code}
+%</lub-def>
+
 %<*gdiff-def>
 \begin{code}
   gdiff {ty = var} (top a) (top b)
@@ -47,8 +101,40 @@ module Diffing.Patches.Diff where
   gdiff {ty = μ ty} a b = gdiff-μ a b
 \end{code}
 %</gdiff-def>
+\begin{code}
+  gdiff-μ-rmv gdiff-μ-add
+    : {n : ℕ}{t : T n}{ty : U (suc n)} 
+    → ElU (μ ty) t → ElU (μ ty) t
+    → List (Patch (μ ty) t)
+
+  gdiff-μ-dwn
+    : {n : ℕ}{t : T n}{ty : U (suc n)} 
+    → (a b : ElU ty (μ ty ∷ t)) → ar 0 (fgt 0 a) ≡ ar 0 (fgt 0 b)
+    → Patch (μ ty) t
+
+  gdiff-μ-rmv (mu a) b
+    = map (λ { (ctx , pop a')
+             → D-μ-rmv ctx (gdiff a' b)
+             }) (zippers 0 a)
+
+  gdiff-μ-add a (mu b)
+    = map (λ { (ctx , pop b')
+             → D-μ-add ctx (gdiff a b')
+             }) (zippers 0 b)
+
+  gdiff-μ-dwn a b hip
+    = D-μ-dwn (fgt 0 a) (fgt 0 b) hip 
+              (vmap (λ { (pop x , pop y) → gdiff x y })
+                    (vzip hip (ch-v 0 a) (ch-v 0 b)))
+  
+\end{code}
 %<*gdiff-mu-def>
 \begin{code}
-  gdiff-μ a b = {!!}
+  gdiff-μ (mu a) (mu b) with ar 0 (fgt 0 a) ≟-ℕ ar 0 (fgt 0 b)
+  ...| no  _
+     = ⊓* (gdiff-μ-add (mu a) (mu b) ++ gdiff-μ-rmv (mu a) (mu b))
+  ...| yes p
+     = ⊓* (gdiff-μ-dwn a b p ∷ gdiff-μ-add (mu a) (mu b)
+          ++ gdiff-μ-rmv (mu a) (mu b))
 \end{code}
 %</gdiff-mu-def>
