@@ -1,0 +1,71 @@
+Before addressing specific topics, the authors would like
+to thank the reviewers for their comments.
+
+Review A:
+  
+  The authors are sorry about their sloppy writing, even though we did not
+  find such whopping mistakes, as the reviewer claims, in our text.
+  
+  The main problem with [7] is its untyped approach. The mathematics
+  of generic, typed, tree operations is more complicated than the
+  scope of the paper. We chose Agda as our formal language.
+  
+  Our illustration with Fig 3 might be confusing, its purpose was
+  to provide some intuition as to how terms are actually
+  represented using the variant of deBruijn indexes we chose. 
+  Giving the definitions can be done in an appendix (they are much bigger than
+  one expect) and the presentation can be made clear in a final version, if that
+  might be the case. The same applies to Fig 5.
+  
+  Our actual development was twofold: a library for generic programming that had
+  the operations we needed; and the diffing algorithms. Presenting library would
+  be the scope of another paper. Our sloppy presentation of the generic
+  operations is due to their marginal role in the main ideas (sec 3 and 4). We
+  could have stated that earlier on. 
+  
+Review B:
+
+  The requirements of a Patch appear in informally. We could have made it explicit. 
+  
+  The patch properties the reviewer points out are important, but
+  apply in a different setting in our case. Our patches are not only tree
+  structured, but also type safe. Hence, compactness becomes tricky on the 
+  Agda model. The implementation, however, uses a more compact patch
+  by adding a special "identity" constructor. The Haskell code
+  employs memoization and computes a patch from x to y in O(C(x) * C(y)) time, 
+  where C counts the number of constructors. Hence, diff is practical.
+  
+  Storing and communicating patches would not be a problem given the current
+  network speeds and disk capacities. For more expressive patches we need more
+  information in each patch.
+  
+  Applying our notion of patch to programs gives a very expressive description
+  of changes in a source file. It really shines on conflict resolution.
+  The additional information allows a smooth handling of
+  non-trivial conflicts such as alpha conversions or refactorings (shown
+  in section 4). 
+  
+  The type of binary leaf trees lacks parameters and nested recursion, leaving the
+  meat of our development out of the presentation. We could make some ideas more 
+  concrete with other examples in a possible final version, however.
+  
+Review C:
+
+  Yes, the development is fairly complicated. This makes presentation difficult.
+  
+  We would kindly request the reviewer for some references on point #2. Thanks.
+  
+  Our Haskell implementation has shown some promissing results on real-world,
+  large CSV files. Applying it to a simplified C is a good sugestion.
+  
+  Yes, the main point is to have diffs for arbitrary datatypes, 
+  but we also want to be confident in these diffs, specially
+  when conflicts arise. One of the long range goals is provability
+  of convergence for generic conflict-solving strategies. This
+  proof relies on correctness. 
+  
+  
+  
+  
+  
+  
