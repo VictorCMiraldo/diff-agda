@@ -71,10 +71,11 @@ module Diffing.Patches.Diff (Δ : Cost) where
     impossible : {n : ℕ}{t : T n}{ty : U n} → Patch ty t
 
   ⊓* : {n : ℕ}{t : T n}{ty : U n}
-      → List (Patch ty t) → Patch ty t
-  ⊓* []       = impossible
-  ⊓* (x ∷ []) = x
-  ⊓* (x ∷ l)  = x ⊓ (⊓* l)
+      → (l : List (Patch ty t)) → ∃ (λ n → suc n ≡ length l) → Patch ty t
+  ⊓* [] (len , ())
+  ⊓* (x ∷ []) (.0 , refl)        = x
+  ⊓* (x ∷ y ∷ l) (zero , ())
+  ⊓* (x ∷ y ∷ l) (suc len , prf) = x ⊓ (⊓* (y ∷ l) (len , suc-inj prf))
 \end{code}
 %</lub-def>
 
@@ -109,7 +110,7 @@ module Diffing.Patches.Diff (Δ : Cost) where
 
   gdiff-μ-dwn
     : {n : ℕ}{t : T n}{ty : U (suc n)} 
-    → (a b : ElU ty (μ ty ∷ t)) → ar 0 (fgt 0 a) ≡ ar 0 (fgt 0 b)
+    → (a b : ElU (μ ty) t) → μ-ar a ≡ μ-ar b
     → Patch (μ ty) t
 
   gdiff-μ-rmv (mu a) b
@@ -122,19 +123,28 @@ module Diffing.Patches.Diff (Δ : Cost) where
              → D-μ-add ctx (gdiff a b')
              }) (zippers 0 b)
 
-  gdiff-μ-dwn a b hip
+  gdiff-μ-dwn (mu a) (mu b) hip
     = D-μ-dwn (fgt 0 a) (fgt 0 b) hip 
               (vmap (λ { (pop x , pop y) → gdiff x y })
                     (vzip hip (ch-v 0 a) (ch-v 0 b)))
   
 \end{code}
+\begin{code}
+  ctx-μ-add-rmv-nonempty
+    : {n : ℕ}{t : T n}{ty : U (suc n)}
+    → (a b : ElU (μ ty) t)(hip : μ-ar a ≡ μ-ar b → ⊥)
+    → ∃ (λ n → suc n ≡ length (gdiff-μ-add a b ++ gdiff-μ-rmv a b))
+  ctx-μ-add-rmv-nonempty a b hip = {!!}
+\end{code}
 %<*gdiff-mu-def>
 \begin{code}
-  gdiff-μ (mu a) (mu b) with ar 0 (fgt 0 a) ≟-ℕ ar 0 (fgt 0 b)
-  ...| no  _
-     = ⊓* (gdiff-μ-add (mu a) (mu b) ++ gdiff-μ-rmv (mu a) (mu b))
+  gdiff-μ a b with μ-ar a ≟-ℕ μ-ar b
+  ...| no  p
+     = ⊓* (gdiff-μ-add a b ++ gdiff-μ-rmv a b)
+          {!!}
   ...| yes p
-     = ⊓* (gdiff-μ-dwn a b p ∷ gdiff-μ-add (mu a) (mu b)
-          ++ gdiff-μ-rmv (mu a) (mu b))
+     = ⊓* (gdiff-μ-dwn a b p ∷ gdiff-μ-add a b
+          ++ gdiff-μ-rmv a b)
+          (length (gdiff-μ-add a b ++ gdiff-μ-rmv a b) , refl)
 \end{code}
 %</gdiff-mu-def>
