@@ -1,0 +1,66 @@
+===========================================================================
+                           ICFP 2016 Review #45A
+---------------------------------------------------------------------------
+                Paper #45: Structure-aware version control
+---------------------------------------------------------------------------
+
+                      Overall merit: D. Reject
+                         Confidence: Y. I am knowledgeable in this area,
+                                        but not an expert
+
+                         ===== Paper summary =====
+
+The paper claims a new way for computing "diffs" between data. Most
+diff algorithms are line-oriented. They take two files, which are
+lists of lines, compare them line-by-line, and return the differences
+for each line pair. However, operating over lines is not so great when
+diffing over structured data such as tables. A change in one column of
+the table affects every line, thus leading to a creation of large diff
+files. The paper promises a better solution, which will operate on
+trees, instead of lists of lines. Starting from algorithms from [7],
+but with some new cost metrics, it will produce more precise diff and
+merge algorithms, compared to the standard ones.
+
+The attraction of the approach is that it is all implemented and
+verified in Agda. The Agda code is transcribed to Haskell for more
+scalable implementation.
+
+                      ===== Comments for author =====
+
+The problem with this paper is that it is essentially unreadable. The
+abstract looked promising, so I approached the paper with a lot of
+enthusiasm. The introduction was reasonably good too, though the
+number of grammatical errors started raising red flags (was the paper
+put together hastily?). But then finally, all the enthusiasm
+disappeared while going through Section 2, and by the end of it, I
+gave up.
+
+While I don't think the paper can be published in the current form,
+the material may be potentially interesting (judging from the
+introduction), so I encourage the authors to revise.
+
+I think the revision should focus mostly on describing the big picture
+of the new diff algorithm in the traditional mathematical notation,
+before delving into Agda code. Presumably [7] already gives the math,
+so providing this intuition shouldn't be too difficult. Only then it
+makes sense to look at Agda, as a supporting material.
+
+As things stand right now, the reader is asked to wrestle with
+deBruijn representation of various data types right off the bat, and
+this obscures whatever ideas may be behind this algorithm. On top of
+that, the writing is careless, as various illustrations are unrelated
+to the text. E.g., the paragraph on "Some Generic Operations" talks
+about an element el, and refers to Figure 3 for illustration, telling
+us to pay attention to uses of vl and wk. The idea, presumably, is
+that el is an expression using vl and wk, but we're not actually told
+how el is defined, and Figure 3 doesn't help in figuring it
+out. There are some x's, some z's, some z-primes, in Figure 3, but they
+refer to nothing that went before, so I couldn't make any sense of
+it. From the definition of the type ElU, I patched up some intuition
+that an element will be a value in context (context here being the
+telescope), but I couldn't see how to reconcile that with Figure 3. 
+Next, the generic functions children and arity are brought up, but
+are defined only informally in reference to Figure 3. If the
+definitions had been given too (instead of just the types), perhaps
+that would have been better. Figure 5 was totally unillustrative
+either, and I stopped reading after that.
