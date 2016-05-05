@@ -2,7 +2,8 @@
 open import Prelude
 open import Prelude.Vector
 open import CF
-open import CF.Derivative
+open import CF.Operations
+  using (ar; plugv)
 
 module Diffing.Patches.D where
 \end{code}

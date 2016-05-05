@@ -1,10 +1,16 @@
 \begin{code}
 open import Prelude
 open import Prelude.Vector
+open import Prelude.NatProperties
+  using (m≢n-elim; suc-inj; +-comm)
+open import Prelude.ListProperties
+  using (length-++; length-map)
+
 open import CF
-open import CF.Derivative.Operations
-open import CF.Operations.Properties
-  using (ch-v)
+open import CF.Operations
+  using (ar-dry; chv; μ-ar; Z; fgt)
+open import CF.Properties
+  using (length-Z; ar-dry-0-lemma; fgt-ar-lemma)
 
 open import Diffing.Patches.D
 open import Diffing.Patches.Cost
@@ -116,17 +122,17 @@ module Diffing.Patches.Diff (Δ : Cost) where
   gdiff-μ-rmv (mu a) b
     = map (λ { (ctx , pop a')
              → D-μ-rmv ctx (gdiff a' b)
-             }) (zippers 0 a)
+             }) (Z 0 a)
 
   gdiff-μ-add a (mu b)
     = map (λ { (ctx , pop b')
              → D-μ-add ctx (gdiff a b')
-             }) (zippers 0 b)
+             }) (Z 0 b)
 
   gdiff-μ-dwn (mu a) (mu b) hip
     = D-μ-dwn (fgt 0 a) (fgt 0 b) hip 
               (vmap (λ { (pop x , pop y) → gdiff x y })
-                    (vzip hip (ch-v 0 a) (ch-v 0 b)))
+                    (vzip hip (chv 0 a) (chv 0 b)))
   
 \end{code}
 \begin{code}
@@ -134,14 +140,33 @@ module Diffing.Patches.Diff (Δ : Cost) where
     : {n : ℕ}{t : T n}{ty : U (suc n)}
     → (a b : ElU (μ ty) t)(hip : μ-ar a ≡ μ-ar b → ⊥)
     → ∃ (λ n → suc n ≡ length (gdiff-μ-add a b ++ gdiff-μ-rmv a b))
-  ctx-μ-add-rmv-nonempty a b hip = {!!}
+  ctx-μ-add-rmv-nonempty (mu a) (mu b) hip
+    with m≢n-elim (μ-ar (mu a)) (μ-ar (mu b)) hip
+  ...| (k , i2 prfB)
+     = k + length (gdiff-μ-rmv (mu a) (mu b))
+     , (sym (trans (length-++ (gdiff-μ-add (mu a) (mu b)))
+             ( (cong (λ P → P + length (gdiff-μ-rmv (mu a) (mu b)))
+                      (trans (length-map _ (Z 0 b))
+                      (trans (length-Z 0 b)
+                      (trans (ar-dry-0-lemma b)
+                      (trans (fgt-ar-lemma 0 b) prfB))))) )))
+  ...| (k , i1 prfA)
+     = k + length (gdiff-μ-add (mu a) (mu b))
+     , (sym (trans (length-++ (gdiff-μ-add (mu a) (mu b)))
+            (trans (+-comm (length (gdiff-μ-add (mu a) (mu b)))
+                           (length (gdiff-μ-rmv (mu a) (mu b))))
+             ( (cong (λ P → P + length (gdiff-μ-add (mu a) (mu b)))
+                      (trans (length-map _ (Z 0 a))
+                      (trans (length-Z 0 a)
+                      (trans (ar-dry-0-lemma a)
+                      (trans (fgt-ar-lemma 0 a) prfA))))) ))))
 \end{code}
 %<*gdiff-mu-def>
 \begin{code}
   gdiff-μ a b with μ-ar a ≟-ℕ μ-ar b
   ...| no  p
      = ⊓* (gdiff-μ-add a b ++ gdiff-μ-rmv a b)
-          {!!}
+          (ctx-μ-add-rmv-nonempty a b p)
   ...| yes p
      = ⊓* (gdiff-μ-dwn a b p ∷ gdiff-μ-add a b
           ++ gdiff-μ-rmv a b)
