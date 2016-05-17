@@ -4,13 +4,14 @@ open import Prelude.Vector
 open import Prelude.NatProperties
   using (m≢n-elim; suc-inj; +-comm)
 open import Prelude.ListProperties
-  using (length-++; length-map)
+  using (length-++; length-map; non-empty; all-++; all-map; all-Pi)
+open import Data.List.All using (All)
 
 open import CF
 open import CF.Operations
   using (ar-dry; chv; μ-ar; Z; fgt)
 open import CF.Properties
-  using (length-Z; ar-dry-0-lemma; fgt-ar-lemma)
+  using (length-Z; ar-dry-0-lemma; fgt-ar-lemma; ◂-correct)
 
 open import Diffing.Patches.D
 open import Diffing.Patches.Cost
@@ -73,15 +74,10 @@ module Diffing.Patches.Diff (Δ : Cost) where
 
 %<*lub-def>
 \begin{code}
-  postulate
-    impossible : {n : ℕ}{t : T n}{ty : U n} → Patch ty t
-
   ⊓* : {n : ℕ}{t : T n}{ty : U n}
-      → (l : List (Patch ty t)) → ∃ (λ n → suc n ≡ length l) → Patch ty t
-  ⊓* [] (len , ())
-  ⊓* (x ∷ []) (.0 , refl)        = x
-  ⊓* (x ∷ y ∷ l) (zero , ())
-  ⊓* (x ∷ y ∷ l) (suc len , prf) = x ⊓ (⊓* (y ∷ l) (len , suc-inj prf))
+      → Patch ty t × List (Patch ty t) → Patch ty t
+  ⊓* (p , [])    = p
+  ⊓* (p , x ∷ l) = p ⊓ (⊓* (x , l))
 \end{code}
 %</lub-def>
 
@@ -120,14 +116,19 @@ module Diffing.Patches.Diff (Δ : Cost) where
     → Patch (μ ty) t
 
   gdiff-μ-rmv (mu a) b
+    = map (λ c → D-μ-rmv (p1 c) (gdiff (unpop (p2 c)) b)) (Z 0 a)
+
+   {-
     = map (λ { (ctx , pop a')
              → D-μ-rmv ctx (gdiff a' b)
              }) (Z 0 a)
+   -}
 
-  gdiff-μ-add a (mu b)
-    = map (λ { (ctx , pop b')
+  gdiff-μ-add a (mu b) = map (λ c → D-μ-add (p1 c) (gdiff a (unpop (p2 c)))) (Z 0 b)
+    {- = map (λ { (ctx , pop b')
              → D-μ-add ctx (gdiff a b')
              }) (Z 0 b)
+    -}
 
   gdiff-μ-dwn (mu a) (mu b) hip
     = D-μ-dwn (fgt 0 a) (fgt 0 b) hip 
@@ -165,11 +166,92 @@ module Diffing.Patches.Diff (Δ : Cost) where
 \begin{code}
   gdiff-μ a b with μ-ar a ≟-ℕ μ-ar b
   ...| no  p
-     = ⊓* (gdiff-μ-add a b ++ gdiff-μ-rmv a b)
-          (ctx-μ-add-rmv-nonempty a b p)
+     = ⊓* (non-empty (gdiff-μ-add a b ++ gdiff-μ-rmv a b) (ctx-μ-add-rmv-nonempty a b p))
   ...| yes p
-     = ⊓* (gdiff-μ-dwn a b p ∷ gdiff-μ-add a b
-          ++ gdiff-μ-rmv a b)
-          (length (gdiff-μ-add a b ++ gdiff-μ-rmv a b) , refl)
+     = ⊓* (gdiff-μ-dwn a b p , gdiff-μ-add a b ++ gdiff-μ-rmv a b)
 \end{code}
 %</gdiff-mu-def>
+
+\begin{code}
+  ⊓-elim : {n : ℕ}{t : T n}{ty : U n}
+         → (P : Patch ty t → Set)
+         → (p q : Patch ty t)
+         → P p → P q
+         → P (p ⊓ q)
+  ⊓-elim P p q hp hq
+    with cost p ≤?-ℕ cost q
+  ...| yes _ = hp
+  ...| no  _ = hq
+
+  ⊓*-elim : {n : ℕ}{t : T n}{ty : U n}
+          → (P : Patch ty t → Set)
+          → (dl : Patch ty t × List (Patch ty t))
+          → P (p1 dl) → All P (p2 dl)
+          → P (⊓* dl)
+  ⊓*-elim P (d , []) pHD pTL = pHD
+  ⊓*-elim P (d , x ∷ dl) pHD (pX All.∷ pDL)
+    = ⊓-elim P d (⊓* (x , dl)) pHD (⊓*-elim P (x , dl) pX pDL)
+
+  ⊓*-elim-non-empty
+    : {n : ℕ}{t : T n}{ty : U n}
+    → (P : Patch ty t → Set)
+    → (dl : List (Patch ty t))
+    → (hip : ∃ (λ n → suc n ≡ length dl))
+    → All P dl
+    → P (⊓* (non-empty dl hip))
+  ⊓*-elim-non-empty P [] (_ , ()) prf 
+  ⊓*-elim-non-empty P (x ∷ dl) hip (px All.∷ pdl)
+    = ⊓*-elim P (x , dl) px pdl
+\end{code}
+
+\begin{code}
+  mutual
+    gdiff-μ-add-src
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (x y : ElU ty (μ ty ∷ t))
+      → All (λ P → D-src P ≡ mu x) (gdiff-μ-add (mu x) (mu y))
+    gdiff-μ-add-src x y = all-map (λ P → D-src P ≡ mu x) (Z 0 y)
+                          (all-Pi (λ a → gdiff-src-lemma (mu x) (unpop (p2 a))) (Z 0 y))
+
+
+    gdiff-μ-rmv-src-1
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (y : ElU ty (μ ty ∷ t))
+      → (ctx : Ctx 0 ty (μ ty ∷ t) × ElU (wk (μ ty)) (μ ty ∷ t))
+      → D-src (D-μ-rmv (p1 ctx) (gdiff (unpop (p2 ctx)) (mu y)))
+      ≡ ({!!} ◂ {!!})
+    gdiff-μ-rmv-src-1 y ctx = {!!}
+
+    gdiff-μ-rmv-src
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (x y : ElU ty (μ ty ∷ t))
+      → All (λ P → D-src P ≡ mu x) (gdiff-μ-rmv (mu x) (mu y))
+    gdiff-μ-rmv-src x y = all-map (λ P → D-src P ≡ mu x) (Z 0 x)
+                          (all-Pi (λ a → cong id {!!}) (Z 0 x))
+            
+
+    {-# TERMINATING #-}
+    gdiff-src-lemma
+      : {n : ℕ}{t : T n}{ty : U n}
+      → (x y : ElU ty t)
+      → D-src (gdiff x y) ≡ x
+    gdiff-src-lemma unit unit = refl
+    gdiff-src-lemma (inl x) (inl y) = cong inl (gdiff-src-lemma x y)
+    gdiff-src-lemma (inl x) (inr y) = refl
+    gdiff-src-lemma (inr x) (inl y) = refl
+    gdiff-src-lemma (inr x) (inr y) = cong inr (gdiff-src-lemma x y)
+    gdiff-src-lemma (x1 , x2) (y1 , y2) = {!!}
+    gdiff-src-lemma (top x) (top y) = {!!}
+    gdiff-src-lemma (pop x) (pop y) = {!!}
+    gdiff-src-lemma (mu x) (mu y)
+      with μ-ar (mu x) ≟-ℕ μ-ar (mu y)
+    ...| no  p = ⊓*-elim-non-empty (λ P → D-src P ≡ mu x)
+               (gdiff-μ-add (mu x) (mu y) ++ gdiff-μ-rmv (mu x) (mu y))
+               (ctx-μ-add-rmv-nonempty (mu x) (mu y) p)
+               (all-++ (λ P → D-src P ≡ mu x)
+                  (gdiff-μ-add (mu x) (mu y))
+                  (gdiff-μ-add-src x y)
+                  {!!})
+    ...| yes p = {!!}
+    gdiff-src-lemma (red x₁) (red y) = {!!}
+\end{code}
