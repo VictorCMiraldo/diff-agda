@@ -173,8 +173,8 @@ module Diffing.Patches.D where
     D-src (D-top d) = top (D-src d)
     D-src (D-pop d) = pop (D-src d)
     D-src (D-μ-dwn p hi ho d)
-      rewrite D-ar-src-lemma 0 p
-      = mu (plugv 0 (D-src p) (vmap (pop ∘ D-src) (vec-reindx (sym hi) d)))
+      = mu (plugv 0 (D-src p) (vmap (pop ∘ D-src)
+           (vec-reindx (trans (sym hi) (D-ar-src-lemma 0 p)) d)))
     D-src (D-μ-add ctx d)
       = D-src d
     D-src (D-μ-rmv ctx d)
@@ -200,8 +200,8 @@ module Diffing.Patches.D where
       rewrite D-ar-src-lemma i p
         = sym (φ-ar-lemma (suc i) (x ◂ pop (D-src p)) (x , pop (D-src p)) refl)
     D-ar-src-lemma {ty = μ ty} i (D-μ-dwn p refl ho x)
-      rewrite D-ar-src-lemma 0 p 
-        | ar-std-lemma (suc i) 0 (plugv 0 (D-src p) (vmap (pop ∘ D-src) x))
+      rewrite ar-std-lemma (suc i) 0 (plugv 0 (D-src p) (vmap (pop ∘ D-src) (vec-reindx (D-ar-src-lemma 0 p) x)))
+        | D-ar-src-lemma 0 p
         = trans (cong (λ P → P + vsum (vmap (D-arᵢ i) x))
                       (trans (D-ar-src-lemma (suc i) p)
                              (cong (ar (suc i))
@@ -214,7 +214,8 @@ module Diffing.Patches.D where
             (trans (cong (λ P → sum (toList P)) (vmap-compose x))
             (trans (sym (vsum-spec (vmap (ar (suc i) ∘ pop {a = μ ty} ∘ D-src) x)))
                    (cong (λ P → vsum (vmap P x))
-                     (fun-ext (λ k → sym (D-ar-src-lemma i k)))))))))) 
+                     (fun-ext (λ k → sym (D-ar-src-lemma i k))))))))))
+
 \end{code}
 
 \begin{code}
@@ -248,8 +249,8 @@ module Diffing.Patches.D where
     D-dst (D-top d) = top (D-dst d)
     D-dst (D-pop d) = pop (D-dst d)
     D-dst (D-μ-dwn p hi ho d)
-      rewrite D-ar-dst-lemma 0 p
-        = mu (plugv 0 (D-dst p) (vmap (pop ∘ D-dst) (vec-reindx (sym ho) d)))
+        = mu (plugv 0 (D-dst p) (vmap (pop ∘ D-dst)
+             (vec-reindx (trans (sym ho) (D-ar-dst-lemma 0 p)) d)))
     D-dst (D-μ-rmv ctx d)
       = D-dst d
     D-dst (D-μ-add ctx d)
