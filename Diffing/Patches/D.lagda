@@ -62,7 +62,7 @@ module Diffing.Patches.D where
 %</D-pair-def>
 %<*D-mu-dwn-def>
 \begin{code}
-      D-μ-dwn : {n k : ℕ}{t : T n}{a : U (suc n)}
+      D-μ-dwn : {n : ℕ}{t : T n}{a : U (suc n)}
               → (d : D A a (u1 ∷ t))
               → List (D A (μ a) t) → D A (μ a) t
 \end{code}
@@ -199,3 +199,11 @@ module Diffing.Patches.D where
     = (mu ∘ _◂_ ctx ∘ pop) <M> D-dst d
 \end{code}
 %</D-dst-def>
+
+
+\begin{code}
+  [_,_]⇒_ : {n : ℕ}{t : T n}{ty : U n}
+          → (x y : ElU ty t)(p : Patch ty t)
+          → Set
+  [ x , y ]⇒ p = D-src p ≡ just x × D-dst p ≡ just y
+\end{code}

@@ -1,6 +1,7 @@
 \begin{code}
 open import Prelude
 open import Prelude.Vector
+open import Prelude.Monad
 open import Prelude.NatProperties
   using (m≢n-elim; suc-inj; +-comm)
 open import Prelude.ListProperties
@@ -13,6 +14,8 @@ open import Diffing.Patches.Cost
 
 module Diffing.Patches.Diff (Δ : Cost) where
   open Cost
+
+  open Monad {{...}}
   
   infixr 20 _⊓_
 \end{code}
@@ -141,8 +144,7 @@ module Diffing.Patches.Diff (Δ : Cost) where
     → Patch (μ ty) t
   gdiff-μ-dwn (mu a) (mu b) hip
     = D-μ-dwn (gdiff (fgt 0 a) (fgt 0 b))
-              (map (λ { (pop x , pop y) → gdiff x y })
-                    (zip (ch 0 a) (ch 0 b)))
+              (zipWith (λ { (pop x) (pop y) → gdiff x y }) (ch 0 a) (ch 0 b))
 
   gdiff-μ-rmv (mu a) b
     = map (λ c → D-μ-rmv (p1 c) (gdiff (unpop (p2 c)) b)) (Z 0 a)
@@ -205,7 +207,7 @@ module Diffing.Patches.Diff (Δ : Cost) where
       ≡ just (mu x)
     gdiff-μ-rmv-src-1 x y (ctx , pop a) hip
       rewrite gdiff-src-lemma a (mu y)
-            = ?
+            = cong just (cong mu (sym hip))
 
     gdiff-μ-rmv-src
       : {n : ℕ}{t : T n}{ty : U (suc n)}
@@ -222,9 +224,10 @@ module Diffing.Patches.Diff (Δ : Cost) where
       → (hip : μ-ar x ≡ μ-ar y)
       → D-src (gdiff-μ-dwn x y hip) ≡ just x
     gdiff-μ-dwn-src {n} {t} {ty = ty} (mu x) (mu y) hip
-      = trustme
-      where
-        postulate trustme : {A : Set} → A
+      rewrite gdiff-src-lemma (fgt 0 x) (fgt 0 y)
+        = TODO
+        where
+          postulate TODO : ∀{a}{A : Set a} → A
 
     {-# TERMINATING #-}
     gdiff-src-lemma
@@ -232,14 +235,20 @@ module Diffing.Patches.Diff (Δ : Cost) where
       → (x y : ElU ty t)
       → D-src (gdiff x y) ≡ just x
     gdiff-src-lemma unit unit = refl
-    gdiff-src-lemma (inl x) (inl y) = ? 
+    gdiff-src-lemma (inl x) (inl y)
+      rewrite gdiff-src-lemma x y = refl 
     gdiff-src-lemma (inl x) (inr y) = refl
     gdiff-src-lemma (inr x) (inl y) = refl
-    gdiff-src-lemma (inr x) (inr y) = ?
+    gdiff-src-lemma (inr x) (inr y)
+      rewrite gdiff-src-lemma x y = refl 
     gdiff-src-lemma (x1 , x2) (y1 , y2)
-      = ?
-    gdiff-src-lemma (top x) (top y) = ?
-    gdiff-src-lemma (pop x) (pop y) = ?
+      rewrite gdiff-src-lemma x1 y1
+            | gdiff-src-lemma x2 y2
+            = refl
+    gdiff-src-lemma (top x) (top y)
+      rewrite gdiff-src-lemma x y = refl 
+    gdiff-src-lemma (pop x) (pop y)
+      rewrite gdiff-src-lemma x y = refl
     gdiff-src-lemma (mu x) (mu y)
       with μ-ar (mu x) ≟-ℕ μ-ar (mu y)
     ...| no  p = ⊓*-elim-non-empty (λ P → D-src P ≡ just (mu x))
@@ -257,7 +266,8 @@ module Diffing.Patches.Diff (Δ : Cost) where
                   (gdiff-μ-add (mu x) (mu y))
                   (gdiff-μ-add-src x y)
                   (gdiff-μ-rmv-src x y))
-    gdiff-src-lemma (red x₁) (red y) = ?
+    gdiff-src-lemma (red x) (red y)
+      rewrite gdiff-src-lemma x y = refl
 \end{code}
 
 \begin{code}
@@ -279,7 +289,7 @@ module Diffing.Patches.Diff (Δ : Cost) where
       ≡ just (mu y)
     gdiff-μ-add-dst-1 x y (ctx , pop a) hip
       rewrite gdiff-dst-lemma (mu x) a
-        = cong mu (sym hip)
+        = cong just (cong mu (sym hip))
 
     gdiff-μ-add-dst
       : {n : ℕ}{t : T n}{ty : U (suc n)}
@@ -296,9 +306,9 @@ module Diffing.Patches.Diff (Δ : Cost) where
       → (hip : μ-ar x ≡ μ-ar y)
       → D-dst (gdiff-μ-dwn x y hip) ≡ just y
     gdiff-μ-dwn-dst {ty = ty} (mu x) (mu y) hip
-      = trustme
-      where
-        postulate trustme : {A : Set} → A
+      = TODO
+        where
+          postulate TODO : ∀{a}{A : Set a} → A
       
     {-# TERMINATING #-}
     gdiff-dst-lemma
@@ -306,17 +316,23 @@ module Diffing.Patches.Diff (Δ : Cost) where
       → (x y : ElU ty t)
       → D-dst (gdiff x y) ≡ just y
     gdiff-dst-lemma unit unit = refl
-    gdiff-dst-lemma (inl x) (inl y) = ?
+    gdiff-dst-lemma (inl x) (inl y)
+      rewrite gdiff-dst-lemma x y = refl 
     gdiff-dst-lemma (inl x) (inr y) = refl
     gdiff-dst-lemma (inr x) (inl y) = refl
-    gdiff-dst-lemma (inr x) (inr y) = ?
+    gdiff-dst-lemma (inr x) (inr y)
+      rewrite gdiff-dst-lemma x y = refl 
     gdiff-dst-lemma (x1 , x2) (y1 , y2)
-      = cong₂ _,_ (gdiff-dst-lemma x1 y1) (gdiff-dst-lemma x2 y2)
-    gdiff-dst-lemma (top x) (top y) = cong top (gdiff-dst-lemma x y)
-    gdiff-dst-lemma (pop x) (pop y) = cong pop (gdiff-dst-lemma x y)
+      rewrite gdiff-dst-lemma x1 y1
+            | gdiff-dst-lemma x2 y2
+            = refl
+    gdiff-dst-lemma (top x) (top y)
+      rewrite gdiff-dst-lemma x y = refl 
+    gdiff-dst-lemma (pop x) (pop y)
+      rewrite gdiff-dst-lemma x y = refl 
     gdiff-dst-lemma (mu x) (mu y)
       with μ-ar (mu x) ≟-ℕ μ-ar (mu y)
-    ...| no  p = ⊓*-elim-non-empty (λ P → D-dst P ≡ mu y)
+    ...| no  p = ⊓*-elim-non-empty (λ P → D-dst P ≡ just (mu y))
                (gdiff-μ-add (mu x) (mu y) ++ gdiff-μ-rmv (mu x) (mu y))
                (ctx-μ-add-rmv-nonempty (mu x) (mu y) p)
                (all-++ 
@@ -324,12 +340,13 @@ module Diffing.Patches.Diff (Δ : Cost) where
                   (gdiff-μ-add-dst x y)
                   (gdiff-μ-rmv-dst x y))
     ...| yes p
-        = ⊓*-elim (λ P → D-dst P ≡ mu y)
+        = ⊓*-elim (λ P → D-dst P ≡ just (mu y))
           (gdiff-μ-dwn (mu x) (mu y) p , gdiff-μ-add (mu x) (mu y) ++ gdiff-μ-rmv (mu x) (mu y))
           (gdiff-μ-dwn-dst (mu x) (mu y) p)
           (all-++ 
             (gdiff-μ-add (mu x) (mu y))
             (gdiff-μ-add-dst x y)
             (gdiff-μ-rmv-dst x y))
-    gdiff-dst-lemma (red x₁) (red y) = cong red (gdiff-dst-lemma x₁ y)
+    gdiff-dst-lemma (red x) (red y)
+      rewrite gdiff-dst-lemma x y = refl 
 \end{code}
