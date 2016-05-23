@@ -3,7 +3,8 @@ module Diffing.CF-base where
   open import CF
     public
   open import CF.Operations
-    using (ar-dry; chv; μ-ar; Z; ZipperFor; ar; ch; fgt; μ-openv; plugv)
+    using (ar-dry; chv; μ-ar; Z; ZipperFor; ar; ch; fgt; μ-openv;
+           plug; plugv)
     public
   open import CF.Derivative
     using (φ-ar)
