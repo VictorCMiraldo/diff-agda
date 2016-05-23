@@ -7,13 +7,7 @@ open import Prelude.ListProperties
   using (length-++; length-map; non-empty; all-++;
          all-map; all-pi; all-⇒; All; []; _∷_)
 
-open import CF
-open import CF.Operations
-  using (ar-dry; chv; μ-ar; Z; ZipperFor; ar; ch; fgt)
-open import CF.Properties
-  using (length-Z; ar-dry-0-lemma; fgt-ar-lemma;
-         ◂-correct; Z-correct; plugv-correct)
-
+open import Diffing.CF-base
 open import Diffing.Patches.D
 open import Diffing.Patches.Cost
 
@@ -189,6 +183,19 @@ module Diffing.Patches.Diff (Δ : Cost) where
 %</gdiff-mu-def>
 
 \begin{code}
+  gdiff-μ-src-ar
+    : {n : ℕ}{t : T n}{ty : U (suc n)}
+    → (a b : ElU ty (μ ty ∷ t))
+    → D-arᵢ 0 (gdiff (fgt 0 a) (fgt 0 b)) ≡ μ-ar (mu a)
+
+  gdiff-μ-dst-ar
+    : {n : ℕ}{t : T n}{ty : U (suc n)}
+    → (a b : ElU ty (μ ty ∷ t))
+    → (μ-ar (mu a) ≡ μ-ar (mu b))
+    → D-arₒ 0 (gdiff (fgt 0 a) (fgt 0 b)) ≡ μ-ar (mu a)
+\end{code}
+
+\begin{code}
   mutual
     gdiff-μ-add-src
       : {n : ℕ}{t : T n}{ty : U (suc n)}
@@ -219,12 +226,14 @@ module Diffing.Patches.Diff (Δ : Cost) where
           (λ { (ctx , pop a) k → gdiff-μ-rmv-src-1 x y (ctx , pop a) k }))
 
     gdiff-μ-dwn-src
-      : {n k : ℕ}{t : T n}{ty : U (suc n)}
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
       → (x y : ElU (μ ty) t)
       → (hip : μ-ar x ≡ μ-ar y)
       → D-src (gdiff-μ-dwn x y hip) ≡ x
-    gdiff-μ-dwn-src {ty = ty} (mu x) (mu y) hip
-      = {!!}
+    gdiff-μ-dwn-src {n} {t} {ty = ty} (mu x) (mu y) hip
+      = trustme
+      where
+        postulate trustme : {A : Set} → A
 
     {-# TERMINATING #-}
     gdiff-src-lemma
@@ -252,39 +261,104 @@ module Diffing.Patches.Diff (Δ : Cost) where
     ...| yes p
         = ⊓*-elim (λ P → D-src P ≡ mu x)
           (gdiff-μ-dwn (mu x) (mu y) p , gdiff-μ-add (mu x) (mu y) ++ gdiff-μ-rmv (mu x) (mu y))
-          {!!}
+          (gdiff-μ-dwn-src (mu x) (mu y) p)
           (all-++ 
-            {!!}
-            {!!}
-            {!!})
+                  (gdiff-μ-add (mu x) (mu y))
+                  (gdiff-μ-add-src x y)
+                  (gdiff-μ-rmv-src x y))
     gdiff-src-lemma (red x₁) (red y) = cong red (gdiff-src-lemma x₁ y)
 \end{code}
 
 \begin{code}
-  gdiff-μ-src-ar
-    : {n : ℕ}{t : T n}{ty : U (suc n)}
-    → (a b : ElU ty (μ ty ∷ t))
-    → D-arᵢ 0 (gdiff (fgt 0 a) (fgt 0 b)) ≡ μ-ar (mu a)
+  mutual
+    gdiff-μ-rmv-dst
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (x y : ElU ty (μ ty ∷ t))
+      → All (λ P → D-dst P ≡ mu y) (gdiff-μ-rmv (mu x) (mu y))
+    gdiff-μ-rmv-dst x y = all-map (Z 0 x)
+                          (all-pi (λ { (ctx , pop a) → gdiff-dst-lemma a (mu y) }) (Z 0 x))
+
+
+    gdiff-μ-add-dst-1
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (x y : ElU ty (μ ty ∷ t))
+      → (ctx : Ctx 0 ty (μ ty ∷ t) × ElU (wk (μ ty)) (μ ty ∷ t))
+      → ZipperFor y ctx
+      → D-dst (D-μ-add (p1 ctx) (gdiff (mu x) (unpop (p2 ctx))))
+      ≡ mu y
+    gdiff-μ-add-dst-1 x y (ctx , pop a) hip
+      rewrite gdiff-dst-lemma (mu x) a
+        = cong mu (sym hip)
+
+    gdiff-μ-add-dst
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (x y : ElU ty (μ ty ∷ t))
+      → All (λ P → D-dst P ≡ mu y) (gdiff-μ-add (mu x) (mu y))
+    gdiff-μ-add-dst x y
+      = all-map (Z 0 y)
+        (all-⇒ (Z 0 y) (Z-correct 0 y)
+          (λ { (ctx , pop a) k → gdiff-μ-add-dst-1 x y (ctx , pop a) k }))
+
+    gdiff-μ-dwn-dst
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (x y : ElU (μ ty) t)
+      → (hip : μ-ar x ≡ μ-ar y)
+      → D-dst (gdiff-μ-dwn x y hip) ≡ y
+    gdiff-μ-dwn-dst {ty = ty} (mu x) (mu y) hip
+      = trustme
+      where
+        postulate trustme : {A : Set} → A
+      
+    {-# TERMINATING #-}
+    gdiff-dst-lemma
+      : {n : ℕ}{t : T n}{ty : U n}
+      → (x y : ElU ty t)
+      → D-dst (gdiff x y) ≡ y
+    gdiff-dst-lemma unit unit = refl
+    gdiff-dst-lemma (inl x) (inl y) = cong inl (gdiff-dst-lemma x y)
+    gdiff-dst-lemma (inl x) (inr y) = refl
+    gdiff-dst-lemma (inr x) (inl y) = refl
+    gdiff-dst-lemma (inr x) (inr y) = cong inr (gdiff-dst-lemma x y)
+    gdiff-dst-lemma (x1 , x2) (y1 , y2)
+      = cong₂ _,_ (gdiff-dst-lemma x1 y1) (gdiff-dst-lemma x2 y2)
+    gdiff-dst-lemma (top x) (top y) = cong top (gdiff-dst-lemma x y)
+    gdiff-dst-lemma (pop x) (pop y) = cong pop (gdiff-dst-lemma x y)
+    gdiff-dst-lemma (mu x) (mu y)
+      with μ-ar (mu x) ≟-ℕ μ-ar (mu y)
+    ...| no  p = ⊓*-elim-non-empty (λ P → D-dst P ≡ mu y)
+               (gdiff-μ-add (mu x) (mu y) ++ gdiff-μ-rmv (mu x) (mu y))
+               (ctx-μ-add-rmv-nonempty (mu x) (mu y) p)
+               (all-++ 
+                  (gdiff-μ-add (mu x) (mu y))
+                  (gdiff-μ-add-dst x y)
+                  (gdiff-μ-rmv-dst x y))
+    ...| yes p
+        = ⊓*-elim (λ P → D-dst P ≡ mu y)
+          (gdiff-μ-dwn (mu x) (mu y) p , gdiff-μ-add (mu x) (mu y) ++ gdiff-μ-rmv (mu x) (mu y))
+          (gdiff-μ-dwn-dst (mu x) (mu y) p)
+          (all-++ 
+            (gdiff-μ-add (mu x) (mu y))
+            (gdiff-μ-add-dst x y)
+            (gdiff-μ-rmv-dst x y))
+    gdiff-dst-lemma (red x₁) (red y) = cong red (gdiff-dst-lemma x₁ y)
+\end{code}
+
+\begin{code}
   gdiff-μ-src-ar a b
     = trans (D-ar-src-lemma 0 (gdiff (fgt 0 a) (fgt 0 b)))
             (cong (ar 0) (gdiff-src-lemma (fgt 0 a) (fgt 0 b)))
 
-{-
-  gdiff-μ-dst-ar
-    : {n : ℕ}{t : T n}{ty : U (suc n)}
-    → (a b : ElU ty (μ ty ∷ t))
-    → (μ-ar (mu a) ≡ μ-ar (mu b))
-    → D-arₒ 0 (gdiff (fgt 0 a) (fgt 0 b)) ≡ μ-ar (mu a)
+  
   gdiff-μ-dst-ar a b hip
     =  trans (D-ar-dst-lemma 0 (gdiff (fgt 0 a) (fgt 0 b)))
-      (trans (cong (ar 0) (gdiff-src-lemma (fgt 0 a) (fgt 0 b)))
-             ?)
--}
+      (trans (cong (ar 0) (gdiff-dst-lemma (fgt 0 a) (fgt 0 b)))
+             (sym hip))
+            
 
   gdiff-μ-dwn (mu a) (mu b) hip
     = D-μ-dwn (gdiff (fgt 0 a) (fgt 0 b))
               (gdiff-μ-src-ar a b)
-              {!!}
+              (gdiff-μ-dst-ar a b hip)
               (vmap (λ { (pop x , pop y) → gdiff x y })
                     (vzip hip (chv 0 a) (chv 0 b)))
 \end{code}

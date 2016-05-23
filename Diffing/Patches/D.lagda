@@ -1,14 +1,7 @@
 \begin{code}
 open import Prelude
 open import Prelude.Vector
-open import CF
-open import CF.Operations
-  using (ar; fgt; ch;  plugv)
-open import CF.Derivative
-  using (φ-ar)
-open import CF.Properties
-  using (φ-ar-lemma; ar-std-lemma;
-         fgt-plugv-lemma; ch-plugv-lemma)
+open import Diffing.CF-base
 
 module Diffing.Patches.D where
 \end{code}
