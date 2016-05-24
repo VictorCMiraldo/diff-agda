@@ -1,6 +1,8 @@
 \begin{code}
 open import Prelude
 open import Prelude.Vector
+open import Prelude.ListProperties using (All; all?)
+
 open import Prelude.Monad
 open import Diffing.CF-base
 
@@ -200,10 +202,55 @@ module Diffing.Patches.D where
 \end{code}
 %</D-dst-def>
 
-
 \begin{code}
   [_,_]⇒_ : {n : ℕ}{t : T n}{ty : U n}
           → (x y : ElU ty t)(p : Patch ty t)
           → Set
   [ x , y ]⇒ p = D-src p ≡ just x × D-dst p ≡ just y
+\end{code}
+
+\begin{code}
+  {-# TERMINATING #-}
+  D-is-id : {n : ℕ}{t : T n}{ty : U n}
+          → Patch ty t → Set
+  D-is-id (D-A ())
+  D-is-id D-unit = Unit
+  D-is-id (D-inl p) = D-is-id p
+  D-is-id (D-inr p) = D-is-id p
+  D-is-id (D-setl x x₁) = ⊥
+  D-is-id (D-setr x x₁) = ⊥
+  D-is-id (D-pair p q) = D-is-id p × D-is-id q
+  D-is-id (D-μ-dwn p ps) = D-is-id p × All D-is-id ps
+  D-is-id (D-μ-add x p) = ⊥
+  D-is-id (D-μ-rmv x p) = ⊥
+  D-is-id (D-def p) = D-is-id p
+  D-is-id (D-top p) = D-is-id p
+  D-is-id (D-pop p) = D-is-id p
+\end{code}
+
+\begin{code}
+  {-# TERMINATING #-}
+  D-is-id? : {n : ℕ}{t : T n}{ty : U n}
+           → (p : Patch ty t) → Dec (D-is-id p)
+  D-is-id? (D-A ())
+  D-is-id? D-unit = yes unit
+  D-is-id? (D-inl p) = D-is-id? p
+  D-is-id? (D-inr p) = D-is-id? p
+  D-is-id? (D-setl x x₁) = no (λ z → z)
+  D-is-id? (D-setr x x₁) = no (λ z → z)
+  D-is-id? (D-pair p q) 
+    with D-is-id? p | D-is-id? q
+  ...| yes pp | yes qq = yes (pp , qq)
+  ...| yes pp | no  qq = no (qq ∘ p2)
+  ...| no  pp | _      = no (pp ∘ p1)
+  D-is-id? (D-μ-dwn px ps)
+    with D-is-id? px | all? D-is-id? ps
+  ...| yes ppx | yes allps = yes (ppx , allps)
+  ...| yes ppx | no  allps = no (allps ∘ p2)
+  ...| no  ppx | _         = no (ppx ∘ p1)
+  D-is-id? (D-μ-add x p) = no (λ z → z)
+  D-is-id? (D-μ-rmv x p) = no (λ z → z)
+  D-is-id? (D-def p) = D-is-id? p
+  D-is-id? (D-top p) = D-is-id? p
+  D-is-id? (D-pop p) = D-is-id? p
 \end{code}
