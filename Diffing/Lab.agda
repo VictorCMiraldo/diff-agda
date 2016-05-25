@@ -2,23 +2,40 @@ open import Prelude
 open import Prelude.Vector
 open import CF
 open import CF.Lab
-open import CF.Derivative.Operations
-open import CF.Operations.Properties
-  using (ch-v)
+open import CF.Operations.Derivative
+open import CF.Operations.Vec
+  using (chv)
 
 open import Diffing.Patches.D
 open import Diffing.Patches.Cost
 open import Diffing.Patches.Diff top-down-cost
+open import Diffing.Patches.Residual
 
 module Diffing.Lab where
 
+  ! : {A : Set} → Maybe A → A
+  ! (just x) = x
+  ! nothing  = magic
+    where postulate magic : {A : Set} → A
   
-  l1 l2 : ElU LIST (BOOL ∷ [])
+  l1 l2 l3 l4 : ElU LIST (BOOL ∷ [])
   l1 = CONS TT (CONS TT (CONS FF NIL))
   l2 = CONS TT (CONS FF NIL)
+  l3 = CONS TT (CONS FF (CONS FF NIL))
+  l4 = CONS FF (CONS FF NIL)
 
-  d12 : Patch LIST (BOOL ∷ [])
+  d12 d13 res123 : Patch LIST (BOOL ∷ [])
   d12 = gdiff l1 l2
+  d13 = gdiff l1 l3
+
+  res123 = (D-μ-dwn
+      (D-inr (D-pair (D-pop (D-top (D-setl unit unit))) (D-top D-unit)))
+      (D-μ-rmv (φ-right (φ-snd (pop (top (inl unit))) φ-hole))
+       (D-μ-dwn
+        (D-inr (D-pair (D-pop (D-top (D-inr D-unit))) (D-top D-unit)))
+        (D-μ-dwn (D-inl D-unit) [] ∷ []))
+       ∷ []))
+  
 
   t1 t2 : ElU LTREE (BOOL ∷ NAT ∷ [])
   t1 = BRANCH TT
@@ -57,25 +74,22 @@ module Diffing.Lab where
   f12 f12-nf : Patch LTREE (BOOL ∷ u1 ∷ [])
   f12 = gdiff v1 v2
 
-  f12-nf = D-μ-dwn (inr (pop (top (inl unit)) , (top unit , top unit)))
-          (inr (pop (top (inr unit)) , (top unit , top unit))) refl
-          (D-μ-dwn (inr (pop (top (inl unit)) , (top unit , top unit)))
-           (inr (pop (top (inr unit)) , (top unit , top unit))) refl
-           (D-μ-dwn (inl (pop (pop (top unit)))) (inl (pop (pop (top unit))))
-            refl []
-            ∷
-            D-μ-dwn (inr (pop (top (inl unit)) , (top unit , top unit)))
-            (inr (pop (top (inr unit)) , (top unit , top unit))) refl
-            (D-μ-dwn (inl (pop (pop (top unit)))) (inl (pop (pop (top unit))))
-             refl []
-             ∷
-             D-μ-dwn (inl (pop (pop (top unit)))) (inl (pop (pop (top unit))))
-             refl []
-             ∷ [])
+  f12-nf = D-μ-dwn
+          (D-inr
+           (D-pair (D-pop (D-top (D-setl unit unit)))
+            (D-pair (D-top D-unit) (D-top D-unit))))
+          (D-μ-dwn
+           (D-inr
+            (D-pair (D-pop (D-top (D-setl unit unit)))
+             (D-pair (D-top D-unit) (D-top D-unit))))
+           (D-μ-dwn (D-inl (D-pop (D-pop (D-top D-unit)))) [] ∷
+            D-μ-dwn
+            (D-inr
+             (D-pair (D-pop (D-top (D-setl unit unit)))
+              (D-pair (D-top D-unit) (D-top D-unit))))
+            (D-μ-dwn (D-inl (D-pop (D-pop (D-top D-unit)))) [] ∷
+             D-μ-dwn (D-inl (D-pop (D-pop (D-top D-unit)))) [] ∷ [])
             ∷ [])
-           ∷
-           D-μ-dwn (inl (pop (pop (top unit)))) (inl (pop (pop (top unit))))
-           refl []
-           ∷ [])
+           ∷ D-μ-dwn (D-inl (D-pop (D-pop (D-top D-unit)))) [] ∷ [])
 
   

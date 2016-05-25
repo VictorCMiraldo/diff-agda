@@ -254,3 +254,17 @@ module Diffing.Patches.D where
   D-is-id? (D-top p) = D-is-id? p
   D-is-id? (D-pop p) = D-is-id? p
 \end{code}
+
+\begin{code}
+  {-# TERMINATING #-}
+  gdiff-id : {n : ℕ}{t : T n}{ty : U n}{A : {k : ℕ} → U k → T k → Set}
+           → ElU ty t → D A ty t
+  gdiff-id unit = D-unit
+  gdiff-id (inl x) = D-inl (gdiff-id x)
+  gdiff-id (inr x) = D-inr (gdiff-id x)
+  gdiff-id (x , x₁) = D-pair (gdiff-id x) (gdiff-id x₁)
+  gdiff-id (top x) = D-top (gdiff-id x)
+  gdiff-id (pop x) = D-pop (gdiff-id x)
+  gdiff-id (mu x) = D-μ-dwn (gdiff-id (fgt 0 x)) (map (gdiff-id ∘ unpop) (ch 0 x))
+  gdiff-id (red x) = D-def (gdiff-id x)
+\end{code}
