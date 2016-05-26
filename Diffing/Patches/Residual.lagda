@@ -1,8 +1,7 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.MuUtils
+open import Diffing.Universe
+
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor using (cast; forget)
 open import Diffing.Patches.Diff.Id
@@ -44,7 +43,7 @@ module Diffing.Patches.Residual where
 \end{code}
 %<*residual-type>
 \begin{code}
-    _/_ : {n : ℕ}{t : Tel n}{ty : U n} 
+    _/_ : {n : ℕ}{t : T n}{ty : U n} 
         → Patch t ty → Patch t ty → Maybe (D C t ty)
 \end{code}
 %</residual-type>
@@ -90,7 +89,7 @@ module Diffing.Patches.Residual where
       = D-pair <M> (p1 / q1) <M*> (p2 / q2)
 
     _/_ {ty = def F x} (D-def p) (D-def q) = D-def <M> (p / q)
-    _/_ {ty = vl} (D-top p) (D-top q) = D-top <M> (p / q)
+    _/_ {ty = var} (D-top p) (D-top q) = D-top <M> (p / q)
     _/_ {ty = wk ty} (D-pop p) (D-pop q) = D-pop <M> (p / q)
 
     _/_ {ty = μ ty} (D-mu p) (D-mu q) = D-mu <M> res p q
@@ -98,7 +97,7 @@ module Diffing.Patches.Residual where
     -- Every other scenarios are non-aligned patches.
     _ / _ = nothing
 
-    res : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+    res : {n : ℕ}{t : T n}{ty : U (suc n)}
         → (a b : Patchμ t ty) → Maybe (List (Dμ C t ty))
 
     res _ (Dμ-A () ∷ _)
@@ -155,7 +154,7 @@ The simple residuals are the ones defined and
 without conflicts!
 
 \begin{code}
-  /-simple : {n : ℕ}{t : Tel n}{ty : U n}
+  /-simple : {n : ℕ}{t : T n}{ty : U n}
            → Maybe (D C t ty) → Set
   /-simple nothing  = ⊥
   /-simple (just d) = forget d ≡ []

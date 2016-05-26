@@ -1,9 +1,6 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.MuUtils
-open import Diffing.Universe.Measures
+open import Diffing.Universe
 
 module Diffing.Patches.Diff where
 
@@ -20,9 +17,9 @@ module Diffing.Patches.Diff where
 \end{code}
 %<*gdiff-def>
 \begin{code}
-    gdiff : {n : ℕ}{t : Tel n}{ty : U n} 
+    gdiff : {n : ℕ}{t : T n}{ty : U n} 
           → ElU ty t → ElU ty t → Patch t ty
-    gdiff {ty = vl} (top a) (top b)    = D-top (gdiff a b)
+    gdiff {ty = var} (top a) (top b)    = D-top (gdiff a b)
     gdiff {ty = wk u} (pop a) (pop b)  = D-pop (gdiff a b)
     gdiff {ty = def F x} (red a) (red b) = D-def (gdiff a b)
     gdiff {ty = u1} unit unit = D-unit
@@ -38,7 +35,7 @@ module Diffing.Patches.Diff where
 
 %<*gdiffL-def>
 \begin{code}
-    gdiffL : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+    gdiffL : {n : ℕ}{t : T n}{ty : U (suc n)} 
            → List (ElU (μ ty) t) → List (ElU (μ ty) t) → Patchμ t ty
     gdiffL [] [] = []
     gdiffL [] (y ∷ ys) with μ-open y
@@ -60,7 +57,7 @@ module Diffing.Patches.Diff where
   =========================
 
 \begin{code}
-  open import Diffing.Utils.Monads
+  open import Prelude.Monad
   open Monad {{...}}
 
   _<$>_ : ∀{a b}{A : Set a}{B : Set b} 
@@ -72,7 +69,7 @@ module Diffing.Patches.Diff where
   pattern True = yes _
   pattern False = no _
 
-  _==_ : {n : ℕ}{t : Tel n}{ty : U n}(a b : ElU ty t)
+  _==_ : {n : ℕ}{t : T n}{ty : U n}(a b : ElU ty t)
        → Dec (a ≡ b)
   _==_ = _≟-U_
 
@@ -80,7 +77,7 @@ module Diffing.Patches.Diff where
 \end{code}
 %<*gapply-type>
 \begin{code}
-    gapply : {n : ℕ}{t : Tel n}{ty : U n}
+    gapply : {n : ℕ}{t : T n}{ty : U n}
            → Patch t ty → ElU ty t → Maybe (ElU ty t)
 \end{code}
 %</gapply-type>
@@ -131,13 +128,13 @@ module Diffing.Patches.Diff where
 
 %<*gIns-type>
 \begin{code}
-    gIns : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-         → ElU ty (tcons u1 t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+    gIns : {n : ℕ}{t : T n}{ty : U (suc n)}
+         → ElU ty (u1 ∷ t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
 \end{code}
 %</gIns-type>
 %<*gIns-def>
 \begin{code}
-    gIns x l with μ-close (x , l)
+    gIns x l with μ-close x l
     ...| nothing = nothing
     ...| just (r , l') = just (r ∷ l')
 \end{code}
@@ -145,8 +142,8 @@ module Diffing.Patches.Diff where
 
 %<*gDel-type>
 \begin{code}
-    gDel : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-         → ElU ty (tcons u1 t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+    gDel : {n : ℕ}{t : T n}{ty : U (suc n)}
+         → ElU ty (u1 ∷ t) → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
 \end{code}
 %</gDel-type>
 %<*gDel-def>
@@ -160,7 +157,7 @@ module Diffing.Patches.Diff where
 
 %<*gapplyL-def>
 \begin{code}
-    gapplyL : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+    gapplyL : {n : ℕ}{t : T n}{ty : U (suc n)}
             → Patchμ t ty → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
     gapplyL [] [] = just []
     gapplyL [] _  = nothing
@@ -179,7 +176,7 @@ module Diffing.Patches.Diff where
   ============================
 
 \begin{code}
-  D⟦_⟧ : {n : ℕ}{t : Tel n}{ty : U n}
+  D⟦_⟧ : {n : ℕ}{t : T n}{ty : U n}
        → Patch t ty → Maybe (ElU ty t) → Maybe (ElU ty t)
   D⟦ p ⟧ nothing   = nothing
   D⟦ p ⟧ (just el) = gapply p el
@@ -192,7 +189,7 @@ module Diffing.Patches.Diff where
 
 %<*patch-equality>
 \begin{code}
-  _≡-D_ : {n : ℕ}{t : Tel n}{ty : U n}
+  _≡-D_ : {n : ℕ}{t : T n}{ty : U n}
         → Patch t ty → Patch t ty → Set
   d1 ≡-D d2 = ∀ x → gapply d1 x ≡ gapply d2 x
 \end{code}
@@ -207,7 +204,7 @@ module Diffing.Patches.Diff where
 \begin{code}
   private
     postulate
-      ≡-D-lift : {n : ℕ}{t : Tel n}{ty : U n}{d1 d2 : Patch t ty}
+      ≡-D-lift : {n : ℕ}{t : T n}{ty : U n}{d1 d2 : Patch t ty}
                → d1 ≡-D d2 → d1 ≡ d2
 \end{code}
 %</patch-equality-lift>
@@ -216,7 +213,7 @@ module Diffing.Patches.Diff where
 
 %<*patch-subst>
 \begin{code}
-  substP : {n : ℕ}{t : Tel n}{ty : U n}
+  substP : {n : ℕ}{t : T n}{ty : U n}
          → (P : Patch t ty → Set){d1 d2 : Patch t ty} 
          → d1 ≡-D d2
          → P d1 → P d2
@@ -233,7 +230,7 @@ module Diffing.Patches.Diff where
 
 %<*patchL-equality>
 \begin{code}
-  _≡-Dμ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+  _≡-Dμ_ : {n : ℕ}{t : T n}{ty : U (suc n)}
          → (d1 d2 : Patchμ t ty) → Set
   d1 ≡-Dμ d2 = ∀ x → gapplyL d1 x ≡ gapplyL d2 x
 \end{code}
@@ -261,24 +258,24 @@ module Diffing.Patches.Diff where
 \begin{code}
   private
     postulate
-      ≡-Dμ-lift : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
+      ≡-Dμ-lift : {n : ℕ}{t : T n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
                 → d1 ≡-Dμ d2 → d1 ≡ d2
 
-  substPμ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+  substPμ : {n : ℕ}{t : T n}{ty : U (suc n)}
           → (P : Patchμ t ty → Set){d1 d2 : Patchμ t ty} 
           → d1 ≡-Dμ d2
           → P d1 → P d2
   substPμ P {d1} {d2} d1≡d2 pd1 with (≡-Dμ-lift {d1 = d1} {d2 = d2} d1≡d2) 
   ...| prf = subst P prf pd1 
 
-  congPμ : {A : Set}{n : ℕ}{t : Tel n}{ty : U (suc n)}
+  congPμ : {A : Set}{n : ℕ}{t : T n}{ty : U (suc n)}
          → (P : Patchμ t ty → A) {d1 d2 : Patchμ t ty}
          → d1 ≡-Dμ d2 → P d1 ≡ P d2
   congPμ p {d1} {d2} hip = substPμ (λ Q → p Q ≡ p d2) (λ x → sym (hip x)) refl
 
   open import Data.Nat.Properties
 
-  ⊔μ-≡ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+  ⊔μ-≡ : {n : ℕ}{t : T n}{ty : U (suc n)}
            (a1 a2 : Patchμ t ty)
            {b1 b2 : Patchμ t ty}
          → a1 ≡-Dμ b1
@@ -291,44 +288,3 @@ module Diffing.Patches.Diff where
 \end{code}
 %</patchL-equality-lift>
 
-   Normalization
-   =============
-
-%<*NF-def>
-\begin{code}
-  NF* : {n : ℕ}{t : Tel n}{ty : U (suc n)} → Patchμ t ty → Set
-  NF* [] = Unit
-  NF* (Dμ-ins _ ∷ ds) = NF* ds
-  NF* (Dμ-del _ ∷ ds) = NF* ds
-  NF* (_ ∷ _) = ⊥
-
-  NF : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → Set
-  NF (D-mu xs) = NF* xs
-  NF (D-def d) = NF d
-  NF (D-inl d) = NF d
-  NF (D-inr d) = NF d
-  NF (D-top d) = NF d
-  NF (D-pop d) = NF d
-  NF (D-pair da db) = NF da × NF db
-  NF _ = Unit
-\end{code}
-%</NF-def>
-
-%<*example-apply>
-\begin{code}
-  bool : {n : ℕ} → U n
-  bool = u1 ⊕ u1
-
-  tt : {n : ℕ}{t : Tel n} → ElU bool t
-  tt = inl unit
-
-  ff : {n : ℕ}{t : Tel n} → ElU bool t
-  ff = inr unit
-
-  l1 : ElU list (tcons bool tnil)
-  l1 = CONS tt NIL
-
-  l2 : ElU list (tcons bool tnil)
-  l2 = CONS ff NIL
-\end{code}
-%</example-apply>

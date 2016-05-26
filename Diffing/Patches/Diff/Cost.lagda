@@ -1,15 +1,9 @@
 \begin{code}
-open import Prelude
-open import Data.Nat using (_≤_; z≤n; s≤s)
-open import Data.Nat.Properties.Simple
+open import Prelude hiding (_⊔_)
+open import Prelude.NatProperties
 
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.Ops
-open import Diffing.Universe.MuUtils
-open import Diffing.Universe.Measures
+open import Diffing.Universe
 open import Diffing.Patches.Diff.D
-open import Diffing.Utils.Propositions using (nat-≤-step; ≤-+)
 
 module Diffing.Patches.Diff.Cost where
 \end{code}
@@ -44,22 +38,18 @@ module Diffing.Patches.Diff.Cost where
   With this in mind, we implement the cost function as follows:
 
 \begin{code}
-  sum : ∀{a}{A : Set a}(f : A → ℕ)
-      → List A → ℕ
-  sum f = foldr (λ h r → f h + r) 0
-
   mutual
     {-# TERMINATING #-}
 \end{code}
 %<*cost-type>
 \begin{code}
-    cost : {n : ℕ}{t : Tel n}{ty : U n} → Patch t ty → ℕ
+    cost : {n : ℕ}{t : T n}{ty : U n} → Patch t ty → ℕ
 \end{code}
 %</cost-type>
 \begin{code}
-    costL : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+    costL : {n : ℕ}{t : T n}{ty : U (suc n)} 
           → Patchμ t ty → ℕ
-    costL = sum costμ
+    costL = sum ∘ map costμ
 \end{code}
 %<*cost-def>
 \begin{code}
@@ -80,7 +70,7 @@ module Diffing.Patches.Diff.Cost where
 
 %<*costmu-type>
 \begin{code}
-    costμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
+    costμ : {n : ℕ}{t : T n}{ty : U (suc n)} 
           → Dμ ⊥ₚ t ty → ℕ
 \end{code}
 %</costmu-type>
@@ -100,7 +90,7 @@ module Diffing.Patches.Diff.Cost where
 
 %<*lub-def>
 \begin{code}
-  _⊔_ : {n : ℕ}{t : Tel n}{ty : U n}
+  _⊔_ : {n : ℕ}{t : T n}{ty : U n}
       → Patch t ty → Patch t ty → Patch t ty
   _⊔_ {ty = ty} da db with cost da ≤?-ℕ cost db
   ...| yes _ = da
@@ -110,7 +100,7 @@ module Diffing.Patches.Diff.Cost where
 
 %<*lubmu-def>
 \begin{code}
-  _⊔μ_ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+  _⊔μ_ : {n : ℕ}{t : T n}{ty : U (suc n)}
       → Patchμ t ty → Patchμ t ty → Patchμ t ty
   _⊔μ_ da db with costL da ≤?-ℕ costL db
   ...| yes _ = da
@@ -119,7 +109,7 @@ module Diffing.Patches.Diff.Cost where
 %</lubmu-def>
 
 \begin{code}
-  ⊔μ-elim : {n : ℕ}{t : Tel n}{ty : U (suc n)}{P : Patchμ t ty → Set}
+  ⊔μ-elim : {n : ℕ}{t : T n}{ty : U (suc n)}{P : Patchμ t ty → Set}
           → (da db : Patchμ t ty)
           → P da → P db → P (da ⊔μ db)
   ⊔μ-elim da db pda pdb with costL da ≤?-ℕ costL db

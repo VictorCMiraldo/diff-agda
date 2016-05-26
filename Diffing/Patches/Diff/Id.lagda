@@ -1,14 +1,9 @@
 \begin{code}
 open import Prelude
-open import Data.Nat using (_≤_; z≤n; s≤s)
-open import Data.Nat.Properties.Simple using (+-comm)
+open import Prelude.NatProperties
 
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.MuUtils
-open import Diffing.Universe.Measures
+open import Diffing.Universe
 open import Diffing.Patches.Diff
-open import Diffing.Utils.Propositions
 
 module Diffing.Patches.Diff.Id where
 \end{code}
@@ -22,7 +17,7 @@ module Diffing.Patches.Diff.Id where
 \end{code}
 %<*Is-diff-id-type>
 \begin{code}
-    Is-diff-id : {n : ℕ}{t : Tel n}{ty : U n}
+    Is-diff-id : {n : ℕ}{t : T n}{ty : U n}
                → (d : Patch t ty) → Set
 \end{code}
 %</Is-diff-id-type>
@@ -41,7 +36,7 @@ module Diffing.Patches.Diff.Id where
 \end{code}
 %<*Is-diffL-id-type>
 \begin{code}
-    Is-diffL-id : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+    Is-diffL-id : {n : ℕ}{t : T n}{ty : U (suc n)}
                → (d : Patchμ t ty) → Set
 \end{code}
 %</Is-diffL-id-type>
@@ -59,7 +54,7 @@ module Diffing.Patches.Diff.Id where
 %<*gdiff-id-def>
 \begin{code}
   mutual
-    gdiff-id : {n : ℕ}{t : Tel n}{ty : U n}
+    gdiff-id : {n : ℕ}{t : T n}{ty : U n}
              → (a : ElU ty t) → Patch t ty
     gdiff-id unit = D-unit
     gdiff-id (inl a) = D-inl (gdiff-id a)
@@ -71,7 +66,7 @@ module Diffing.Patches.Diff.Id where
     gdiff-id (mu a) = D-mu (gdiffL-id (mu a ∷ []))
   
     {-# TERMINATING #-}
-    gdiffL-id : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+    gdiffL-id : {n : ℕ}{t : T n}{ty : U (suc n)}
              → (as : List (ElU (μ ty) t)) → Patchμ t ty
     gdiffL-id [] = []
     gdiffL-id (x ∷ as)
@@ -86,7 +81,7 @@ module Diffing.Patches.Diff.Id where
 \end{code}
 %<*gdiff-id-cost-type>
 \begin{code}
-    gdiff-id-cost : {n : ℕ}{t : Tel n}{ty : U n}
+    gdiff-id-cost : {n : ℕ}{t : T n}{ty : U n}
                   → (a : ElU ty t) → cost (gdiff-id a) ≡ 0
 \end{code}
 %</gdiff-id-cost-type>
@@ -103,11 +98,11 @@ module Diffing.Patches.Diff.Id where
     gdiff-id-cost (red a) = gdiff-id-cost a 
 
     {-# TERMINATING #-}
-    gdiffL-id-cost : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-                  → (a : List (ElU (μ ty) t)) → sum costμ (gdiffL-id a) ≡ 0
+    gdiffL-id-cost : {n : ℕ}{t : T n}{ty : U (suc n)}
+                  → (a : List (ElU (μ ty) t)) → sum (map costμ (gdiffL-id a)) ≡ 0
     gdiffL-id-cost [] = refl
     gdiffL-id-cost (a ∷ as) 
-      = subst (λ P → P + sum costμ (gdiffL-id (μ-ch a ++ as)) ≡ 0) 
+      = subst (λ P → P + sum (map costμ (gdiffL-id (μ-ch a ++ as))) ≡ 0) 
               (sym (gdiff-id-cost (μ-hd a))) 
               (gdiffL-id-cost (μ-ch a ++ as))
 \end{code}
@@ -120,7 +115,7 @@ module Diffing.Patches.Diff.Id where
 %<*gdiff-id-correct-type>
 \begin{code}
     gdiff-id-correct 
-      : {n : ℕ}{t : Tel n}{ty : U n}
+      : {n : ℕ}{t : T n}{ty : U n}
       → (a : ElU ty t) → gdiff-id a ≡ gdiff a a
 \end{code}
 %</gdiff-id-correct-type>
@@ -137,18 +132,18 @@ module Diffing.Patches.Diff.Id where
 
   {-
     private
-      mkDel : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      mkDel : {n : ℕ}{t : T n}{ty : U (suc n)}
             → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
             → Patchμ t ty
       mkDel a as = (Dμ-del (μ-hd a) ∷ gdiffL (μ-ch a ++ as) (a ∷ as))
 
-      mkDwn : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      mkDwn : {n : ℕ}{t : T n}{ty : U (suc n)}
             → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
             → Patchμ t ty
       mkDwn a as = (Dμ-dwn (gdiff (μ-hd a) (μ-hd a)) ∷
                     gdiffL (μ-ch a ++ as) (μ-ch a ++ as)) 
 
-      cost-dwn : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      cost-dwn : {n : ℕ}{t : T n}{ty : U (suc n)}
                → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t))
                → sum costμ (mkDwn a as) ≡ 0
       cost-dwn a as 
@@ -158,7 +153,7 @@ module Diffing.Patches.Diff.Id where
                 (trans (cong (sum costμ) (sym (gdiffL-id-correct (μ-ch a ++ as)))) 
                        (gdiffL-id-cost (μ-ch a ++ as)))
 
-      dwn<del : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      dwn<del : {n : ℕ}{t : T n}{ty : U (suc n)}
               → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
               → suc (cost (D-mu (mkDwn a as))) ≤ cost (D-mu (mkDel a as))
       dwn<del a as rewrite cost-dwn a as
@@ -171,7 +166,7 @@ module Diffing.Patches.Diff.Id where
       pi z≤n z≤n = refl
       pi (s≤s a) (s≤s b) = cong s≤s (pi a b)
 
-      dwn<del? : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      dwn<del? : {n : ℕ}{t : T n}{ty : U (suc n)}
               → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
               → (cost (D-mu (mkDwn a as)) ≤?-ℕ cost (D-mu (mkDel a as)))
               ≡ yes (ss (dwn<del a as))
@@ -179,7 +174,7 @@ module Diffing.Patches.Diff.Id where
       ...| yes q = cong yes (pi q (ss (dwn<del a as)))
       ...| no  q = {!!}
 
-      lemma-1 : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      lemma-1 : {n : ℕ}{t : T n}{ty : U (suc n)}
               → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t))            
               → mkDwn a as
               ≡  mkDel a as
@@ -190,7 +185,7 @@ module Diffing.Patches.Diff.Id where
 
     {-# TERMINATING #-}
     gdiffL-id-correct
-      : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
       → (as : List (ElU (μ ty) t)) → gdiffL-id as ≡ gdiffL as as
     gdiffL-id-correct [] = refl
     gdiffL-id-correct (a ∷ as) 

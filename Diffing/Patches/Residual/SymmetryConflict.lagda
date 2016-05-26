@@ -1,8 +1,6 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.MuUtils
+open import Diffing.Universe
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor
 open import Diffing.Patches.Diff.Id
@@ -26,7 +24,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
 \end{code}
 %<*residual-sym-stable-type>
 \begin{code}
-  residual-sym-stable : {n : ℕ}{t : Tel n}{ty : U n}{k : D C t ty}
+  residual-sym-stable : {n : ℕ}{t : T n}{ty : U n}{k : D C t ty}
     → (d1 d2 : Patch t ty) 
     → d1 / d2 ≡ just k
     → forget <$> (d2 / d1) ≡ just (map (↓-map-↓ C-sym) (forget k)) 
@@ -39,7 +37,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
 
       mutual
         {-# TERMINATING #-}
-        aux : {n : ℕ}{t : Tel n}{ty : U n}{k : D C t ty}
+        aux : {n : ℕ}{t : T n}{ty : U n}{k : D C t ty}
             → (d1 d2 : Patch t ty) 
             → d1 / d2 ≡ just k
             → forget <M> (d2 / d1) ≡ just (map (↓-map-↓ C-sym) (forget k)) 
@@ -130,7 +128,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
         ...| res rewrite q = res
 
         {-# TERMINATING #-}
-        aux* : {n : ℕ}{t : Tel n}{ty : U (suc n)}{k : List (Dμ C t ty)}
+        aux* : {n : ℕ}{t : T n}{ty : U (suc n)}{k : List (Dμ C t ty)}
              → (d1 d2 : Patchμ t ty) 
              → res d1 d2 ≡ just k
              → forgetμ <M> (res d2 d1) ≡ just (map (↓-map-↓ C-sym) (forgetμ k))
@@ -233,7 +231,7 @@ module Diffing.Patches.Residual.SymmetryConflict where
 
 %<*conflicts-sym-type>
 \begin{code}
-  conflicts-sym : {n : ℕ}{t : Tel n}{ty : U n}
+  conflicts-sym : {n : ℕ}{t : T n}{ty : U n}
                 → (d1 d2 : Patch t ty)
                 → map (↓-map-↓ C-sym) (conflicts (d1 / d2)) ≡ conflicts (d2 / d1)
 \end{code}

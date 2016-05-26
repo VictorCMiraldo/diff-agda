@@ -1,14 +1,12 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.MuUtils
+open import Prelude.ListProperties
+open import Diffing.Universe
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor
 open import Diffing.Patches.Diff.Id
 open import Diffing.Patches.Conflicts
 open import Diffing.Patches.Residual
-open import Data.List.Properties renaming (∷-injective to ∷-inj)
 
 module Diffing.Patches.Residual.Symmetry where
 \end{code}
@@ -46,7 +44,7 @@ module Diffing.Patches.Residual.Symmetry where
   private
     mutual
       {-# TERMINATING #-}
-      aux : {n : ℕ}{t : Tel n}{ty : U n}{k : D C t ty}
+      aux : {n : ℕ}{t : T n}{ty : U n}{k : D C t ty}
           → (d1 d2 : Patch t ty) 
           → d1 / d2 ≡ just k
           → Σ (D C t ty → D C t ty) 
@@ -144,7 +142,7 @@ module Diffing.Patches.Residual.Symmetry where
       ...| op , res = (λ { (D-mu x) → D-mu (op x) ; x → x })
                     , <M>-intro res            
 
-      aux* : {n : ℕ}{t : Tel n}{ty : U (suc n)}{k : List (Dμ C t ty)}
+      aux* : {n : ℕ}{t : T n}{ty : U (suc n)}{k : List (Dμ C t ty)}
            → (d1 d2 : Patchμ t ty) 
            → res d1 d2 ≡ just k
            → Σ (List (Dμ C t ty) → List (Dμ C t ty)) 
@@ -242,7 +240,7 @@ module Diffing.Patches.Residual.Symmetry where
 %<*residual-symmetry-type>
 \begin{code}
   residual-symmetry-thm
-    : {n : ℕ}{t : Tel n}{ty : U n}{k : D C t ty}
+    : {n : ℕ}{t : T n}{ty : U n}{k : D C t ty}
     → (d1 d2 : Patch t ty) 
     → d1 / d2 ≡ just k
     → Σ (D C t ty → D C t ty) 
@@ -256,7 +254,7 @@ module Diffing.Patches.Residual.Symmetry where
 %<*residualμ-symmetry-type>
 \begin{code}
   residualμ-symmetry-thm
-    : {n : ℕ}{t : Tel n}{ty : U (suc n)}{k : List (Dμ C t ty)}
+    : {n : ℕ}{t : T n}{ty : U (suc n)}{k : List (Dμ C t ty)}
     → (d1 d2 : Patchμ t ty) 
     → res d1 d2 ≡ just k
     → Σ (List (Dμ C t ty) → List (Dμ C t ty)) 
@@ -270,7 +268,7 @@ module Diffing.Patches.Residual.Symmetry where
 %<*residual-nothing-type>
 \begin{code}
   residual-nothing 
-    : {n : ℕ}{t : Tel n}{ty : U n}
+    : {n : ℕ}{t : T n}{ty : U n}
     → (d1 d2 : Patch t ty) 
     → d1 / d2 ≡ nothing
     → d2 / d1 ≡ nothing
