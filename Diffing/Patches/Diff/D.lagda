@@ -1,8 +1,11 @@
 \begin{code}
 open import Prelude
+open import Prelude.Vector
 open import Data.List.Properties using (length-++)
+
 open import Diffing.Universe
-open import Diffing.Utils.Vector
+open import CF.Properties.Mu
+  using (μ-open-ar-lemma)
 
 module Diffing.Patches.Diff.D where
 \end{code}

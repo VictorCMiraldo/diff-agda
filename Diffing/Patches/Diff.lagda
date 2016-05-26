@@ -1,8 +1,12 @@
 \begin{code}
 {-# OPTIONS --rewriting #-}
 open import Prelude
+open import Prelude.Vector
+open import CF.Properties
+  using ( μ-open-ar-++-lemma; μ-open-ar-lemma
+        ; μ-plugv-correct)
+
 open import Diffing.Universe
-open import Diffing.Utils.Vector
 open import Diffing.Patches.Diff.Cost
 open import Diffing.Patches.Diff.D
 

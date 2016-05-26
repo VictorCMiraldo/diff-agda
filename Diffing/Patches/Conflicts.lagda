@@ -1,6 +1,6 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
+open import Diffing.Universe
 open import Diffing.Patches.Diff.D
 open import Diffing.Patches.Diff.Functor 
   using (forget; forgetμ; ↓_; cast; castμ)

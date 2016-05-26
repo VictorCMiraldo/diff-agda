@@ -1,8 +1,8 @@
 \begin{code}
 {-# OPTIONS --rewriting #-}
 open import Prelude
+open import Prelude.Vector
 open import Diffing.Universe
-open import Diffing.Utils.Vector
 
 module Diffing.Patches.Apply
   where
@@ -18,7 +18,7 @@ module Diffing.Patches.Apply
   we then prove auxiliar lemmas and define the apply function.
 
 \begin{code}
-  open import Diffing.Utils.Monads
+  open import Prelude.Monad
   open Monad {{...}}
 
   {-# TERMINATING #-}
@@ -106,7 +106,8 @@ module Diffing.Patches.Apply
 %</gapplyL-def>
 
 \begin{code}
-  open import Diffing.Universe.Plugging.Properties
+  open import CF.Properties
+    using (ch-plugv-lemma; fgt-plugv-lemma)
   {-# REWRITE ch-plugv-lemma #-}
   {-# REWRITE fgt-plugv-lemma #-}
 \end{code}

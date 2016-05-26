@@ -1,11 +1,11 @@
 \begin{code}
 {-# OPTIONS --rewriting #-}
 open import Prelude
+open import Prelude.NatProperties
 
 open import Diffing.Universe
 open import Diffing.Patches.Diff.D
 open import Diffing.Patches.Diff.Cost
-open import Diffing.Utils.Propositions
 
 module Diffing.Patches.Diff.Id (Δ : Cost) where
 
@@ -111,7 +111,7 @@ module Diffing.Patches.Diff.Id (Δ : Cost) where
              | gdiff-id-cost (μ-hd a)
              | sym (gdiffL-id-correct (μ-ch a ++ as))
              | gdiffL-id-cost (μ-ch a ++ as)
-             = ⊥-elim (nat-≤-abs-0 r1)
+             = ⊥-elim (≤-abs-0 r1)
     ...| no ¬r1 
       with costμ (gdiffL-ins a (a ∷ as) as) ≤?-ℕ costμ (gdiffL-dwn a a as as) 
     ...| yes r2
@@ -119,7 +119,7 @@ module Diffing.Patches.Diff.Id (Δ : Cost) where
              | gdiff-id-cost (μ-hd a)
              | sym (gdiffL-id-correct (μ-ch a ++ as))
              | gdiffL-id-cost (μ-ch a ++ as)
-             = ⊥-elim (nat-≤-abs-0 r2)
+             = ⊥-elim (≤-abs-0 r2)
     ...| no ¬r2 = cong (Dμ-dwn (μ-hd a) (μ-hd a)) (gdiffL-id-correct (μ-ch a ++ as))
 \end{code}
 
