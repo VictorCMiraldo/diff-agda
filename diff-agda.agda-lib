@@ -1,0 +1,4 @@
+name: diff-agda
+include: .
+depend: cf-agda
+        victor-prelude
