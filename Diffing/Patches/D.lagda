@@ -62,6 +62,12 @@ module Diffing.Patches.D where
              → D A a t → D A b t → D A (a ⊗ b) t
 \end{code}
 %</D-pair-def>
+%<*D-mu-A-def>
+\begin{code}
+      D-μ-A : {n : ℕ}{t : T n}{a : U (suc n)}
+            → A (μ a) t → D A (μ a) t → D A (μ a) t 
+\end{code}
+%</D-mu-A-def>
 %<*D-mu-dwn-def>
 \begin{code}
       D-μ-dwn : {n : ℕ}{t : T n}{a : U (suc n)}
@@ -97,6 +103,7 @@ module Diffing.Patches.D where
 \end{code}
 \begin{code}
     D-arᵢ i (D-A x) = 0
+    D-arᵢ i (D-μ-A x p) = D-arᵢ i p
     D-arᵢ i D-unit = 0
     D-arᵢ i (D-inl d) = D-arᵢ i d
     D-arᵢ i (D-inr d) = D-arᵢ i d
@@ -116,6 +123,7 @@ module Diffing.Patches.D where
       = φ-ar (suc i) x + D-arᵢ i d
 
     D-arₒ i (D-A x) = 0
+    D-arₒ i (D-μ-A x p) = D-arₒ i p
     D-arₒ i D-unit = 0
     D-arₒ i (D-inl d) = D-arₒ i d
     D-arₒ i (D-inr d) = D-arₒ i d
@@ -155,6 +163,7 @@ module Diffing.Patches.D where
 %<*D-src-def>
 \begin{code}
   D-src (D-A ())
+  D-src (D-μ-A () _)
   D-src D-unit = just unit
   D-src (D-inl d) = inl <M> D-src d
   D-src (D-inr d) = inr <M> D-src d
@@ -184,6 +193,7 @@ module Diffing.Patches.D where
 %<*D-dst-def>
 \begin{code}
   D-dst (D-A ())
+  D-dst (D-μ-A () _)
   D-dst D-unit = just unit
   D-dst (D-inl d) = inl <M> D-dst d
   D-dst (D-inr d) = inr <M> D-dst d
@@ -214,6 +224,7 @@ module Diffing.Patches.D where
   D-is-id : {n : ℕ}{t : T n}{ty : U n}
           → Patch ty t → Set
   D-is-id (D-A ())
+  D-is-id (D-μ-A () _)
   D-is-id D-unit = Unit
   D-is-id (D-inl p) = D-is-id p
   D-is-id (D-inr p) = D-is-id p
@@ -233,6 +244,7 @@ module Diffing.Patches.D where
   D-is-id? : {n : ℕ}{t : T n}{ty : U n}
            → (p : Patch ty t) → Dec (D-is-id p)
   D-is-id? (D-A ())
+  D-is-id? (D-μ-A () _)
   D-is-id? D-unit = yes unit
   D-is-id? (D-inl p) = D-is-id? p
   D-is-id? (D-inr p) = D-is-id? p
