@@ -116,3 +116,11 @@ module Diffing.Patches.Diff.Cost where
   ...| yes _ = pda
   ...| no  _ = pdb
 \end{code}
+
+\begin{code}
+  ⊔μ-elim-3 : {n : ℕ}{t : T n}{ty : U (suc n)}{P : Patchμ t ty → Set}
+            → (da db dc : Patchμ t ty)
+            → P da → P db → P dc → P (da ⊔μ db ⊔μ dc)
+  ⊔μ-elim-3 da db dc pda pdb pdc
+    = ⊔μ-elim da (db ⊔μ dc) pda (⊔μ-elim db dc pdb pdc)
+\end{code}
