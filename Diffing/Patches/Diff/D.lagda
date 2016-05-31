@@ -198,22 +198,116 @@ module Diffing.Patches.Diff.D where
 \end{code}
 %</Dmu-dst-def>
 
+
+\begin{code}
+  mutual
+\end{code}
 %<*D-to-delta>
 \begin{code}
-  D-Δ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-      → D A t ty → Maybe (ElU ty t × ElU ty t)
-  D-Δ p with D-src p | D-dst p
-  ...| just s | just d = just (s , d)
-  ...| _ | _           = nothing
+    D-Δ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+        → D A t ty → Maybe (ElU ty t × ElU ty t)
+    D-Δ (D-A x) = nothing
+    D-Δ D-unit = return (unit , unit)
+    D-Δ (D-inl p) = (inl ×' inl) <M> D-Δ p
+    D-Δ (D-inr p) = (inr ×' inr) <M> D-Δ p
+    D-Δ (D-setl x x₁) = return (inl x , inr x₁)
+    D-Δ (D-setr x x₁) = return (inr x , inl x₁)
+    D-Δ (D-pair p p₁)
+      = (λ s d → (p1 s , p1 d) , (p2 s , p2 d))
+        <M> D-Δ p <M*> D-Δ p₁
+    D-Δ (D-mu x) = Dμ-Δ x >>= (λ l → _,_ <M> lhead (p1 l) <M*> lhead (p2 l))
+    D-Δ (D-def p) = (red ×' red) <M> D-Δ p
+    D-Δ (D-top p) = (top ×' top) <M> D-Δ p
+    D-Δ (D-pop p) = (pop ×' pop) <M> D-Δ p
 \end{code}
 %</D-to-delta>
 
 %<*Dmu-to-delta>
 \begin{code}
-  Dμ-Δ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
-      → List (Dμ A t ty) → Maybe (List (ElU (μ ty) t) × List (ElU (μ ty) t))
-  Dμ-Δ p with Dμ-src p | Dμ-dst p
-  ...| just s | just d = just (s , d)
-  ...| _ | _           = nothing
+    Dμ-Δ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+        → List (Dμ A t ty) → Maybe (List (ElU (μ ty) t) × List (ElU (μ ty) t))
+    Dμ-Δ [] = return ([] , [])
+    Dμ-Δ (Dμ-A x ∷ p) = nothing
+    Dμ-Δ (Dμ-ins x ∷ p)
+      with Dμ-Δ p
+    ...| just (sp , dp) = _,_ sp <M> (μ-close x dp >>= (return ∘ cons))
+    ...| nothing        = nothing
+    Dμ-Δ (Dμ-del x ∷ p)
+      with Dμ-Δ p
+    ...| just (sp , dp) = (λ ss → ss , dp) <M> (μ-close x sp >>= (return ∘ cons))
+    ...| nothing        = nothing
+    Dμ-Δ (Dμ-dwn x ∷ p)
+      with D-Δ x | Dμ-Δ p
+    ...| nothing        | _              = nothing
+    ...| _              | nothing        = nothing
+    ...| just (sx , dx) | just (sp , dp)
+       = _,_ <M> (μ-close sx sp >>= (return ∘ cons)) <M*> (μ-close dx dp >>= (return ∘ cons))
 \end{code}
 %</Dmu-to-delta>
+
+  Let's postulate some isomorphisms for the sake of
+  progressing development. These proofs are mechanical.
+
+\begin{code}
+  postulate
+    src-dst-Δ-lemma
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+      → (x y : ElU ty t)(p : D A t ty)
+      → D-src p ≡ just x
+      → D-dst p ≡ just y
+      → D-Δ p ≡ just (x , y)
+
+    Δ-src-dst-lemma
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+      → (x y : ElU ty t)(p : D A t ty)
+      → D-Δ p ≡ just (x , y)
+      → (D-src p ≡ just x) × (D-dst p ≡ just y)   
+\end{code}
+
+begin{code}
+  src-dst-Δ-lemma x y (D-A x₁) () hy
+  src-dst-Δ-lemma unit unit D-unit hx hy = refl
+  src-dst-Δ-lemma x y (D-inl p) hx hy
+    with D-src p | inspect D-src p
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hx))
+  ...| just sp | [ SP ]
+    with D-dst p | inspect D-dst p
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hy))
+  ...| just dp | [ DP ]
+     rewrite just-inj (sym hx)
+           | just-inj (sym hy)
+           = <M>-intro (src-dst-Δ-lemma sp dp p SP DP)
+  src-dst-Δ-lemma x y (D-inr p) hx hy
+    with D-src p | inspect D-src p
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hx))
+  ...| just sp | [ SP ]
+    with D-dst p | inspect D-dst p
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hy))
+  ...| just dp | [ DP ]
+     rewrite just-inj (sym hx)
+           | just-inj (sym hy)
+           = <M>-intro (src-dst-Δ-lemma sp dp p SP DP)
+  src-dst-Δ-lemma .(inl xa) .(inr xb) (D-setl xa xb) refl refl = refl
+  src-dst-Δ-lemma .(inr xa) .(inl xb) (D-setr xa xb) refl refl = refl
+  src-dst-Δ-lemma x y (D-def p) hx hy
+    with <M>-elim hx | <M>-elim hy
+  ...| hx0 , hx1 , hx2 | hy0 , hy1 , hy2
+    rewrite hx1 | hy1
+      = <M>-intro (src-dst-Δ-lemma hx0 hy0 p hx2 hy2)
+  src-dst-Δ-lemma x y (D-top p) hx hy
+    with <M>-elim hx | <M>-elim hy
+  ...| hx0 , hx1 , hx2 | hy0 , hy1 , hy2
+    rewrite hx1 | hy1
+      = <M>-intro (src-dst-Δ-lemma hx0 hy0 p hx2 hy2)
+  src-dst-Δ-lemma x y (D-pop p) hx hy
+    with <M>-elim hx | <M>-elim hy
+  ...| hx0 , hx1 , hx2 | hy0 , hy1 , hy2
+    rewrite hx1 | hy1
+      = <M>-intro (src-dst-Δ-lemma hx0 hy0 p hx2 hy2)
+  src-dst-Δ-lemma x y (D-pair p p₁) hx hy
+    with D-Δ p
+  ...| nothing        = {!!}
+  ...| just (sp , dp) = {!!}
+  src-dst-Δ-lemma x y (D-mu x₁) hx hy = {!!}
+  
+end{code}

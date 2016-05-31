@@ -113,18 +113,9 @@ module Diffing.Patches.Diff where
 \end{code}
 %<*gapply-mu-def>
 \begin{code}
-    gapply {ty = μ ty} (D-mu d) el = gapplyL d (el ∷ []) >>= safeHead
+    gapply {ty = μ ty} (D-mu d) el = gapplyL d (el ∷ []) >>= lhead
 \end{code}
 %</gapply-mu-def>
-
-%<*safeHead-def>
-\begin{code}
-    safeHead : ∀{a}{A : Set a} → List A → Maybe A
-    safeHead []       = nothing
-    safeHead (x ∷ []) = just x
-    safeHead _        = nothing
-\end{code}
-%</safeHead-def>
 
 %<*gIns-type>
 \begin{code}
