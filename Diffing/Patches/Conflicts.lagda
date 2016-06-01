@@ -156,14 +156,12 @@ module Diffing.Patches.Conflicts where
 
 %<*partial-merge>
 \begin{code}
-  partial-merge : ∀{a}{n : ℕ}{t : T n}{ty : U n}
-                  {A : {n : ℕ} → T n → U n → Set a}
+  partial-merge : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
                 → D (Fewer A) t ty → D A t ty
   partial-merge = aux
     where
       mutual
-        aux : ∀{a}{n : ℕ}{t : T n}{ty : U n}
-               {A : {n : ℕ} → T n → U n → Set a}
+        aux : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
             → D (Fewer A) t ty → D A t ty
         aux (D-A (i1 x)) = cast x
         aux (D-A (i2 y)) = D-A y
@@ -178,8 +176,7 @@ module Diffing.Patches.Conflicts where
         aux (D-top d) = D-top (aux d)
         aux (D-pop d) = D-pop (aux d)
 
-        aux* : ∀{a}{n : ℕ}{t : T n}{ty : U (suc n)}
-               {A : {n : ℕ} → T n → U n → Set a}
+        aux* : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
              → List (Dμ (Fewer A) t ty) → List (Dμ A t ty)
         aux* [] = []
         aux* (Dμ-A (i1 (D-A ())) ∷ ls)
