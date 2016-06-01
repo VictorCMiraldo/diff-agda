@@ -311,21 +311,3 @@ begin{code}
   src-dst-Δ-lemma x y (D-mu x₁) hx hy = {!!}
   
 end{code}
-
-
-  And an alignment definition
-
-\begin{code}
-  infix 30 _∥_ _∥μ_
-  _∥_ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-      → (p q : D A t ty)
-      → Set
-  _∥_ {A} {n} {t} {ty} p q
-    = Σ (ElU ty t) (λ x → D-src p ≡ just x × D-src p ≡ D-src q)
-
-  _∥μ_ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
-      → (p q : List (Dμ A t ty))
-      → Set
-  _∥μ_ {A} {n} {t} {ty} p q
-    = Σ (List (ElU (μ ty) t)) (λ x → Dμ-src p ≡ just x × Dμ-src p ≡ Dμ-src q)
-\end{code}

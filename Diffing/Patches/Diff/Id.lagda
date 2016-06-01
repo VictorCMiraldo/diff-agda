@@ -48,6 +48,55 @@ module Diffing.Patches.Diff.Id where
     Is-diffL-id (Dμ-dwn dx ∷ p) = Is-diff-id dx × Is-diffL-id p
 \end{code}
 
+\begin{code}
+  mutual
+\end{code}
+%<*Is-diff-id-dec-type>
+\begin{code}
+    Is-diff-id? : {n : ℕ}{t : T n}{ty : U n}
+               → (d : Patch t ty) → Dec (Is-diff-id d)
+\end{code}
+%</Is-diff-id-dec-type>
+\begin{code}
+    Is-diff-id? (D-A ())
+    Is-diff-id? D-unit = yes unit
+    Is-diff-id? (D-inl p) = Is-diff-id? p
+    Is-diff-id? (D-inr p) = Is-diff-id? p
+    Is-diff-id? (D-setl x x₁) = no (λ z → z)
+    Is-diff-id? (D-setr x x₁) = no (λ z → z)
+    Is-diff-id? (D-pair p p₁)
+      with Is-diff-id? p | Is-diff-id? p₁
+    ...| no nop | _       = no (nop ∘ p1)
+    ...| yes pp | no nop₁ = no (nop₁ ∘ p2)
+    ...| yes pp | yes qq  = yes (pp , qq)
+    Is-diff-id? (D-mu []) = no (λ z → p2 z refl)
+    Is-diff-id? (D-mu (x ∷ xs))
+      with Is-diffL-id? (x ∷ xs)
+    ...| no  p = no (p ∘ p1)
+    ...| yes p = yes (p , (λ ()))
+    Is-diff-id? (D-def p) = Is-diff-id? p
+    Is-diff-id? (D-top p) = Is-diff-id? p
+    Is-diff-id? (D-pop p) = Is-diff-id? p
+\end{code}
+%<*Is-diffL-id-dec-type>
+\begin{code}
+    Is-diffL-id? : {n : ℕ}{t : T n}{ty : U (suc n)}
+                → (d : Patchμ t ty) → Dec (Is-diffL-id d)
+\end{code}
+%</Is-diffL-id-dec-type>
+\begin{code}
+    Is-diffL-id? [] = yes unit
+    Is-diffL-id? (Dμ-A () ∷ p)
+    Is-diffL-id? (Dμ-ins x ∷ p) = no (λ z → z)
+    Is-diffL-id? (Dμ-del x ∷ p) = no (λ z → z)
+    Is-diffL-id? (Dμ-dwn x ∷ p)
+      with Is-diff-id? x | Is-diffL-id? p
+    ...| no  t | _ = no (t ∘ p1)
+    ...| yes t | no  u = no (u ∘ p2)
+    ...| yes t | yes u = yes (t , u)
+\end{code}
+
+
   The identity patch is the same as (gdiff x x) but
   much easier to compute, as no comparisons are needed.
 

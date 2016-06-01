@@ -5,6 +5,7 @@ open import Diffing.Universe
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor using (cast; forget)
 open import Diffing.Patches.Diff.Id
+open import Diffing.Patches.Diff.Alignment
 open import Diffing.Patches.Conflicts
 
 module Diffing.Patches.Residual where
@@ -43,119 +44,35 @@ module Diffing.Patches.Residual where
 \end{code}
 %<*residual-type>
 \begin{code}
-    _/_ : {n : ℕ}{t : T n}{ty : U n} 
-        → Patch t ty → Patch t ty → Maybe (D C t ty)
+    res : {n : ℕ}{t : T n}{ty : U n}
+        → (p q : Patch t ty)(hip : p || q)
+        → D C t ty
 \end{code}
 %</residual-type>
 \begin{code}
-    _/_ {ty = u1} p q = just D-unit
-
-    _/_ {ty = a ⊕ b} (D-inl p) (D-inl q) = D-inl <M> (p / q)
-    _/_ {ty = a ⊕ b} (D-inr p) (D-inr q) = D-inr <M> (p / q)
+    res (D-A ()) q hip
+    res p (D-A ()) hip
+    res D-unit D-unit hip = D-unit
+    res {ty = ty ⊕ tv} (D-inl p) (D-inl q) hip
+      = D-inl (res p q (||-inl-elim {p = p} {q = q} hip))
+    res (D-inl p) (D-setl xa xb) hip = {!!}
     
-    _/_ {ty = a ⊕ b} (D-setl xa xb) (D-setl ya yb) with xa ≟-U ya
-    ...| no  _ = nothing
-    ...| yes _ with xb ≟-U yb
-    ...| no  _ = just (D-A (UpdUpd (inl xa) (inr xb) (inr yb)))
-    ...| yes _ = just (D-setl xa xb)
-    _/_ {ty = a ⊕ b} (D-setr xa xb) (D-setr ya yb) with xa ≟-U ya
-    ...| no  _ = nothing
-    ...| yes _ with xb ≟-U yb
-    ...| no  _ = just (D-A (UpdUpd (inr xa) (inl xb) (inl yb)))
-    ...| yes _ = just (D-setr xa xb)
+    res (D-inl p) (D-inr q)     hip = {!!}
+    res (D-inl p) (D-setr x x₁) hip = {!!}
+    
+    res (D-inr p) q hip = {!!}
+    res (D-setl x x₁) q hip = {!!}
+    res (D-setr x x₁) q hip = {!!}
+    res (D-pair p p₁) q hip = {!!}
+    res (D-mu x) q hip = {!!}
+    res (D-def p) q hip = {!!}
+    res (D-top p) q hip = {!!}
+    res (D-pop p) q hip = {!!}
+    
 
-    _/_ {ty = a ⊕ b} (D-setl xa xb) (D-inl p) with gapply p xa
-    ...| nothing = nothing
-    ...| just xa' with xa ≟-U xa' 
-    ...| no  _ = just (D-A (UpdUpd (inl xa) (inr xb) (inl xa')))
-    ...| yes _ = just (D-setl xa xb)
-    _/_ {ty = a ⊕ b} (D-inl p) (D-setl xa xb) with gapply p xa
-    ...| nothing = nothing
-    ...| just xa' with xa ≟-U xa' 
-    ...| no  _ = just (D-A (UpdUpd (inl xa) (inl xa') (inr xb)))
-    ...| yes _ = just (D-setl xa xb)
-    _/_ {ty = a ⊕ b} (D-setr xa xb) (D-inr p) with gapply p xa
-    ...| nothing = nothing
-    ...| just xa' with xa ≟-U xa'
-    ...| no  _ = just (D-A (UpdUpd (inr xa) (inl xb) (inr xa')))
-    ...| yes _ = just (D-setr xa xb)
-    _/_ {ty = a ⊕ b} (D-inr p) (D-setr xa xb) with gapply p xa
-    ...| nothing = nothing
-    ...| just xa' with xa ≟-U xa'
-    ...| no  _ = just (D-A (UpdUpd (inr xa) (inr xa') (inl xb)))
-    ...| yes _ = just (D-setr xa xb)
+    resμ : {n : ℕ}{t : T n}{ty : U (suc n)}
+         → (ps qs : Patchμ t ty) → ps ||μ qs → List (Dμ C t ty)
 
-    _/_ {ty = a ⊗ b} (D-pair p1 p2) (D-pair q1 q2) 
-      = D-pair <M> (p1 / q1) <M*> (p2 / q2)
-
-    _/_ {ty = def F x} (D-def p) (D-def q) = D-def <M> (p / q)
-    _/_ {ty = var} (D-top p) (D-top q) = D-top <M> (p / q)
-    _/_ {ty = wk ty} (D-pop p) (D-pop q) = D-pop <M> (p / q)
-
-    _/_ {ty = μ ty} (D-mu p) (D-mu q) = D-mu <M> res p q
-
-    -- Every other scenarios are non-aligned patches.
-    _ / _ = nothing
-
-    res : {n : ℕ}{t : T n}{ty : U (suc n)}
-        → (a b : Patchμ t ty) → Maybe (List (Dμ C t ty))
-
-    res _ (Dμ-A () ∷ _)
-    res (Dμ-A () ∷ _) _
-
-    -- if both patches finishes together, easy.
-    res [] [] = just []
-   
-    -- we can always keep inserting things, though.
-    -- If we find the same exact insert, though, we simply copy it.
-\end{code}
-%<*res-ins-case>
-\begin{code}
-    res (Dμ-ins x ∷ dp) (Dμ-ins y ∷ dq) with x == y
-    ...| True  = _∷_ (Dμ-dwn (cast (gdiff-id x))) <$> res dp dq
-    ...| False = _∷_ (Dμ-A (GrowLR x y)) <$> res dp dq
-    res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-A (GrowR x)) <$> res dp dq
-    res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-A (GrowL x)) <$> res dp dq
-\end{code}
-%</res-ins-case>
-\begin{code}
-
-    res (Dμ-del x ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
-    ...| yes _ = res dp dq
-    ...| no  p = nothing
-
-    res (Dμ-dwn dx ∷ dp) (Dμ-dwn dy ∷ dq) 
-      = _∷_ <M> (Dμ-dwn <M> (dx / dy)) <M*> res dp dq
-\end{code}
-%<*res-dwn-del-case>
-\begin{code}
-    res (Dμ-dwn dx ∷ dp) (Dμ-del y ∷ dq)
-      with gapply dx y
-    ...| nothing = nothing
-    ...| just y' with y == y'
-    ...| True  = res dp dq
-    ...| False = _∷_ (Dμ-A (UpdDel y' y)) <$> res dp dq    
-\end{code}
-%</res-dwn-del-case>
-\begin{code}
-    res (Dμ-del y ∷ dp) (Dμ-dwn dx ∷ dq)
-      with gapply dx y
-    ...| just y'  
-       = dec-elim (λ _ → _∷_ (Dμ-del y) <M> res dp dq)
-                  (λ _ → _∷_ (Dμ-A (DelUpd y y')) <M> res dp dq)
-                  (y ≟-U y')
-    ...| nothing = nothing
-
-    res [] _  = nothing
-    res _ []  = nothing
+    resμ ps qs = {!!}
 \end{code}
 
-The simple residuals are the ones defined and
-without conflicts!
-
-\begin{code}
-  /-simple : {n : ℕ}{t : T n}{ty : U n}
-           → Maybe (D C t ty) → Set
-  /-simple nothing  = ⊥
-  /-simple (just d) = forget d ≡ []
-\end{code}
