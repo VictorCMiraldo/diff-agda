@@ -249,6 +249,22 @@ module Diffing.Patches.Diff.D where
   progressing development. These proofs are mechanical.
 
 \begin{code}
+  D-src-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → D A t ty → Maybe (ElU ty t)
+  D-src-wf p = p1 <M> D-Δ p
+
+  D-dst-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → D A t ty → Maybe (ElU ty t)
+  D-dst-wf p = p2 <M> D-Δ p
+
+  Dμ-src-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+           → List (Dμ A t ty) → Maybe (List (ElU (μ ty) t))
+  Dμ-src-wf p = p1 <M> Dμ-Δ p
+
+  Dμ-dst-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+           → List (Dμ A t ty) → Maybe (List (ElU (μ ty) t))
+  Dμ-dst-wf p = p2 <M> Dμ-Δ p
+
   postulate
     src-dst-Δ-lemma
       : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}

@@ -5,7 +5,7 @@ open import Prelude.ListProperties
 open import Diffing.Universe
 
 open import CF.Properties
-  using (plug-spec-ch)
+  using (plug-spec-ch; plug-spec-fgt)
 
 open import Diffing.Patches.Diff
 
@@ -86,6 +86,29 @@ module Diffing.Patches.Diff.Alignment where
     with <M>-elim ps | <M>-elim qs
   ...| r0 , r1 , r2 | s0 , s1 , s2
     = inl≡inr→⊥ (trans (sym r1) s1)
+
+  ||-inl-setr-⊥
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {p : D A t ty}{x : ElU ty t}{y : ElU tv t}
+    → D-inl p || D-setr y x → ⊥
+  ||-inl-setr-⊥ (el , ps , qs)
+    with <M>-elim ps
+  ...| r0 , r1 , r2 = inl≡inr→⊥ (trans (sym r1) (sym (just-inj qs)))
+
+  ||-inr-setl-⊥
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {p : D A t tv}{x : ElU ty t}{y : ElU tv t}
+    → D-inr p || D-setl x y → ⊥
+  ||-inr-setl-⊥ (el , ps , qs)
+    with <M>-elim ps
+  ...| r0 , r1 , r2 = inl≡inr→⊥ (sym (trans (sym r1) (sym (just-inj qs))))
+
+  ||-setl-setr-⊥
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {x a : ElU ty t}{y b : ElU tv t}
+    → D-setl {A = A} x y || D-setr b a → ⊥
+  ||-setl-setr-⊥ (el , ps , qs)
+    = inl≡inr→⊥ (trans (just-inj ps) (sym (just-inj qs)))
 
   ||-pair-elim
     : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
@@ -205,7 +228,7 @@ module Diffing.Patches.Diff.Alignment where
     : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
       {x y : D A (u1 ∷ t) ty}{p q : List (Dμ A t ty)}
     → (Dμ-dwn x ∷ p) ||μ (Dμ-dwn y ∷ q)
-    → p ||μ q
+    → p ||μ q × x || y
   ||μ-dwn-dwn-elim {ty = ty} {x} {y} {p} {q} (el , ps , qs)
     with D-src x | Dμ-src p
   ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
@@ -231,7 +254,7 @@ module Diffing.Patches.Diff.Alignment where
     with plug 0 sy (map pop sq0) | inspect (plug 0 sy) (map pop sq0)
   ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym qs))
   ...| just sy' | [ SY ]
-    = sp0 ++ sp1
+    = (sp0 ++ sp1
     , cong just (lsplit-elim (ar 0 sx) sp SP)
     , cong just (trans (lsplit-elim (ar 0 sy) sq SQ)
                 (trans (cong (_++_ sq0) (p2 (∷-inj (just-inj (trans qs (sym ps))))))
@@ -239,13 +262,18 @@ module Diffing.Patches.Diff.Alignment where
                       (trans (sym (plug-spec-ch 0 sy' sy (map pop sq0) SY))
                       (sym (trans (sym (plug-spec-ch 0 sx' sx (map pop sp0) SX))
                            (cong (ch 0) (inj-mu (p1 (∷-inj (just-inj (trans ps (sym qs)))))))))))
-                 )))
+                 ))))
+    , (sx , refl
+          , cong just (trans (sym (plug-spec-fgt 0 sy' sy (map pop sq0) SY))
+                 (sym (trans (sym (plug-spec-fgt 0 sx' sx (map pop sp0) SX))
+                      (cong (fgt 0) (inj-mu (p1 (∷-inj (just-inj (trans ps (sym qs))))))))))) 
+    
 
   ||μ-del-del-elim
     : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
       {a b : ValU ty t}{p q : List (Dμ A t ty)}
     → (Dμ-del b ∷ p) ||μ (Dμ-del a ∷ q)
-    → p ||μ q
+    → p ||μ q × b ≡ a
   ||μ-del-del-elim {ty = ty} {a} {b} {p} {q} (el , ps , qs)
     with Dμ-src p | Dμ-src q
   ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
@@ -267,7 +295,7 @@ module Diffing.Patches.Diff.Alignment where
     with plug 0 b (map pop sp0) | inspect (plug 0 b) (map pop sp0)
   ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
   ...| just b' | [ B ]
-    = sp0 ++ sp1
+    = (sp0 ++ sp1
     , cong just (lsplit-elim (ar 0 b) sp SP)
     , cong just (trans (lsplit-elim (ar 0 a) sq SQ)
                 (trans (cong (_++_ sq0) (p2 (∷-inj (just-inj (trans qs (sym ps))))))
@@ -276,4 +304,7 @@ module Diffing.Patches.Diff.Alignment where
                       (sym (trans (sym (plug-spec-ch 0 b' b (map pop sp0) B))
                            (cong (ch 0) (inj-mu (p1 (∷-inj (just-inj (trans ps (sym qs)))))))))))
                  )))
+    ) , trans (sym (plug-spec-fgt 0 b' b (map pop sp0) B))
+        (sym (trans (sym (plug-spec-fgt 0 a' a (map pop sq0) A))
+             (cong (fgt 0) (inj-mu (p1 (∷-inj (just-inj (trans qs (sym ps)))))))))
 \end{code}
