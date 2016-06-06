@@ -1,8 +1,8 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Patches.Diff
+open import Diffing.Universe
+open import Diffing.Patches.D
+open import Diffing.Apply
 
 module Diffing.Patches.Properties.Overlap where
 \end{code}
@@ -15,7 +15,7 @@ module Diffing.Patches.Properties.Overlap where
 
 \begin{code}
   mutual
-    NoOverlap : {n : ℕ}{t : Tel n}{ty : U n}
+    NoOverlap : {n : ℕ}{t : T n}{ty : U n}
               → (d1 d2 : Patch t ty)
               → Set
     NoOverlap (D-A ()) _
@@ -59,13 +59,13 @@ module Diffing.Patches.Properties.Overlap where
     NoOverlap (D-pair d1 d2) (D-pair d3 d4)
       = NoOverlap d1 d3 × NoOverlap d2 d4
 
-    NoOverlap (D-β d1)   (D-β d2)   = NoOverlap d1 d2
+    NoOverlap (D-def d1) (D-def d2)   = NoOverlap d1 d2
     NoOverlap (D-top d1) (D-top d2) = NoOverlap d1 d2
     NoOverlap (D-pop d1) (D-pop d2) = NoOverlap d1 d2
     NoOverlap (D-mu d1)  (D-mu d2)  = NoOverlapμ d1 d2
 
     -- Fixed points can be complicated.
-    NoOverlapμ : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+    NoOverlapμ : {n : ℕ}{t : T n}{ty : U (suc n)}
                → (d1 d2 : Patchμ t ty)
                → Set
     NoOverlapμ (Dμ-A () ∷ d1) (_ ∷ d2)
@@ -87,45 +87,24 @@ module Diffing.Patches.Properties.Overlap where
     -- the patches are overlaping.
     -- However, if the elements differ, they are not aligned,
     -- and, therefore, trivially non-overlapping.
-    NoOverlapμ (Dμ-del x ∷ xs) (Dμ-dwn y dy ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = ⊥
-    NoOverlapμ (Dμ-dwn x dx ∷ xs) (Dμ-del y ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = ⊥
+    NoOverlapμ (Dμ-del x ∷ xs) (Dμ-dwn y ∷ ys) = ?
+    NoOverlapμ (Dμ-dwn x ∷ xs) (Dμ-del y ∷ ys) = ?
     -- Here, the units refer to non-aligned patches,
     -- the only really interesting case is the dwn case.
     NoOverlapμ (Dμ-del x ∷ xs) (Dμ-del y ∷ ys) with x ≟-U y
     ...| no  _ = Unit
     ...| yes _ = NoOverlapμ xs ys
-    NoOverlapμ (Dμ-del x ∷ xs) (Dμ-cpy y ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = NoOverlapμ xs ys    
-    NoOverlapμ (Dμ-cpy x ∷ xs) (Dμ-del y ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = NoOverlapμ xs ys
-    NoOverlapμ (Dμ-cpy x ∷ xs) (Dμ-cpy y ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = NoOverlapμ xs ys
-    NoOverlapμ (Dμ-cpy x ∷ xs) (Dμ-dwn y dy ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = NoOverlapμ xs ys
-    NoOverlapμ (Dμ-dwn x dx ∷ xs) (Dμ-cpy y ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = NoOverlapμ xs ys
-    NoOverlapμ (Dμ-dwn x dx ∷ xs) (Dμ-dwn y dy ∷ ys) with x ≟-U y
-    ...| no  _ = Unit
-    ...| yes _ = NoOverlap dx dy × NoOverlapμ xs ys
+    NoOverlapμ (Dμ-dwn x ∷ xs) (Dμ-dwn y ∷ ys)
+      = NoOverlap x y × NoOverlapμ xs ys
 \end{code}
 
 \begin{code}
-  NoOverlapμ-[] : {n : ℕ}{t : Tel n}{ty : U (suc n)}
+  NoOverlapμ-[] : {n : ℕ}{t : T n}{ty : U (suc n)}
                 → (d1 : Patchμ t ty)
                 → NoOverlapμ d1 [] ≡ Unit
   NoOverlapμ-[] [] = refl
   NoOverlapμ-[] (Dμ-A () ∷ d1)
   NoOverlapμ-[] (Dμ-ins x ∷ d1) = refl
   NoOverlapμ-[] (Dμ-del x ∷ d1) = refl
-  NoOverlapμ-[] (Dμ-cpy x ∷ d1) = refl
-  NoOverlapμ-[] (Dμ-dwn x x₁ ∷ d1) = refl
+  NoOverlapμ-[] (Dμ-dwn x ∷ d1) = refl
 \end{code}
