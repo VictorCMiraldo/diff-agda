@@ -31,7 +31,8 @@ module Diffing.Diff (Δ : Cost) where
 \begin{code}
     costL : {n : ℕ}{t : T n}{ty : U (suc n)} 
           → Patchμ t ty → ℕ
-    costL = sum ∘ map costμ
+    costL [] = 0
+    costL (p ∷ ps) = costμ p + costL ps
 \end{code}
 %<*cost-def>
 \begin{code}
