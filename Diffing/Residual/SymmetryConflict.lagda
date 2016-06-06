@@ -1,14 +1,15 @@
 \begin{code}
 open import Prelude
 open import Diffing.Universe
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor
-open import Diffing.Patches.Diff.Id
-open import Diffing.Patches.Conflicts
-open import Diffing.Patches.Residual
-open import Diffing.Patches.Residual.Symmetry
+open import Diffing.Patches.D
+open import Diffing.Patches.Functor
+open import Diffing.Patches.Id
+open import Diffing.Conflicts.C
+open import Diffing.Residual
+open import Diffing.Residual.Symmetry
+open import Diffing.Apply
 
-module Diffing.Patches.Residual.SymmetryConflict where
+module Diffing.Residual.SymmetryConflict where
 \end{code}
 
   The residual symmetry theorem does not guarantee that the symmetric

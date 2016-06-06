@@ -1,9 +1,9 @@
 open import Prelude
 open import Diffing.Universe
-open import Diffing.Patches.Diff.D
+open import Diffing.Patches.D
 open import Function using (_∋_)
 
-module Diffing.Patches.Diff.Functor where
+module Diffing.Patches.Functor where
 
   {-
     This module defines some functorial functionality for

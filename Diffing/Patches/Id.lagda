@@ -3,9 +3,11 @@ open import Prelude
 open import Prelude.NatProperties
 
 open import Diffing.Universe
-open import Diffing.Patches.Diff
+open import Diffing.Patches.Cost
+open import Diffing.Patches.D
+open import Diffing.Diff
 
-module Diffing.Patches.Diff.Id where
+module Diffing.Patches.Id where
 \end{code}
 
   It is easy to check whether a diff is the identity
@@ -130,16 +132,16 @@ module Diffing.Patches.Diff.Id where
 \end{code}
 %<*gdiff-id-cost-type>
 \begin{code}
-    gdiff-id-cost : {n : ℕ}{t : T n}{ty : U n}
-                  → (a : ElU ty t) → cost (gdiff-id a) ≡ 0
+    gdiff-id-cost : {n : ℕ}{t : T n}{ty : U n}{c : Cost}
+                  → (a : ElU ty t) → cost c (gdiff-id a) ≡ 0
 \end{code}
 %</gdiff-id-cost-type>
 \begin{code}
     gdiff-id-cost unit = refl
     gdiff-id-cost (inl a) = gdiff-id-cost a
     gdiff-id-cost (inr a) = gdiff-id-cost a
-    gdiff-id-cost (a1 , a2) 
-      = subst (λ P → P + cost (gdiff-id a2) ≡ 0) 
+    gdiff-id-cost {c = c} (a1 , a2) 
+      = subst (λ P → P + cost c (gdiff-id a2) ≡ 0) 
               (sym (gdiff-id-cost a1)) (gdiff-id-cost a2)
     gdiff-id-cost (top a) = gdiff-id-cost a
     gdiff-id-cost (pop a) = gdiff-id-cost a
@@ -147,11 +149,11 @@ module Diffing.Patches.Diff.Id where
     gdiff-id-cost (red a) = gdiff-id-cost a 
 
     {-# TERMINATING #-}
-    gdiffL-id-cost : {n : ℕ}{t : T n}{ty : U (suc n)}
-                  → (a : List (ElU (μ ty) t)) → sum (map costμ (gdiffL-id a)) ≡ 0
+    gdiffL-id-cost : {n : ℕ}{t : T n}{ty : U (suc n)}{c : Cost}
+                  → (a : List (ElU (μ ty) t)) → sum (map (costμ c) (gdiffL-id a)) ≡ 0
     gdiffL-id-cost [] = refl
-    gdiffL-id-cost (a ∷ as) 
-      = subst (λ P → P + sum (map costμ (gdiffL-id (μ-ch a ++ as))) ≡ 0) 
+    gdiffL-id-cost {c = c} (a ∷ as) 
+      = subst (λ P → P + sum (map (costμ c) (gdiffL-id (μ-ch a ++ as))) ≡ 0) 
               (sym (gdiff-id-cost (μ-hd a))) 
               (gdiffL-id-cost (μ-ch a ++ as))
 \end{code}
@@ -164,8 +166,8 @@ module Diffing.Patches.Diff.Id where
 %<*gdiff-id-correct-type>
 \begin{code}
     gdiff-id-correct 
-      : {n : ℕ}{t : T n}{ty : U n}
-      → (a : ElU ty t) → gdiff-id a ≡ gdiff a a
+      : {n : ℕ}{t : T n}{ty : U n}{c : Cost}
+      → (a : ElU ty t) → gdiff-id a ≡ gdiff c a a
 \end{code}
 %</gdiff-id-correct-type>
 \begin{code}
@@ -176,7 +178,8 @@ module Diffing.Patches.Diff.Id where
       = cong₂ D-pair (gdiff-id-correct a1) (gdiff-id-correct a2)
     gdiff-id-correct (top a) = cong D-top (gdiff-id-correct a)
     gdiff-id-correct (pop a) = cong D-pop (gdiff-id-correct a)
-    gdiff-id-correct (mu a) = cong D-mu (gdiffL-id-correct (mu a ∷ []))
+    gdiff-id-correct {c = c} (mu a)
+      = cong D-mu (gdiffL-id-correct {c = c} (mu a ∷ []))
     gdiff-id-correct (red a) = cong D-def (gdiff-id-correct a)
 
   {-
@@ -234,8 +237,8 @@ module Diffing.Patches.Diff.Id where
 
     {-# TERMINATING #-}
     gdiffL-id-correct
-      : {n : ℕ}{t : T n}{ty : U (suc n)}
-      → (as : List (ElU (μ ty) t)) → gdiffL-id as ≡ gdiffL as as
+      : {n : ℕ}{t : T n}{ty : U (suc n)}{c : Cost}
+      → (as : List (ElU (μ ty) t)) → gdiffL-id as ≡ gdiffL c as as
     gdiffL-id-correct [] = refl
     gdiffL-id-correct (a ∷ as) 
       = trustme

@@ -7,9 +7,9 @@ open import Diffing.Universe
 open import CF.Properties
   using (plug-spec-ch; plug-spec-fgt)
 
-open import Diffing.Patches.Diff
+open import Diffing.Patches.D
 
-module Diffing.Patches.Diff.Alignment where
+module Diffing.Patches.Alignment where
 \end{code}
 
 \begin{code}

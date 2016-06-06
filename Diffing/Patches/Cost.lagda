@@ -1,126 +1,52 @@
 \begin{code}
-open import Prelude hiding (_⊔_)
+open import Prelude
 open import Prelude.NatProperties
+  using (+-comm)
 
 open import Diffing.Universe
-open import Diffing.Patches.Diff.D
 
-module Diffing.Patches.Diff.Cost where
+module Diffing.Patches.Cost where
 \end{code}
 
+  A cost function is completely specified by the cost
+  of a D-setl/D-setr and Dμ-ins/Dμ-del operations, 
+  as long as they satisfy a few lemmas.
 
-  The cost function is trivial for the non-inductive types.
-  The inductive types are a bit trickier, though.
-  We want our diff to have maximum sharing, that means
-  we seek to copy most of the information we see.
-  However, there are two obvious ways of copying:
+%<*Cost-rec>
+\begin{code}
+  record Cost : Set where
+    constructor cost-rec
+    field
+      c⊕ : {n : ℕ}{t : T n}{x y : U n} → ElU x t → ElU y t → ℕ
+      cμ : {n : ℕ}{t : T n}{x : U (suc n)} → ElU x (u1 ∷ t) → ℕ
 
-    (D-mu-cpy x d) ∨ (D-mu-down (diff x x) d)
-
-  We want the first one to be chosen.
-  Which means, 
-  
-    cost (D-mu-cpy x d) < cost (D-mu-down (diff x x) d)
-  ↔         k + cost d  < cost (diff x x) + 1 + cost d
-  ⇐                  k  < cost (diff x x) + 1
-  
-  However, diff x x will basically be copying every constructor of x,
-  which is intuitively the size of x. We then define the cost of
-  copying x to be 0.
-
-  Inserting and deleting, on the other hand, must be more
-  expensive than making structural changes (when possible!)
-  The same reasoning applies to the fact that we prefer copying
-  over inserting and deleting.
-
-    D-mu-cpy x d ≈ D-mu-down (diff x x) d ≈ D-mu-ins x (D-mu-del x d)
-  
-  With this in mind, we implement the cost function as follows:
+      c⊕-sym-lemma : {n : ℕ}{t : T n}{x y : U n}
+                   → (ex : ElU x t)(ey : ElU y t)
+                   → c⊕ ex ey ≡ c⊕ ey ex
+\end{code}
+%</Cost-rec>
 
 \begin{code}
-  mutual
-    {-# TERMINATING #-}
-\end{code}
-%<*cost-type>
-\begin{code}
-    cost : {n : ℕ}{t : T n}{ty : U n} → Patch t ty → ℕ
-\end{code}
-%</cost-type>
-\begin{code}
-    costL : {n : ℕ}{t : T n}{ty : U (suc n)} 
-          → Patchμ t ty → ℕ
-    costL = sum ∘ map costμ
-\end{code}
-%<*cost-def>
-\begin{code}
-    cost (D-A ())
-    cost  D-unit        = 0
-    cost (D-inl d)      = cost d
-    cost (D-inr d)      = cost d
-    cost (D-setl xa xb) = 2 * (sizeElU xa + sizeElU xb)
-    cost (D-setr xa xb) = 2 * (sizeElU xa + sizeElU xb)
-    cost (D-pair da db) = cost da + cost db
-    cost (D-def d)   = cost d
-    cost (D-top d) = cost d
-    cost (D-pop d) = cost d
-    cost (D-mu l)  = costL l
-\end{code}
-%</cost-def>
+  open Cost {{...}}
 
+  C⊕ : {n : ℕ}{t : T n}{x y : U n} → Cost → ElU x t → ElU y t → ℕ
+  C⊕ (cost-rec r _ _) xa xb = r xa xb
 
-%<*costmu-type>
-\begin{code}
-    costμ : {n : ℕ}{t : T n}{ty : U (suc n)} 
-          → Dμ ⊥ₚ t ty → ℕ
-\end{code}
-%</costmu-type>
-%<*costmu-def>
-\begin{code}
-    costμ (Dμ-A ())
-    costμ (Dμ-ins x) = 1 + sizeElU x
-    costμ (Dμ-del x) = 1 + sizeElU x
-    costμ (Dμ-dwn x) = cost x
-\end{code}
-%</costmu-def>
-
-\begin{code}
-  infixr 20 _⊔_
-  infixr 20 _⊔μ_
+  Cμ : {n : ℕ}{t : T n}{x : U (suc n)}
+     → Cost → ElU x (u1 ∷ t) → ℕ
+  Cμ (cost-rec _ r _) x = r x
 \end{code}
 
-%<*lub-def>
+%<*top-down-cost-type>
 \begin{code}
-  _⊔_ : {n : ℕ}{t : T n}{ty : U n}
-      → Patch t ty → Patch t ty → Patch t ty
-  _⊔_ {ty = ty} da db with cost da ≤?-ℕ cost db
-  ...| yes _ = da
-  ...| no  _ = db
+  top-down-cost : Cost
 \end{code}
-%</lub-def>
-
-%<*lubmu-def>
+%</top-down-cost-type>
+%<*top-down-cost-def>
 \begin{code}
-  _⊔μ_ : {n : ℕ}{t : T n}{ty : U (suc n)}
-      → Patchμ t ty → Patchμ t ty → Patchμ t ty
-  _⊔μ_ da db with costL da ≤?-ℕ costL db
-  ...| yes _ = da
-  ...| no  _ = db
+  top-down-cost 
+    = cost-rec (λ ex ey → sizeElU ex + sizeElU ey) 
+               sizeElU
+               (λ ex ey → (+-comm (sizeElU ex) (sizeElU ey)))
 \end{code}
-%</lubmu-def>
-
-\begin{code}
-  ⊔μ-elim : {n : ℕ}{t : T n}{ty : U (suc n)}{P : Patchμ t ty → Set}
-          → (da db : Patchμ t ty)
-          → P da → P db → P (da ⊔μ db)
-  ⊔μ-elim da db pda pdb with costL da ≤?-ℕ costL db
-  ...| yes _ = pda
-  ...| no  _ = pdb
-\end{code}
-
-\begin{code}
-  ⊔μ-elim-3 : {n : ℕ}{t : T n}{ty : U (suc n)}{P : Patchμ t ty → Set}
-            → (da db dc : Patchμ t ty)
-            → P da → P db → P dc → P (da ⊔μ db ⊔μ dc)
-  ⊔μ-elim-3 da db dc pda pdb pdc
-    = ⊔μ-elim da (db ⊔μ dc) pda (⊔μ-elim db dc pdb pdc)
-\end{code}
+%</top-down-cost-def>

@@ -1,11 +1,11 @@
 \begin{code}
 open import Prelude
 open import Diffing.Universe
-open import Diffing.Patches.Diff.D
-open import Diffing.Patches.Diff.Functor 
+open import Diffing.Patches.D
+open import Diffing.Patches.Functor 
   using (forget; forgetμ; ↓_; cast; castμ)
 
-module Diffing.Patches.Conflicts where
+module Diffing.Conflicts.C where
 \end{code}
 
   Before jumping into the definition of merge, it is important to

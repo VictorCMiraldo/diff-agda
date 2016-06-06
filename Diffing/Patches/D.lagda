@@ -3,7 +3,7 @@ open import Prelude
 open import Prelude.Monad
 open import Diffing.Universe
 
-module Diffing.Patches.Diff.D where
+module Diffing.Patches.D where
 
   open Monad {{...}}
 \end{code}

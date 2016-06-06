@@ -2,12 +2,13 @@
 open import Prelude
 open import Diffing.Universe
 
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor using (cast; forget)
-open import Diffing.Patches.Diff.Id
-open import Diffing.Patches.Conflicts
+open import Diffing.Patches.D
+open import Diffing.Patches.Functor using (cast; forget)
+open import Diffing.Patches.Id
+open import Diffing.Conflicts.C
+open import Diffing.Apply
 
-module Diffing.Patches.Residual where
+module Diffing.Residual where
 \end{code}
 
   Residuals are the heart of a merge. the patch (p / q),

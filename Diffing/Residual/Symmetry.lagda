@@ -2,13 +2,14 @@
 open import Prelude
 open import Prelude.ListProperties
 open import Diffing.Universe
-open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor
-open import Diffing.Patches.Diff.Id
-open import Diffing.Patches.Conflicts
-open import Diffing.Patches.Residual
+open import Diffing.Patches.D
+open import Diffing.Patches.Functor
+open import Diffing.Patches.Id
+open import Diffing.Conflicts.C
+open import Diffing.Residual
+open import Diffing.Apply
 
-module Diffing.Patches.Residual.Symmetry where
+module Diffing.Residual.Symmetry where
 \end{code}
 
   An interesting observation, though, is that if (p / q) ≡ just k,
