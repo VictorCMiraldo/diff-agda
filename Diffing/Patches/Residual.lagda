@@ -5,7 +5,6 @@ open import Diffing.Universe
 open import Diffing.Patches.Diff
 open import Diffing.Patches.Diff.Functor using (cast; forget)
 open import Diffing.Patches.Diff.Id
-open import Diffing.Patches.Diff.Alignment
 open import Diffing.Patches.Conflicts
 
 module Diffing.Patches.Residual where
@@ -44,120 +43,119 @@ module Diffing.Patches.Residual where
 \end{code}
 %<*residual-type>
 \begin{code}
-    res : {n : ℕ}{t : T n}{ty : U n}
-        → (p q : Patch t ty)(hip : p || q)
-        → D C t ty
+    _/_ : {n : ℕ}{t : T n}{ty : U n} 
+        → Patch t ty → Patch t ty → Maybe (D C t ty)
 \end{code}
 %</residual-type>
 \begin{code}
-    res (D-A ()) q hip
-    res p (D-A ()) hip
-    res D-unit D-unit hip = D-unit
+    _/_ {ty = u1} p q = just D-unit
+
+    _/_ {ty = a ⊕ b} (D-inl p) (D-inl q) = D-inl <M> (p / q)
+    _/_ {ty = a ⊕ b} (D-inr p) (D-inr q) = D-inr <M> (p / q)
     
-    res {ty = ty ⊕ tv} (D-inl p) (D-inl q) hip
-      = D-inl (res p q (||-inl-elim {p = p} {q = q} hip))
-    res (D-inl p) (D-setl xa xb) hip
-      with Is-diff-id? p
-    ...| yes _ = D-setl xa xb
-    ...| no  _ = D-A (UpdUpd (inl xa) {!!} (inr xb))
-    res (D-setl xa xb) (D-inl q) hip
-      with Is-diff-id? q
-    ...| yes _ = D-setl xa xb
-    ...| no  _ = D-A (UpdUpd (inl xa) (inr xb) {!!})
-    res (D-setl xa xb) (D-setl xc xd) hip
-      with xb ≟-U xd
-    ...| no  _ = D-A (UpdUpd (inl xa) (inr xb) (inr xd))
-    ...| yes _ = cast (gdiff-id (inr xb))
+    _/_ {ty = a ⊕ b} (D-setl xa xb) (D-setl ya yb) with xa ≟-U ya
+    ...| no  _ = nothing
+    ...| yes _ with xb ≟-U yb
+    ...| no  _ = just (D-A (UpdUpd (inl xa) (inr xb) (inr yb)))
+    ...| yes _ = just (D-setl xa xb)
+    _/_ {ty = a ⊕ b} (D-setr xa xb) (D-setr ya yb) with xa ≟-U ya
+    ...| no  _ = nothing
+    ...| yes _ with xb ≟-U yb
+    ...| no  _ = just (D-A (UpdUpd (inr xa) (inl xb) (inl yb)))
+    ...| yes _ = just (D-setr xa xb)
 
-    res (D-inr p) (D-inr q) hip
-      = D-inr (res p q (||-inr-elim {p = p} {q} hip))
-    res (D-inr p) (D-setr xa xb) hip
-      with Is-diff-id? p
-    ...| yes _ = D-setr xa xb
-    ...| no  _ = D-A (UpdUpd (inr xa) {!!} (inl xb)) 
-    res (D-setr xa xb) (D-inr q) hip
-      with Is-diff-id? q
-    ...| yes _ = D-setr xa xb
-    ...| no  _ = D-A (UpdUpd (inr xa) (inl xb) {!!}) 
-    res (D-setr xa xb) (D-setr xc xd) hip
-      with xb ≟-U xd
-    ...| no  _ = D-A (UpdUpd (inr xa) (inl xb) (inl xd))
-    ...| yes _ = cast (gdiff-id (inl xb)) 
-    
-    res (D-inl p) (D-inr q)     hip
-      = ⊥-elim (||-inl-inr-⊥ {p = p} {q = q} hip)
-    res (D-inl p) (D-setr x x₁) hip
-      = ⊥-elim (||-inl-setr-⊥ {p = p} {x = x₁} {y = x} hip)
-    res (D-inr p) (D-inl q) hip
-      = ⊥-elim (||-inl-inr-⊥ {p = q} {q = p}
-               (||-sym {p = D-inr p} {D-inl q} hip))
-    res (D-inr p) (D-setl x x₁) hip
-      = ⊥-elim (||-inr-setl-⊥ {p = p} {x = x} {y = x₁} hip)
-    res (D-setl xa xb) (D-inr q) hip
-      = ⊥-elim (||-inr-setl-⊥ {p = q} {x = xa} {y = xb}
-               (||-sym {p = D-setl xa xb} {D-inr q} hip))
-    res (D-setl xa xb) (D-setr xc xd) hip
-      = ⊥-elim (||-setl-setr-⊥ {A = ⊥ₚ} {x = xa} {xd} {xb} {xc} hip)
-    res (D-setr xa xb) (D-inl q) hip
-      = ⊥-elim (||-inl-setr-⊥ {p = q} {x = xb} {y = xa}
-                (||-sym {p = D-setr xa xb} {q = D-inl q} hip))
-    res (D-setr xa xb) (D-setl xc xd) hip
-      = ⊥-elim (||-setl-setr-⊥ {A = ⊥ₚ} {x = xc} {xb} {xd} {xa}
-                (||-sym {A = ⊥ₚ} {p = D-setr xa xb} {q = D-setl xc xd} hip))
-    
-    res (D-pair d1 d2) (D-pair e1 e2) hip
-      = let hip1 , hip2 = ||-pair-elim {q1 = d1} {e1} {d2} {e2} hip
-         in D-pair (res d1 e1 hip1) (res d2 e2 hip2)
+    _/_ {ty = a ⊕ b} (D-setl xa xb) (D-inl p) with gapply p xa
+    ...| nothing = nothing
+    ...| just xa' with xa ≟-U xa' 
+    ...| no  _ = just (D-A (UpdUpd (inl xa) (inr xb) (inl xa')))
+    ...| yes _ = just (D-setl xa xb)
+    _/_ {ty = a ⊕ b} (D-inl p) (D-setl xa xb) with gapply p xa
+    ...| nothing = nothing
+    ...| just xa' with xa ≟-U xa' 
+    ...| no  _ = just (D-A (UpdUpd (inl xa) (inl xa') (inr xb)))
+    ...| yes _ = just (D-setl xa xb)
+    _/_ {ty = a ⊕ b} (D-setr xa xb) (D-inr p) with gapply p xa
+    ...| nothing = nothing
+    ...| just xa' with xa ≟-U xa'
+    ...| no  _ = just (D-A (UpdUpd (inr xa) (inl xb) (inr xa')))
+    ...| yes _ = just (D-setr xa xb)
+    _/_ {ty = a ⊕ b} (D-inr p) (D-setr xa xb) with gapply p xa
+    ...| nothing = nothing
+    ...| just xa' with xa ≟-U xa'
+    ...| no  _ = just (D-A (UpdUpd (inr xa) (inr xa') (inl xb)))
+    ...| yes _ = just (D-setr xa xb)
 
-    res (D-def p) (D-def q) hip
-      = D-def (res p q (||-def-elim {p = p} {q} hip))
-    res (D-top p) (D-top q) hip
-      = D-top (res p q (||-top-elim {p = p} {q} hip))
-    res (D-pop p) (D-pop q) hip
-      = D-pop (res p q (||-pop-elim {p = p} {q} hip))
-         
-    res (D-mu x) (D-mu y) hip
-      = D-mu (resμ x y (||-mu-elim {p = x} {y} hip))    
+    _/_ {ty = a ⊗ b} (D-pair p1 p2) (D-pair q1 q2) 
+      = D-pair <M> (p1 / q1) <M*> (p2 / q2)
 
-    resμ : {n : ℕ}{t : T n}{ty : U (suc n)}
-         → (ps qs : Patchμ t ty) → ps ||μ qs → List (Dμ C t ty)
-    resμ [] [] hip = []
-    resμ  _ (Dμ-A () ∷ _) _
-    resμ  (Dμ-A () ∷ _) _ _
+    _/_ {ty = def F x} (D-def p) (D-def q) = D-def <M> (p / q)
+    _/_ {ty = var} (D-top p) (D-top q) = D-top <M> (p / q)
+    _/_ {ty = wk ty} (D-pop p) (D-pop q) = D-pop <M> (p / q)
 
-    resμ (Dμ-ins a ∷ ps) (Dμ-ins b ∷ qs) hip
-      with a ≟-U b
-    ...| yes _ = resμ ps qs hip
-    ...| no  _ = Dμ-A (GrowLR a b) ∷ resμ ps qs hip
-    resμ (Dμ-ins a ∷ ps) qs hip
-      = Dμ-A (GrowL a) ∷ resμ ps qs hip
-    resμ ps (Dμ-ins b ∷ qs) hip
-      = Dμ-A (GrowR b) ∷ resμ ps qs hip
+    _/_ {ty = μ ty} (D-mu p) (D-mu q) = D-mu <M> res p q
 
-    resμ (Dμ-dwn x ∷ ps) (Dμ-dwn y ∷ qs) hip
-      = let ps||qs , x||y = ||μ-dwn-dwn-elim {x = x} {y} {ps} {qs} hip
-         in Dμ-dwn (res x y x||y) ∷ resμ ps qs ps||qs
+    -- Every other scenarios are non-aligned patches.
+    _ / _ = nothing
 
-    resμ (Dμ-dwn x ∷ ps) (Dμ-del y ∷ qs) hip
-      with Is-diff-id? x
-    ...| no  _ = Dμ-A (UpdDel {!!} y)
-               ∷ resμ ps qs (||μ-dwn-del-elim {a = y} {x = x} {ps} {qs} hip)
-    ...| yes _ = resμ ps qs (||μ-dwn-del-elim {a = y} {x = x} {ps} {qs} hip)
+    res : {n : ℕ}{t : T n}{ty : U (suc n)}
+        → (a b : Patchμ t ty) → Maybe (List (Dμ C t ty))
 
-    resμ (Dμ-del x ∷ ps) (Dμ-del y ∷ qs) hip
-      = {!!}
+    res _ (Dμ-A () ∷ _)
+    res (Dμ-A () ∷ _) _
 
-    resμ (Dμ-del x ∷ ps) (Dμ-dwn y ∷ qs) hip
-      with Is-diff-id? y
-    ...| no  _ = Dμ-A (DelUpd x {!!})
-               ∷ resμ ps qs (||μ-sym {p = qs} {ps} (||μ-dwn-del-elim {a = x} {x = y} {qs} {ps}
-                            (||μ-sym {p = Dμ-del x ∷ ps} {Dμ-dwn y ∷ qs} hip)))
-    ...| yes _ = Dμ-del x
-               ∷ resμ ps qs (||μ-sym {p = qs} {ps} (||μ-dwn-del-elim {a = x} {x = y} {qs} {ps}
-                            (||μ-sym {p = Dμ-del x ∷ ps} {Dμ-dwn y ∷ qs} hip)))
-    
-    
-    resμ [] (x ∷ qs) hip = {!!}
-    resμ (x ∷ ps) [] hip = {!!}
+    -- if both patches finishes together, easy.
+    res [] [] = just []
+   
+    -- we can always keep inserting things, though.
+    -- If we find the same exact insert, though, we simply copy it.
+\end{code}
+%<*res-ins-case>
+\begin{code}
+    res (Dμ-ins x ∷ dp) (Dμ-ins y ∷ dq) with x == y
+    ...| True  = _∷_ (Dμ-dwn (cast (gdiff-id x))) <$> res dp dq
+    ...| False = _∷_ (Dμ-A (GrowLR x y)) <$> res dp dq
+    res dp (Dμ-ins x ∷ dq) = _∷_ (Dμ-A (GrowR x)) <$> res dp dq
+    res (Dμ-ins x ∷ dp) dq = _∷_ (Dμ-A (GrowL x)) <$> res dp dq
+\end{code}
+%</res-ins-case>
+\begin{code}
+
+    res (Dμ-del x ∷ dp) (Dμ-del y ∷ dq) with x ≟-U y
+    ...| yes _ = res dp dq
+    ...| no  p = nothing
+
+    res (Dμ-dwn dx ∷ dp) (Dμ-dwn dy ∷ dq) 
+      = _∷_ <M> (Dμ-dwn <M> (dx / dy)) <M*> res dp dq
+\end{code}
+%<*res-dwn-del-case>
+\begin{code}
+    res (Dμ-dwn dx ∷ dp) (Dμ-del y ∷ dq)
+      with gapply dx y
+    ...| nothing = nothing
+    ...| just y' with y == y'
+    ...| True  = res dp dq
+    ...| False = _∷_ (Dμ-A (UpdDel y' y)) <$> res dp dq    
+\end{code}
+%</res-dwn-del-case>
+\begin{code}
+    res (Dμ-del y ∷ dp) (Dμ-dwn dx ∷ dq)
+      with gapply dx y
+    ...| just y'  
+       = dec-elim (λ _ → _∷_ (Dμ-del y) <M> res dp dq)
+                  (λ _ → _∷_ (Dμ-A (DelUpd y y')) <M> res dp dq)
+                  (y ≟-U y')
+    ...| nothing = nothing
+
+    res [] _  = nothing
+    res _ []  = nothing
 \end{code}
 
+The simple residuals are the ones defined and
+without conflicts!
+
+\begin{code}
+  /-simple : {n : ℕ}{t : T n}{ty : U n}
+           → Maybe (D C t ty) → Set
+  /-simple nothing  = ⊥
+  /-simple (just d) = forget d ≡ []
+\end{code}
