@@ -1,303 +1,310 @@
 \begin{code}
 open import Prelude
-open import Diffing.Universe.Syntax
-open import Diffing.Universe.Equality
-open import Diffing.Universe.MuUtils
+open import Prelude.ListProperties
+  using (lsplit-elim; ∷-inj; map-inj-inj; lhead-elim)
+open import Diffing.Universe
+
+open import CF.Properties
+  using (plug-spec-ch; plug-spec-fgt)
+
 open import Diffing.Patches.Diff
-open import Diffing.Patches.Diff.Functor
-open import Diffing.Patches.Residual
-open import Relation.Binary.PropositionalEquality
 
-module Diffing.Patches.Alignment where
+module Diffing.Patches.Diff.Alignment where
 \end{code}
 
-  Our definition of alignment is slightly different from
-  the one found in Marco's thesis.
-
-  He defines two patches to be aligned if they 
-  have the same source. In our terms, this means that for every object x,
-  patches d1 and d2 are aligned iff (gapply d1 x succeeds iff gapply d2 succeeds)
-
-  We use the partiality of residuals to define alignment.
-
-%<*Aligned>
 \begin{code}
-  Aligned : {n : ℕ}{t : Tel n}{ty : U n}
-          → (d1 d2 : Patch t ty)
-          → Set
-  Aligned d1 d2 = Is-Just (d1 / d2)
+  infix 30 _||_ _||μ_
+  _||_ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+      → (p q : D A t ty)
+      → Set
+  _||_ {A} {n} {t} {ty} p q
+    = Σ (ElU ty t) (λ x → D-src p ≡ just x × D-src q ≡ just x)
+
+  _||μ_ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → (p q : List (Dμ A t ty))
+      → Set
+  _||μ_ {A} {n} {t} {ty} p q
+    = Σ (List (ElU (μ ty) t)) (λ x → Dμ-src p ≡ just x × Dμ-src q ≡ just x)
+
+  ||-refl : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+          → {x : ElU ty t}{p : D A t ty}
+          → D-src p ≡ just x → p || p
+  ||-refl {x = x} hip = x , hip , hip
+
+  ||-sym : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+       → {p q : D A t ty}
+       → p || q → q || p
+  ||-sym (el , ps , qs) = el , qs , ps
+
+  ||-trans : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → {p q r : D A t ty}
+           → p || q → q || r → p || r
+  ||-trans (el1 , ps1 , qs1) (el2 , qs2 , rs2)
+    = el1 , ps1 , trans rs2 (trans (sym qs2) qs1)
+
+  ||μ-refl : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+          → {x : List (ElU (μ ty) t)}{p : List (Dμ A t ty)}
+          → Dμ-src p ≡ just x → p ||μ p
+  ||μ-refl {x = x} hip = x , hip , hip
+
+  ||μ-sym : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+       → {p q : List (Dμ A t ty)}
+       → p ||μ q → q ||μ p
+  ||μ-sym (el , ps , qs) = el , qs , ps
+
+  ||μ-trans : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+           → {p q r : List (Dμ A t ty)}
+           → p ||μ q → q ||μ r → p ||μ r
+  ||μ-trans (el1 , ps1 , qs1) (el2 , qs2 , rs2)
+    = el1 , ps1 , trans rs2 (trans (sym qs2) qs1)
 \end{code}
-%</Aligned>
 
-  Since residuals are symmetric, alignment is also symmetric.
-
-%<*aligned-sym>
 \begin{code}
-  aligned-sym : {n : ℕ}{t : Tel n}{ty : U n}
-              → {d1 d2 : Patch t ty}
-              → Aligned d1 d2
-              → Aligned d2 d1
-  aligned-sym {d1 = d1} {d2} j 
-    with residual-symmetry-thm d1 d2 (p2 (Is-Just-≡ j))
-  ...| op , hip = ≡-Is-Just hip
+  ||-inl-elim : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}{p q : D A t ty}
+             → D-inl {b = tv} p || D-inl q
+             → p || q
+  ||-inl-elim (el , ps , qs)
+    with <M>-elim ps | <M>-elim qs
+  ||-inl-elim (.(inl r0) , ps , qs)
+    | r0 , refl , r2 | .r0 , refl , s2
+    = r0 , (r2 , s2)
+
+  ||-inr-elim : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}{p q : D A t tv}
+             → D-inr {a = ty} p || D-inr q
+             → p || q
+  ||-inr-elim (el , ps , qs)
+    with <M>-elim ps | <M>-elim qs
+  ||-inr-elim (.(inr r0) , ps , qs)
+    | r0 , refl , r2 | .r0 , refl , s2
+    = r0 , (r2 , s2)
+
+  ||-inl-inr-⊥
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {p : D A t ty}{q : D A t tv}
+    → D-inl p || D-inr q → ⊥
+  ||-inl-inr-⊥ (el , ps , qs)
+    with <M>-elim ps | <M>-elim qs
+  ...| r0 , r1 , r2 | s0 , s1 , s2
+    = inl≡inr→⊥ (trans (sym r1) s1)
+
+  ||-inl-setr-⊥
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {p : D A t ty}{x : ElU ty t}{y : ElU tv t}
+    → D-inl p || D-setr y x → ⊥
+  ||-inl-setr-⊥ (el , ps , qs)
+    with <M>-elim ps
+  ...| r0 , r1 , r2 = inl≡inr→⊥ (trans (sym r1) (sym (just-inj qs)))
+
+  ||-inr-setl-⊥
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {p : D A t tv}{x : ElU ty t}{y : ElU tv t}
+    → D-inr p || D-setl x y → ⊥
+  ||-inr-setl-⊥ (el , ps , qs)
+    with <M>-elim ps
+  ...| r0 , r1 , r2 = inl≡inr→⊥ (sym (trans (sym r1) (sym (just-inj qs))))
+
+  ||-setl-setr-⊥
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {x a : ElU ty t}{y b : ElU tv t}
+    → D-setl {A = A} x y || D-setr b a → ⊥
+  ||-setl-setr-⊥ (el , ps , qs)
+    = inl≡inr→⊥ (trans (just-inj ps) (sym (just-inj qs)))
+
+  ||-pair-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+      {q1 q2 : D A t ty}{r1 r2 : D A t tv}
+    → D-pair q1 r1 || D-pair q2 r2
+    → q1 || q2 × r1 || r2
+  ||-pair-elim {q1 = q1} {q2} {r1} {r2} ((ela , elb) , ps , qs)
+    with D-src r1 | D-src q1
+  ...| nothing  | _       = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sr1 | nothing = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sr1 | just sq1
+    with D-src r2 | D-src q2
+  ...| nothing  | _       = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sr2 | nothing = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sr2 | just sq2
+    = (ela , cong just (p1 (inj-, (just-inj ps))) , cong just (p1 (inj-, (just-inj qs))))
+    , (elb , cong just (p2 (inj-, (just-inj ps))) , cong just (p2 (inj-, (just-inj qs))))
+
+  ||-def-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{x : U n}{F : U (suc n)}
+      {p q : D A (x ∷ t) F}
+    → D-def p || D-def q
+    → p || q
+  ||-def-elim (red el , ps , qs)
+    with <M>-elim ps
+  ...| .el , refl , x2
+    with <M>-elim qs
+  ...| .el , refl , y2 = el , x2 , y2
+
+  ||-top-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+      {p q : D A t ty}
+    → D-top p || D-top q
+    → p || q
+  ||-top-elim (top el , ps , qs)
+    with <M>-elim ps
+  ...| .el , refl , x2
+    with <M>-elim qs
+  ...| .el , refl , y2 = el , x2 , y2
+
+  ||-pop-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty a : U n}
+      {p q : D A t ty}
+    → D-pop {a = a} p || D-pop q
+    → p || q
+  ||-pop-elim (pop el , ps , qs)
+    with <M>-elim ps
+  ...| .el , refl , x2
+    with <M>-elim qs
+  ...| .el , refl , y2 = el , x2 , y2
+
+  ||-mu-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      {p q : List (Dμ A t ty)}
+    → D-mu p || D-mu q
+    → p ||μ q
+  ||-mu-elim {p = p} {q = q} (el , ps , qs)
+    with Dμ-src p | Dμ-src q
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sp | nothing = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sp | just sq
+    rewrite lhead-elim sp ps
+      = el ∷ [] , refl , cong just (lhead-elim sq qs)
+
+  ||μ-ins-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      {a : ValU ty t}{p q : List (Dμ A t ty)}
+    → (Dμ-ins a ∷ p) ||μ q
+    → p ||μ q
+  ||μ-ins-elim (els , ps , qs) = els , ps , qs
+
+  ||μ-ins-ins-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      {a b : ValU ty t}{p q : List (Dμ A t ty)}
+    → (Dμ-ins a ∷ p) ||μ (Dμ-ins b ∷ q)
+    → p ||μ q
+  ||μ-ins-ins-elim (els , ps , qs) = els , ps , qs 
+
+  ||μ-dwn-del-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      {a : ValU ty t}{x : D A (u1 ∷ t) ty}{p q : List (Dμ A t ty)}
+    → (Dμ-dwn x ∷ p) ||μ (Dμ-del a ∷ q)
+    → p ||μ q
+  ||μ-dwn-del-elim {ty = ty} {a} {x} {p} {q} (el , ps , qs)
+    with D-src x | Dμ-src p | Dμ-src q
+  ...| nothing | _ | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sx | nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sx | just sp | nothing = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sx | just sp | just sq
+    with ar 0 a ≤?-ℕ length sq
+  ...| no  _ = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| yes _
+    with ar 0 sx ≤?-ℕ length sp
+  ...| no  _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| yes _
+    with lsplit (ar 0 a) sq | inspect (lsplit (ar 0 a)) sq
+  ...| sq0 , sq1 | [ SQ ]
+    with lsplit (ar 0 sx) sp | inspect (lsplit (ar 0 sx)) sp
+  ...| sp0 , sp1 | [ SP ]
+    with plug 0 a (map pop sq0) | inspect (plug 0 a) (map pop sq0)
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just a' | [ A ]
+    with plug 0 sx (map pop sp0) | inspect (plug 0 sx) (map pop sp0)
+  ...| nothing  | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sx' | [ SX ]
+    = sp0 ++ sp1
+    , (cong just (lsplit-elim (ar 0 sx) sp SP ))
+    , cong just (trans (lsplit-elim (ar 0 a) sq SQ)
+                (trans (cong (_++_ sq0) (p2 (∷-inj (just-inj (trans qs (sym ps))))))
+                (cong (λ P → P ++ sp1) (map-inj-inj (pop {a = μ ty}) (λ _ _ → inj-pop) {sq0} {sp0}
+                      (trans (sym (plug-spec-ch 0 a' a (map pop sq0) A))
+                      (sym (trans (sym (plug-spec-ch 0 sx' sx (map pop sp0) SX))
+                           (cong (ch 0) (inj-mu (p1 (∷-inj (just-inj (trans ps (sym qs)))))))))))
+                 )))
+
+  ||μ-dwn-dwn-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      {x y : D A (u1 ∷ t) ty}{p q : List (Dμ A t ty)}
+    → (Dμ-dwn x ∷ p) ||μ (Dμ-dwn y ∷ q)
+    → p ||μ q × x || y
+  ||μ-dwn-dwn-elim {ty = ty} {x} {y} {p} {q} (el , ps , qs)
+    with D-src x | Dμ-src p
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sx | nothing = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sx | just sp
+    with D-src y | Dμ-src q
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sy | nothing = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sy | just sq
+    with ar 0 sx ≤?-ℕ length sp
+  ...| no _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| yes _
+    with ar 0 sy ≤?-ℕ length sq
+  ...| no _ = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| yes _
+    with lsplit (ar 0 sx) sp | inspect (lsplit (ar 0 sx)) sp
+  ...| sp0 , sp1 | [ SP ]
+    with lsplit (ar 0 sy) sq | inspect (lsplit (ar 0 sy)) sq
+  ...| sq0 , sq1 | [ SQ ]
+    with plug 0 sx (map pop sp0) | inspect (plug 0 sx) (map pop sp0)
+  ...| nothing  | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sx' | [ SX ]
+    with plug 0 sy (map pop sq0) | inspect (plug 0 sy) (map pop sq0)
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sy' | [ SY ]
+    = (sp0 ++ sp1
+    , cong just (lsplit-elim (ar 0 sx) sp SP)
+    , cong just (trans (lsplit-elim (ar 0 sy) sq SQ)
+                (trans (cong (_++_ sq0) (p2 (∷-inj (just-inj (trans qs (sym ps))))))
+                (cong (λ P → P ++ sp1) (map-inj-inj (pop {a = μ ty}) (λ _ _ → inj-pop) {sq0} {sp0}
+                      (trans (sym (plug-spec-ch 0 sy' sy (map pop sq0) SY))
+                      (sym (trans (sym (plug-spec-ch 0 sx' sx (map pop sp0) SX))
+                           (cong (ch 0) (inj-mu (p1 (∷-inj (just-inj (trans ps (sym qs)))))))))))
+                 ))))
+    , (sx , refl
+          , cong just (trans (sym (plug-spec-fgt 0 sy' sy (map pop sq0) SY))
+                 (sym (trans (sym (plug-spec-fgt 0 sx' sx (map pop sp0) SX))
+                      (cong (fgt 0) (inj-mu (p1 (∷-inj (just-inj (trans ps (sym qs))))))))))) 
+    
+
+  ||μ-del-del-elim
+    : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      {a b : ValU ty t}{p q : List (Dμ A t ty)}
+    → (Dμ-del b ∷ p) ||μ (Dμ-del a ∷ q)
+    → p ||μ q × b ≡ a
+  ||μ-del-del-elim {ty = ty} {a} {b} {p} {q} (el , ps , qs)
+    with Dμ-src p | Dμ-src q
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just sp | nothing = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just sp | just sq
+    with ar 0 a ≤?-ℕ length sq
+  ...| no _ = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| yes _
+    with ar 0 b ≤?-ℕ length sp
+  ...| no _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| yes _
+    with lsplit (ar 0 a) sq | inspect (lsplit (ar 0 a)) sq
+  ...| sq0 , sq1 | [ SQ ]
+    with lsplit (ar 0 b) sp | inspect (lsplit (ar 0 b)) sp
+  ...| sp0 , sp1 | [ SP ]
+    with plug 0 a (map pop sq0) | inspect (plug 0 a) (map pop sq0)
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym qs))
+  ...| just a' | [ A ]
+    with plug 0 b (map pop sp0) | inspect (plug 0 b) (map pop sp0)
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym ps))
+  ...| just b' | [ B ]
+    = (sp0 ++ sp1
+    , cong just (lsplit-elim (ar 0 b) sp SP)
+    , cong just (trans (lsplit-elim (ar 0 a) sq SQ)
+                (trans (cong (_++_ sq0) (p2 (∷-inj (just-inj (trans qs (sym ps))))))
+                (cong (λ P → P ++ sp1) (map-inj-inj (pop {a = μ ty}) (λ _ _ → inj-pop) {sq0} {sp0}
+                      (trans (sym (plug-spec-ch 0 a' a (map pop sq0) A))
+                      (sym (trans (sym (plug-spec-ch 0 b' b (map pop sp0) B))
+                           (cong (ch 0) (inj-mu (p1 (∷-inj (just-inj (trans ps (sym qs)))))))))))
+                 )))
+    ) , trans (sym (plug-spec-fgt 0 b' b (map pop sp0) B))
+        (sym (trans (sym (plug-spec-fgt 0 a' a (map pop sq0) A))
+             (cong (fgt 0) (inj-mu (p1 (∷-inj (just-inj (trans qs (sym ps)))))))))
 \end{code}
-%<\aligned-sym>
-
-  But then, sometimes we want to pattern match on aligned patches only,
-  so here we provide a relation over patches.
-
-  (TODO)
-    Do I really need this... I mean, having this datatype
-    would grealty simplify residuals, and provide a ground for
-    speaking about diverging patches.
-
-begin{code}
-  mutual
-    data A : {n : ℕ}{t : Tel n}{ty : U n} 
-           → Patch t ty → Patch t ty → Set
-        where
-      -- A-id-l : {n : ℕ}{t : Tel n}{a : U n}{d : Patch t a} → A D-id d
-      -- A-id-r : {n : ℕ}{t : Tel n}{a : U n}{d : Patch t a} → A d D-id
-
-      A-unit : {n : ℕ}{t : Tel n} → A {n} {t} D-unit D-unit
-
-      A-inl  : {n : ℕ}{t : Tel n}{a b : U n}{p1 p2 : Patch t a}
-             → A p1 p2 → A {ty = a ⊕ b} (D-inl p1) (D-inl p2)
-
-      A-isl  : {n : ℕ}{t : Tel n}{a b : U n}{p1 : Patch t a}
-               {xa : ElU a t}{xb : ElU b t}
-
-              → Is-Just (gapply p1 xa) → A (D-inl p1) (D-setl xa xb)
-      A-sil  : {n : ℕ}{t : Tel n}{a b : U n}{p1 : Patch t a}
-               {xa : ElU a t}{xb : ElU b t}
-              → Is-Just (gapply p1 xa) → A (D-setl xa xb) (D-inl p1)
-
-      A-sl   : {n : ℕ}{t : Tel n}{a b : U n}
-               {xa : ElU a t}{xb xb' : ElU b t}
-             → A (D-setl xa xb) (D-setl xa xb')
-
-      A-inr  : {n : ℕ}{t : Tel n}{a b : U n}{p1 p2 : Patch t b}
-             → A p1 p2 → A {ty = a ⊕ b} (D-inr p1) (D-inr p2)
-
-      A-isr  : {n : ℕ}{t : Tel n}{a b : U n}{p1 : Patch t b}
-               {xb : ElU b t}{xa : ElU a t}
-             → Is-Just (gapply p1 xb) → A (D-inr p1) (D-setr xb xa)
-
-      A-sir  : {n : ℕ}{t : Tel n}{a b : U n}{p1 : Patch t b}
-               {xb : ElU b t}{xa : ElU a t}
-             → Is-Just (gapply p1 xb) → A (D-setr xb xa) (D-inr p1) 
-
-      A-sr   : {n : ℕ}{t : Tel n}{a b : U n}
-               {xa : ElU b t}{xb xb' : ElU a t}
-             → A (D-setr xa xb) (D-setr xa xb')
-
-      A-pair : {n : ℕ}{t : Tel n}{a b : U n}
-               {p1 p2 : Patch t a}{q1 q2 : Patch t b}
-             → A p1 p2 → A q1 q2 → A (D-pair p1 q1) (D-pair p2 q2)
-      
-      A-β    : {n : ℕ}{t : Tel n}{a : U (suc n)}{b : U n}
-               {d1 d2 : Patch (tcons b t) a}
-             → A d1 d2 → A (D-β d1) (D-β d2)
-  
-      A-top  : {n : ℕ}{t : Tel n}{a : U n}
-               {d1 d2 : Patch t a}
-             → A d1 d2 → A (D-top d1) (D-top d2)
-
-      A-pop  : {n : ℕ}{t : Tel n}{a b : U n}
-               {d1 d2 : Patch t b}
-             → A d1 d2 → A {t = tcons a t} (D-pop d1) (D-pop d2) 
-
-      A-mu   : {n : ℕ}{t : Tel n}{a : U (suc n)}
-               {d1 d2 : Patchμ t a}
-             → Aμ d1 d2 → A (D-mu d1) (D-mu d2) 
-
-    data Aμ : {n : ℕ}{t : Tel n}{ty : U (suc n)} 
-            → Patchμ t ty → Patchμ t ty → Set
-        where
-      Aμ-nil  : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-              → Aμ {n} {t} {ty} [] []
-
-      Aμ-insl : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}
-              → Aμ d1 d2 → Aμ (Dμ-ins x ∷ d1) d2
-
-      Aμ-insr : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}
-              → Aμ d1 d2 → Aμ d1 (Dμ-ins x ∷ d2)
-
-      Aμ-inin : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x y : ValU ty t}
-              → Aμ d1 d2 → Aμ (Dμ-ins x ∷ d1) (Dμ-ins y ∷ d2)
-
-      Aμ-dlcp : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}
-              → Aμ d1 d2 → Aμ (Dμ-del x ∷ d1) (Dμ-cpy x ∷ d2)
-
-      Aμ-cpdl : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}
-              → Aμ d1 d2 → Aμ (Dμ-cpy x ∷ d1) (Dμ-del x ∷ d2)
-
-      Aμ-dldl : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}
-              → Aμ d1 d2 → Aμ (Dμ-del x ∷ d1) (Dμ-del x ∷ d2)
-
-      Aμ-dwcp : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}{dx : Patch t (β ty u1)}
-              → Aμ d1 d2 → Aμ (Dμ-dwn x dx ∷ d1) (Dμ-cpy x ∷ d2)
-
-      Aμ-cpdw : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}{dx : Patch t (β ty u1)}
-              → Aμ d1 d2 → Aμ (Dμ-cpy x ∷ d1) (Dμ-dwn x dx ∷ d2)
-
-      Aμ-dwdl : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}{dx : Patch t (β ty u1)}
-              → Aμ d1 d2 → Aμ (Dμ-dwn x dx ∷ d1) (Dμ-del x ∷ d2)
-
-      Aμ-dldw : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}{dx : Patch t (β ty u1)}
-              → Aμ d1 d2 → Aμ (Dμ-del x ∷ d1) (Dμ-dwn x dx ∷ d2)
-
-      Aμ-dwdw : {n : ℕ}{t : Tel n}{ty : U (suc n)}{d1 d2 : Patchμ t ty}
-                {x : ValU ty t}{dx dy : Patch t (β ty u1)}
-              → A dx dy → Aμ d1 d2 → Aμ (Dμ-dwn x dx ∷ d1) (Dμ-dwn x dy ∷ d2)
-end{code}
-
-
-  Which then allows us to prove that our notion of alignment
-  implies the one Marco uses. To prove the reverse implication
-  just use aligned-sym
-
-begin{code}
-  open import Diffing.Utils.Monads
-  open Monad {{...}}
-
-  >>=-Is-Just : ∀{a}{A B : Set a}{x : Maybe A}
-                {f : A → Maybe B}
-              → Is-Just (x >>= f)
-              → Is-Just x
-  >>=-Is-Just {x = nothing} ()
-  >>=-Is-Just {x = just x} _ = indeed x
-end{code}
-
-%<*aligned-correct>
-begin{code}
-  mutual
-    aligned-correct : {n : ℕ}{t : Tel n}{ty : U n}
-                → (d1 d2 : Patch t ty)
-                → (x : ElU ty t)
-                → Is-Just (gapply d1 x)
-                → Is-Just (gapply d2 x)
-                → A d1 d2
-    aligned-correct (D-A ()) _ _ _ _ 
-    aligned-correct _ (D-A ()) _ _ _
-    -- aligned-correct D-id d2 x p1 p2 = A-id-l
-    -- aligned-correct d1 D-id x p1 p2 = A-id-r
-    aligned-correct D-unit D-unit x p1 p2 = A-unit
-    aligned-correct (D-inl d1) (D-inl d2) (inl x) p1 p2 
-      = A-inl (aligned-correct d1 d2 x (<M>-Is-Just p1) (<M>-Is-Just p2))
-    aligned-correct (D-inl d1) (D-setl x y) (inl k) p1 p2
-      with x ≟-U k 
-    aligned-correct (D-inl d1) (D-setl x y) (inl k) p1 () | no ¬p
-    ...| yes p rewrite p = A-isl (<M>-Is-Just p1)
-    
-    aligned-correct (D-inl d1) (D-setr x y) (inl k) p1 ()
-    aligned-correct (D-inl d1) (D-inr d2) (inl x) p1 ()
-    aligned-correct (D-inl d1) d2 (inr x) () p2
-    aligned-correct (D-inr d1) d2 (inl x) () p2
-    aligned-correct (D-inr d1) (D-inl d2) (inr x) p1 ()
-    aligned-correct (D-setl x y) d2 (inr k) () p2
-    aligned-correct (D-inr d1) (D-setl x y) (inr k) p1 ()
-    aligned-correct (D-setl x y) (D-setr w z) (inl k) p1 ()
-    aligned-correct (D-setl x y) (D-inr d2) (inl k) p1 ()
-    aligned-correct (D-setr x y) d2 (inl k) () p2
-    aligned-correct (D-setr x y) (D-setl x₁ x₂) (inr k) p1 ()
-    aligned-correct (D-setr x y) (D-inl d2) (inr k) p1 ()
-
-    aligned-correct (D-inr d1) (D-inr d2) (inr x) p1 p2 
-      = A-inr (aligned-correct d1 d2 x (<M>-Is-Just p1) (<M>-Is-Just p2))
-    aligned-correct (D-inr d1) (D-setr x y) (inr k) p1 p2
-      with x ≟-U k 
-    aligned-correct (D-inr d1) (D-setr x y) (inr k) p1 () | no ¬p
-    ...| yes p rewrite p = A-isr (<M>-Is-Just p1)
-
-    aligned-correct (D-setl x y) (D-inl d2) (inl k) p1 p2 
-      with x ≟-U k
-    aligned-correct (D-setl x y) (D-inl d2) (inl k) () p2 | no ¬p
-    ...| yes p rewrite p = A-sil (<M>-Is-Just p2)
-    aligned-correct (D-setl x y) (D-setl w z) (inl k) p1 p2
-      with x ≟-U k 
-    aligned-correct (D-setl x y) (D-setl w z) (inl k) () p2 | no ¬p
-    ...| yes x≡k with w ≟-U k
-    aligned-correct (D-setl x y) (D-setl w z) (inl k) p1 () | yes x≡k | no ¬p
-    ...| yes w≡k rewrite trans x≡k (sym w≡k) = A-sl
-    
-    
-    
-    aligned-correct (D-setr x y) (D-inr d2) (inr k) p1 p2
-      with x ≟-U k
-    aligned-correct (D-setr x y) (D-inr d2) (inr k) () p2 | no ¬p
-    ...| yes x≡k rewrite x≡k = A-sir (<M>-Is-Just p2)
-    
-    aligned-correct (D-setr x y) (D-setr w z) (inr k) p1 p2
-      with x ≟-U k 
-    aligned-correct (D-setr x y) (D-setr w z) (inr k) () p2 | no ¬p
-    ...| yes x≡k with w ≟-U k
-    aligned-correct (D-setr x y) (D-setr w z) (inr k) p1 () | yes x≡k | no ¬p
-    ...| yes w≡k rewrite trans x≡k (sym w≡k) = A-sr
-
-    aligned-correct (D-pair d1 d2) (D-pair d3 d4) (x1 , x2) p1 p2 
-      with gapply d1 x1 | inspect (gapply d1) x1
-    aligned-correct (D-pair d1 d2) (D-pair d3 d4) (x1 , x2) () p2 | nothing | _
-    ...| just m | [ R1 ] with gapply d3 x1 | inspect (gapply d3) x1
-    aligned-correct (D-pair d1 d2) (D-pair d3 d4) (x1 , x2) p1 () 
-       | just m | [ R1 ] | nothing | r
-    ...| just n | [ R2 ] 
-       = A-pair (aligned-correct d1 d3 x1 (≡-Is-Just R1) (≡-Is-Just R2)) 
-                (aligned-correct d2 d4 x2 (<M>-Is-Just p1) (<M>-Is-Just p2))
-    
-    aligned-correct (D-β d1) (D-β d2) (red x) p1 p2 
-      = A-β (aligned-correct d1 d2 x (<M>-Is-Just p1) (<M>-Is-Just p2))
-    aligned-correct (D-top d1) (D-top d2) (top x) p1 p2 
-      = A-top (aligned-correct d1 d2 x (<M>-Is-Just p1) (<M>-Is-Just p2))
-    aligned-correct (D-pop d1) (D-pop d2) (pop x) p1 p2 
-      = A-pop (aligned-correct d1 d2 x (<M>-Is-Just p1) (<M>-Is-Just p2))
-    aligned-correct (D-mu d1) (D-mu d2) x p1 p2 
-      = A-mu (alignedμ-correct d1 d2 (x ∷ []) (>>=-Is-Just p1) (>>=-Is-Just p2))
-
-    alignedμ-correct : {n : ℕ}{t : Tel n}{ty : U (suc n)}
-                → (d1 d2 : Patchμ t ty)
-                → (x : List (ElU (μ ty) t))
-                → Is-Just (gapplyL d1 x)
-                → Is-Just (gapplyL d2 x)
-                → Aμ d1 d2
-    alignedμ-correct _  (Dμ-A () ∷ d2) _ p1 p2
-    alignedμ-correct (Dμ-A () ∷ d2) _ _ p1 p2
-
-    alignedμ-correct [] [] x p1 p2 = Aμ-nil
-    
-    alignedμ-correct [] (Dμ-ins x ∷ d2) [] p1 p2 
-      = Aμ-insr (alignedμ-correct [] d2 [] p1 (>>=-Is-Just p2))
-    alignedμ-correct (Dμ-ins x ∷ d1) [] [] p1 p2 
-      = Aμ-insl (alignedμ-correct d1 [] [] (>>=-Is-Just p1) p2)
-
-    alignedμ-correct [] (Dμ-del x ∷ d2) [] p1 ()
-    alignedμ-correct [] (Dμ-cpy x ∷ d2) [] p1 ()
-    alignedμ-correct [] (Dμ-dwn x x₁ ∷ d2) [] p1 ()
-    alignedμ-correct [] (x ∷ d2) (x₁ ∷ x₂) () p2
-    alignedμ-correct (Dμ-del x ∷ d1) [] [] () p2
-    alignedμ-correct (Dμ-cpy x ∷ d1) [] [] () p2
-    alignedμ-correct (Dμ-dwn x x₁ ∷ d1) [] [] () p2
-    alignedμ-correct (x ∷ d1) [] (x₁ ∷ x₂) p1 ()
-    alignedμ-correct (Dμ-ins x ∷ d1) (Dμ-del x₁ ∷ d2) [] p1 ()
-    alignedμ-correct (Dμ-ins x ∷ d1) (Dμ-cpy x₁ ∷ d2) [] p1 ()
-    alignedμ-correct (Dμ-ins x ∷ d1) (Dμ-dwn x₁ x₂ ∷ d2) [] p1 ()
-    alignedμ-correct (Dμ-del x ∷ d1) (x₁ ∷ d2) [] () p2
-    alignedμ-correct (Dμ-cpy x ∷ d1) (x₁ ∷ d2) [] () p2
-    alignedμ-correct (Dμ-dwn x x₁ ∷ d1) (x₂ ∷ d2) [] () p2
-
-    alignedμ-correct (Dμ-ins x ∷ d1) (Dμ-ins x₁ ∷ d2) [] p1 p2 
-      = Aμ-inin (alignedμ-correct {!!} {!!} {!!} {!!} {!!})
-    
-    alignedμ-correct (x ∷ d1) (x₁ ∷ d2) (x₂ ∷ x₃) p1 p2 = {!!}
-end{code}
-%</aligned-correct>
