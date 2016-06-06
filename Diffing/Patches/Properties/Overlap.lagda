@@ -4,7 +4,7 @@ open import Diffing.Universe.Syntax
 open import Diffing.Universe.Equality
 open import Diffing.Patches.Diff
 
-module Diffing.Patches.Overlap where
+module Diffing.Patches.Properties.Overlap where
 \end{code}
 
   One important characteristic of any merging algorithm

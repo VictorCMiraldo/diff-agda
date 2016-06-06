@@ -9,7 +9,7 @@ open import CF.Properties
 
 open import Diffing.Patches.D
 
-module Diffing.Patches.Alignment where
+module Diffing.Patches.Properties.Alignment where
 \end{code}
 
 \begin{code}

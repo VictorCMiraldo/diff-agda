@@ -5,7 +5,7 @@ open import Diffing.Patches.Cost
 open import Diffing.Diff
 open import Diffing.Apply
 
-module Diffing.Patches.Correctness where
+module Diffing.Patches.Properties.Correctness where
   
   gdiff-correct
     : {n : ℕ}{t : T n}{ty : U n}{c : Cost}
