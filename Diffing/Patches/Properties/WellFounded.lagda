@@ -6,6 +6,13 @@ open import Diffing.Patches.D
 module Diffing.Patches.Properties.WellFounded where
 \end{code}
 
+  Well-Founded Patches are those that have both a source and
+  a destination. These are obviously type-safe.
+
+  The idea of this module is to define a predicate and
+  elimination rules showing that the type constructors
+  of D preserve well-foundedness. 
+
 %<*WF-def>
 \begin{code}
   WF : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
@@ -21,7 +28,6 @@ module Diffing.Patches.Properties.WellFounded where
         (λ xy → Dμ-src ps ≡ just (p1 xy) × Dμ-dst ps ≡ just (p2 xy))
 \end{code}
 %</WF-def>
-
 
 %<*D-inl-wf-type>
 \begin{code}
@@ -167,6 +173,8 @@ module Diffing.Patches.Properties.WellFounded where
 \end{code}
 %</Patch-mu-WF-def>
 
+  Hencefoth, we can also have total source and destination
+  projections from Σ Patch WF. 
 
 %<*D-src-wf-type>
 \begin{code}

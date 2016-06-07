@@ -250,21 +250,21 @@ module Diffing.Patches.D where
 
 \begin{code}
   postulate
-    src-dst-Δ-lemma
+    Δ-src-dst-lemma
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+      → (x y : ElU ty t)(p : D A t ty)
+      → D-Δ p ≡ just (x , y)
+      → (D-src p ≡ just x) × (D-dst p ≡ just y)
+
+  src-dst-Δ-lemma
       : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
       → (x y : ElU ty t)(p : D A t ty)
       → D-src p ≡ just x
       → D-dst p ≡ just y
       → D-Δ p ≡ just (x , y)
-
-    Δ-src-dst-lemma
-      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-      → (x y : ElU ty t)(p : D A t ty)
-      → D-Δ p ≡ just (x , y)
-      → (D-src p ≡ just x) × (D-dst p ≡ just y)   
 \end{code}
 
-begin{code}
+\begin{code}
   src-dst-Δ-lemma x y (D-A x₁) () hy
   src-dst-Δ-lemma unit unit D-unit hx hy = refl
   src-dst-Δ-lemma x y (D-inl p) hx hy
@@ -304,10 +304,22 @@ begin{code}
   ...| hx0 , hx1 , hx2 | hy0 , hy1 , hy2
     rewrite hx1 | hy1
       = <M>-intro (src-dst-Δ-lemma hx0 hy0 p hx2 hy2)
-  src-dst-Δ-lemma x y (D-pair p p₁) hx hy
-    with D-Δ p
-  ...| nothing        = {!!}
-  ...| just (sp , dp) = {!!}
+  src-dst-Δ-lemma (x1 , x2) (y1 , y2) (D-pair p p₁) hx hy
+    with D-src p₁ | inspect D-src p₁ | D-dst p₁ | inspect D-dst p₁
+  ...| nothing | _ | _ | _  = ⊥-elim (Maybe-⊥ (sym hx))
+  ...| just sp1 | _ | nothing | _ = ⊥-elim (Maybe-⊥ (sym hy))
+  ...| just sp1 | [ SP1 ] | just dp1 | [ DP1 ]
+    with D-src p | inspect D-src p | D-dst p | inspect D-dst p
+  ...| nothing | _ | _ | _ = ⊥-elim (Maybe-⊥ (sym hx))
+  ...| just sp | _ | nothing | _ = ⊥-elim (Maybe-⊥ (sym hy))
+  ...| just sp | [ SP ] | just dp | [ DP ]
+    rewrite p1 (inj-, (just-inj hx))
+          | p2 (inj-, (just-inj hx))
+          | p1 (inj-, (just-inj hy))
+          | p2 (inj-, (just-inj hy))
+          | src-dst-Δ-lemma x1 y1 p SP DP
+          | src-dst-Δ-lemma x2 y2 p₁ SP1 DP1
+          = refl
   src-dst-Δ-lemma x y (D-mu x₁) hx hy = {!!}
   
-end{code}
+\end{code}
