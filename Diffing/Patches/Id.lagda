@@ -145,15 +145,17 @@ module Diffing.Patches.Id where
               (sym (gdiff-id-cost a1)) (gdiff-id-cost a2)
     gdiff-id-cost (top a) = gdiff-id-cost a
     gdiff-id-cost (pop a) = gdiff-id-cost a
-    gdiff-id-cost (mu a) = gdiffL-id-cost (mu a ∷ [])
+    gdiff-id-cost (mu a)
+      = cong₂ _+_ (gdiff-id-cost (μ-hd (mu a)))
+                  (gdiffL-id-cost (μ-ch (mu a) ++ [])) 
     gdiff-id-cost (red a) = gdiff-id-cost a 
 
     {-# TERMINATING #-}
     gdiffL-id-cost : {n : ℕ}{t : T n}{ty : U (suc n)}{c : Cost}
-                  → (a : List (ElU (μ ty) t)) → sum (map (costμ c) (gdiffL-id a)) ≡ 0
+                  → (a : List (ElU (μ ty) t)) → costL c (gdiffL-id a) ≡ 0
     gdiffL-id-cost [] = refl
     gdiffL-id-cost {c = c} (a ∷ as) 
-      = subst (λ P → P + sum (map (costμ c) (gdiffL-id (μ-ch a ++ as))) ≡ 0) 
+      = subst (λ P → P + costL c (gdiffL-id (μ-ch a ++ as)) ≡ 0) 
               (sym (gdiff-id-cost (μ-hd a))) 
               (gdiffL-id-cost (μ-ch a ++ as))
 \end{code}
