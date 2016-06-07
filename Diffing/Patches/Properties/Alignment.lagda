@@ -32,28 +32,28 @@ module Diffing.Patches.Properties.Alignment where
 
 \begin{code}
     ||-elim : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-            → (p q : D A t ty)
+            → {p q : D A t ty}
             → p || q
             → WF p × WF q × D-src p ≡ D-src q
-    ||-elim p q hip = hip
+    ||-elim hip = hip
           
     ||-intro : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-            → (p q : D A t ty)
+            → {p q : D A t ty}
             → WF p × WF q × D-src p ≡ D-src q
             → p || q
-    ||-intro p q hip = hip
+    ||-intro hip = hip
 
     ||μ-elim : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
-             → (p q : List (Dμ A t ty))
+             → {p q : List (Dμ A t ty)}
              → p ||μ q
              → WFμ p × WFμ q × Dμ-src p ≡ Dμ-src q
-    ||μ-elim p q hip = hip
+    ||μ-elim hip = hip
 
     ||μ-intro : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
-              → (p q : List (Dμ A t ty))
+              → {p q : List (Dμ A t ty)}
               → WFμ p × WFμ q × Dμ-src p ≡ Dμ-src q
               → p ||μ q
-    ||μ-intro p q hip = hip
+    ||μ-intro hip = hip
 \end{code}
 
 \begin{code}
@@ -63,9 +63,9 @@ module Diffing.Patches.Properties.Alignment where
     ||-refl p hip = hip , hip , refl
 
     ||-sym : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-           → (p q : D A t ty)
+           → {p q : D A t ty}
            → p || q → q || p
-    ||-sym p q (wp , wq , prf) = wq , wp , sym prf
+    ||-sym (wp , wq , prf) = wq , wp , sym prf
 
     ||-trans : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
              → (p q r : D A t ty)
@@ -79,9 +79,9 @@ module Diffing.Patches.Properties.Alignment where
     ||μ-refl p hip = hip , hip , refl
 
     ||μ-sym : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
-            → (p q : List (Dμ A t ty))
+            → {p q : List (Dμ A t ty)}
             → p ||μ q → q ||μ p
-    ||μ-sym  p q (wp , wq , prf) = wq , wp , sym prf
+    ||μ-sym  (wp , wq , prf) = wq , wp , sym prf
 
     ||μ-trans : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
              → (p q r : List (Dμ A t ty))
