@@ -154,4 +154,64 @@ module Diffing.Patches.Properties.WellFounded where
     = ((sp , dp) , (refl , refl)) , (sps , dps) , (refl , refl)    
 \end{code}
 
+%<*Patch-WF-def>
+\begin{code}
+  Patch-WF : {n : ℕ} → TU→Set → T n → U n → Set
+  Patch-WF A t ty = Σ (D A t ty) WF 
+\end{code}
+%</Patch-WF-def>
+%<*Patch-mu-WF-def>
+\begin{code}
+  Patchμ-WF : {n : ℕ} → TU→Set → T n → U (suc n) → Set
+  Patchμ-WF A t ty = Σ (List (Dμ A t ty)) WFμ
+\end{code}
+%</Patch-mu-WF-def>
 
+
+%<*D-src-wf-type>
+\begin{code}
+  D-src-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → Patch-WF A t ty → ElU ty t
+\end{code}
+%</D-src-wf-type>
+%<*D-src-wf-def>
+\begin{code}
+  D-src-wf (p , ((x , y) , (hx , hy))) = x
+\end{code}
+%</D-src-wf-def>
+
+%<*D-dst-wf-type>
+\begin{code}
+  D-dst-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → Patch-WF A t ty → ElU ty t
+\end{code}
+%</D-dst-wf-type>
+%<*D-dst-wf-def>
+\begin{code}
+  D-dst-wf (p , ((x , y) , (hx , hy))) = y
+\end{code}
+%</D-dst-wf-def>
+
+%<*D-mu-src-wf-type>
+\begin{code}
+  Dμ-src-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+            → Patchμ-WF A t ty → List (ElU (μ ty) t)
+\end{code}
+%</D-mu-src-wf-type>
+%<*D-mu-src-wf-def>
+\begin{code}
+  Dμ-src-wf (p , ((x , y) , (hx , hy))) = x
+\end{code}
+%</D-mu-src-wf-def>
+
+%<*D-mu-dst-wf-type>
+\begin{code}
+  Dμ-dst-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+            → Patchμ-WF A t ty → List (ElU (μ ty) t)
+\end{code}
+%</D-mu-dst-wf-type>
+%<*D-mu-dst-wf-def>
+\begin{code}
+  Dμ-dst-wf (p , ((x , y) , (hx , hy))) = y
+\end{code}
+%</D-mu-dst-wf-def>
