@@ -1,7 +1,7 @@
 \begin{code}
 open import Prelude
 open import Prelude.ListProperties
-  using (lsplit-elim; ∷-inj; map-inj-inj; lhead-elim)
+  using (lsplit-elim; ∷-inj; map-inj-inj; lhead-elim; ∷≡[]→⊥)
 open import Diffing.Universe
 
 open import CF.Properties
@@ -366,4 +366,43 @@ module Diffing.Patches.Properties.Alignment where
       , trans (sym (plug-spec-fgt 0 b' b (map pop sp0) B))
           (sym (trans (sym (plug-spec-fgt 0 a' a (map pop sq0) A))
                (cong (fgt 0) (inj-mu (p1 (∷-inj (just-inj (sym prf))))))))
+
+    ||μ-[]-del-⊥
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → (a : ValU ty t)(p : List (Dμ A t ty))
+      → [] ||μ (Dμ-del a ∷ p)
+      → ⊥
+    ||μ-[]-del-⊥ a p ((wp , wq) , prf)
+      with Dμ-src p
+    ...| nothing = ⊥-elim (Maybe-⊥ prf)
+    ...| just sp
+      with ar 0 a ≤?-ℕ length sp
+    ...| no  _ = ⊥-elim (Maybe-⊥ prf)
+    ...| yes _
+      with lsplit (ar 0 a) sp
+    ...| sp0 , sp1
+      with plug 0 a (map pop sp0)
+    ...| nothing  = ⊥-elim (Maybe-⊥ prf)
+    ...| just sp' = ∷≡[]→⊥ (sym (just-inj prf))
+
+    ||μ-[]-dwn-⊥
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → (a : D A (u1 ∷ t) ty)(p : List (Dμ A t ty))
+      → [] ||μ (Dμ-dwn a ∷ p)
+      → ⊥
+    ||μ-[]-dwn-⊥ a p ((wp , wq) , prf)
+      with D-src a
+    ...| nothing = ⊥-elim (Maybe-⊥ prf)
+    ...| just a' 
+      with Dμ-src p
+    ...| nothing = ⊥-elim (Maybe-⊥ prf)
+    ...| just sp
+      with ar 0 a' ≤?-ℕ length sp
+    ...| no  _ = ⊥-elim (Maybe-⊥ prf)
+    ...| yes _
+      with lsplit (ar 0 a') sp
+    ...| sp0 , sp1
+      with plug 0 a' (map pop sp0)
+    ...| nothing  = ⊥-elim (Maybe-⊥ prf)
+    ...| just sp' = ∷≡[]→⊥ (sym (just-inj prf))
 \end{code}
