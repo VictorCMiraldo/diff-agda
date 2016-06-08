@@ -9,6 +9,7 @@ open import CF.Properties.Mu
   using (μ-close-correct; μ-ar-close-lemma; μ-open-ar-lemma)
 
 open import Diffing.Patches.Cost
+open import Diffing.Patches.Properties.WellFounded
 
 module Diffing.Diff (Δ : Cost) where
 
@@ -274,4 +275,13 @@ module Diffing.Diff (Δ : Cost) where
                  (cong (λ P → P >>= return ∘ cons) (μ-close-correct {a = y} {l = ys} refl))))
 
 
+\end{code}
+
+  Hence, gdiff returns always a well-founded patch.
+
+\begin{code}
+  gdiff-wf : {n : ℕ}{t : T n}{ty : U n}
+           → (x y : ElU ty t)
+           → WF (gdiff x y)
+  gdiff-wf x y = ((x , y) , gdiff-src-lemma x y , gdiff-dst-lemma x y)
 \end{code}

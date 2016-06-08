@@ -1,13 +1,16 @@
 \begin{code}
 open import Prelude
 open import Prelude.ListProperties
-  using (lhead-elim; map-lemma; lsplit-elim)
+  using (lhead-elim; map-lemma; lsplit-elim; ∷≡[]→⊥; ∷-inj)
+open import Prelude.NatProperties
+  using (≤-yes)
 open import Diffing.Universe
 open import CF.Properties.Base
   using (plug-correct; plug-spec-fgt; plug-spec-ch)
 open import CF.Properties.Mu
   using (μ-close-correct; μ-ar-close-lemma; μ-open-ar-lemma)
 open import Diffing.Patches.D
+open import Diffing.Patches.Properties.WellFounded
 
 module Diffing.Apply where
 \end{code}
@@ -123,130 +126,148 @@ module Diffing.Apply where
 
 \begin{code}
   mutual
-    gapplyL-Δ-lemma
-      : {n : ℕ}{t : T n}{ty : U (suc n)}
-      → {xs ys : List (ElU (μ ty) t)}(p : List (Dμ ⊥ₚ t ty))
-      → Dμ-Δ p ≡ just (xs , ys)
-      → gapplyL p xs ≡ just ys
-
-    gapply-Δ-lemma
+    gapply-spec
       : {n : ℕ}{t : T n}{ty : U n}
-      → {x y : ElU ty t}(p : Patch t ty)
-      → D-Δ p ≡ just (x , y)
-      → gapply p x ≡ just y
-    gapply-Δ-lemma (D-A x₁) ()
-    gapply-Δ-lemma D-unit refl = refl
-    gapply-Δ-lemma (D-inl p) hip
-      with <M>-elim hip
-    gapply-Δ-lemma {x = .(inl h01)} {.(inl h02)} (D-inl p) hip 
-      | (h01 , h02) , refl , h2
-      = <M>-intro (gapply-Δ-lemma p h2)
-    gapply-Δ-lemma (D-inr p) hip
-      with <M>-elim hip
-    gapply-Δ-lemma {x = .(inr h01)} {.(inr h02)} (D-inr p) hip 
-      | (h01 , h02) , refl , h2
-      = <M>-intro (gapply-Δ-lemma p h2)
-    gapply-Δ-lemma (D-setl xa xb) refl
+      → (p : Patch t ty)(hip : WF p)
+      → gapply p (D-src-wf (p , hip)) ≡ just (D-dst-wf (p , hip))
+
+    gapplyL-spec
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (ps : Patchμ t ty)(hip : WFμ ps)
+      → gapplyL ps (Dμ-src-wf (ps , hip)) ≡ just (Dμ-dst-wf (ps , hip))
+
+    gapply-spec (D-A ()) hip
+    gapply-spec D-unit ((.unit , .unit) , refl , refl) = refl
+    gapply-spec (D-inl p) hip
+      with <M>-elim (p1 (p2 hip)) | <M>-elim (p2 (p2 hip))
+    ...| r0 , r1 , r2 | s0 , s1 , s2
+      rewrite r1 | s1 = <M>-intro (gapply-spec p ((r0 , s0) , (r2 , s2)))
+    gapply-spec (D-inr p) hip
+      with <M>-elim (p1 (p2 hip)) | <M>-elim (p2 (p2 hip))
+    ...| r0 , r1 , r2 | s0 , s1 , s2
+      rewrite r1 | s1 = <M>-intro (gapply-spec p ((r0 , s0) , (r2 , s2)))
+    gapply-spec (D-setl xa xb) ((.(inl xa) , .(inr xb)) , refl , refl)
       rewrite ≟-U-refl xa = refl
-    gapply-Δ-lemma (D-setr xa xb) refl
-      rewrite ≟-U-refl xa = refl
-    gapply-Δ-lemma (D-def p) hip
-      with <M>-elim hip
-    ...| r , refl , t = <M>-intro (gapply-Δ-lemma p t)
-    gapply-Δ-lemma (D-top p) hip
-      with <M>-elim hip
-    ...| r , refl , t = <M>-intro (gapply-Δ-lemma p t)
-    gapply-Δ-lemma (D-pop p) hip
-      with <M>-elim hip
-    ...| r , refl , t = <M>-intro (gapply-Δ-lemma p t)
-    gapply-Δ-lemma (D-pair p p₁) hip
-      with <M*>-elim-full {x = D-Δ p₁} hip
-    ...| (f , (a0 , a1)) , (b0 , refl , b2) with <M>-elim b0
-    ...| (r0 , r1) , s , t
-      rewrite s
-        | gapply-Δ-lemma p t
-        | gapply-Δ-lemma p₁ b2
-        = refl
-    gapply-Δ-lemma (D-mu x) hip
-      with Dμ-Δ x | inspect Dμ-Δ x
-    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| just (sx , dx) | [ X ]
-      with <M*>-elim-full {x = lhead dx} hip
-    ...| (f , a) , (s0 , s1 , s2)
-      with <M>-elim s0
-    ...| r0 , r1 , r2
-      rewrite r1 | p1 (×-inj s1) | p2 (×-inj s1)
-        | lhead-elim sx r2
-        | lhead-elim dx s2
-        | gapplyL-Δ-lemma x X
-        = refl
-      
-    gapplyL-Δ-lemma [] refl = refl
-    gapplyL-Δ-lemma (Dμ-A () ∷ p) hip
-    gapplyL-Δ-lemma (Dμ-ins x ∷ p) hip
-      with Dμ-Δ p | inspect Dμ-Δ p
-    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| just (sp , dp) | [ SP ] with <M>-elim hip
-    ...| r , refl , t rewrite gapplyL-Δ-lemma p SP
-      with ar 0 x ≤?-ℕ length dp
-    ...| no  _   = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| yes prf with lsplit (ar 0 x) dp
-    ...| dp0 , dp1 with plug 0 x (map pop dp0)
-    ...| nothing = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| just x' = t
-    gapplyL-Δ-lemma (Dμ-del x ∷ p) hip
-      with Dμ-Δ p | inspect Dμ-Δ p
-    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| just (sp , dp) | [ SP ] with <M>-elim hip
-    ...| r , refl , t with ar 0 x ≤?-ℕ length sp
-    ...| no  _   = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| yes prf with lsplit (ar 0 x) sp | inspect (lsplit (ar 0 x)) sp
-    ...| sp0 , sp1 | [ SP-split ]
-      with plug 0 x (map pop sp0) | inspect (plug 0 x) (map pop sp0)
-    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| just x' | [ X ]
-      rewrite sym (just-inj t)
-      with x == fgt 0 x'
-    ...| no  abs = ⊥-elim (abs (sym (plug-spec-fgt 0 x' x (map pop sp0) X)))
-    ...| yes _ rewrite plug-spec-ch 0 x' x (map pop sp0) X
-       = trans (cong (λ P → gapplyL p (P ++ sp1)) (map-lemma sp0 (λ _ → refl)))
-        (trans (cong (gapplyL p) (sym (lsplit-elim (ar 0 x) sp SP-split)))
-               (gapplyL-Δ-lemma p SP))
-    gapplyL-Δ-lemma {ty = ty} (Dμ-dwn x ∷ p) hip
-      with D-Δ x | inspect D-Δ x | Dμ-Δ p | inspect Dμ-Δ p
-    ...| nothing | _ | _ | _ = ⊥-elim (Maybe-⊥ (sym hip))
-    ...| just _  | _ | nothing | _ = ⊥-elim (Maybe-⊥ (sym hip)) 
-    ...| just (sx , dx) | [ DX ] | just (sp , dp) | [ DXS ]
-      with <M*>-elim-full {x = μ-close dx dp >>= (return ∘ cons)} hip
-    ...| (f , a) , (s0 , s1 , s2) with <M>-elim s0
-    ...| r0 , r1 , r2 
-      with ar 0 sx ≤?-ℕ length sp
-    ...| no  _    = ⊥-elim (Maybe-⊥ (sym r2))
-    ...| yes arp1
-      with ar 0 dx ≤?-ℕ length dp
-    ...| no  _    = ⊥-elim (Maybe-⊥ (sym s2))
-    ...| yes arp2
-      with lsplit (ar 0 sx) sp | inspect (lsplit (ar 0 sx)) sp
-    ...| sp0 , sp1 | [ SP ]
-      with lsplit (ar 0 dx) dp | inspect (lsplit (ar 0 dx)) dp
-    ...| dp0 , dp1 | [ DP ]
-      rewrite r1 | p1 (×-inj s1) | p2 (×-inj s1)
-      with plug 0 dx (map pop dp0) | inspect (plug 0 dx) (map pop dp0)
-    ...| nothing  | _ = ⊥-elim (Maybe-⊥ (sym s2))
-    ...| just dx' | [ PDX ]
-      with plug 0 sx (map pop sp0) | inspect (plug 0 sx) (map pop sp0)
-    ...| nothing  | _ = ⊥-elim (Maybe-⊥ (sym r2))
-    ...| just sx' | [ PSX ]
-      rewrite p1 (×-inj (just-inj (sym hip)))
-            | p2 (×-inj (just-inj (sym hip)))
-            | plug-spec-fgt 0 sx' sx (map pop sp0) PSX
-            | gapply-Δ-lemma x DX
-            | plug-spec-ch 0 sx' sx (map pop sp0) PSX
-            | map-lemma {f = pop {a = μ ty}} {g = unpop} sp0 (λ _ → refl)
-            | sym (lsplit-elim (ar 0 sx) sp SP)
-            | gapplyL-Δ-lemma p DXS
-       with ar 0 dx ≤?-ℕ length dp
-    ...| no  abs = ⊥-elim (abs arp2)
-    ...| yes _ rewrite DP | PDX
-       = refl
+    gapply-spec (D-setr xa xb) ((.(inr xa) , .(inl xb)) , refl , refl)
+      rewrite ≟-U-refl xa = refl 
+    gapply-spec (D-def p) hip
+      with <M>-elim (p1 (p2 hip)) | <M>-elim (p2 (p2 hip))
+    ...| r0 , r1 , r2 | s0 , s1 , s2
+      rewrite r1 | s1 = <M>-intro (gapply-spec p ((r0 , s0) , (r2 , s2)))
+    gapply-spec (D-top p) hip
+      with <M>-elim (p1 (p2 hip)) | <M>-elim (p2 (p2 hip))
+    ...| r0 , r1 , r2 | s0 , s1 , s2
+      rewrite r1 | s1 = <M>-intro (gapply-spec p ((r0 , s0) , (r2 , s2)))
+    gapply-spec (D-pop p) hip
+      with <M>-elim (p1 (p2 hip)) | <M>-elim (p2 (p2 hip))
+    ...| r0 , r1 , r2 | s0 , s1 , s2
+      rewrite r1 | s1 = <M>-intro (gapply-spec p ((r0 , s0) , (r2 , s2)))
+    gapply-spec (D-pair p q) (((x1 , x2) , (y1 , y2)) , (hx , hy))
+      with <M*>-elim-full {x = D-dst q} hy
+    ...| (f0 , a0) , (r0 , r1 , r2)
+      with <M*>-elim-full {x = D-src q} hx
+    ...| (f1 , a1) , (s0 , s1 , s2)
+      with <M>-elim r0 | <M>-elim s0
+    ...| k0 , k1 , k2 | l0 , l1 , l2
+      rewrite l1 | k1 | p1 (inj-, s1) | p2 (inj-, s1)
+            | p1 (inj-, r1) | p2 (inj-, r1)
+            | gapply-spec p ((l0 , k0) , (l2 , k2))
+            | gapply-spec q ((a1 , a0) , (s2 , r2))
+            = refl
+    gapply-spec (D-mu x) ((sx , dx) , (hsx , hdx))
+      with Dμ-src x | inspect Dμ-src x
+    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hsx))
+    ...| just ssx | [ SSX ]
+      with Dμ-dst x | inspect Dμ-dst x
+    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hdx))
+    ...| just ddx | [ DDX ]
+      rewrite lhead-elim ssx hsx
+            | lhead-elim ddx hdx
+            | gapplyL-spec x ((sx ∷ [] , dx ∷ []) , SSX , DDX)
+            = refl
+
+    gapplyL-spec [] ((.[] , .[]) , refl , refl) = refl
+    gapplyL-spec (Dμ-A () ∷ ps) hip
+    gapplyL-spec (Dμ-ins p ∷ ps) ((x , y) , (hx , hy))
+      with Dμ-dst ps | inspect Dμ-dst ps
+    ...| nothing  | _ = ⊥-elim (Maybe-⊥ (sym hy))
+    ...| just dst | [ PS ]
+      rewrite gapplyL-spec ps ((x , dst) , (hx , PS))
+      with ar 0 p ≤?-ℕ length dst
+    ...| no  _ = ⊥-elim (Maybe-⊥ (sym hy))
+    ...| yes _
+      with lsplit (ar 0 p) dst | inspect (lsplit (ar 0 p)) dst
+    ...| d0 , d1 | [ DST ]
+      with plug 0 p (map pop d0)
+    ...| nothing = ⊥-elim (Maybe-⊥ (sym hy))
+    ...| just p' = hy
+    gapplyL-spec (Dμ-del p ∷ ps) ((x , y) , (hx , hy))
+      with Dμ-src ps | inspect Dμ-src ps
+    ...| nothing  | _ = ⊥-elim (Maybe-⊥ (sym hx))
+    ...| just src | [ PS ]
+      with ar 0 p ≤?-ℕ length src
+    ...| no  _ = ⊥-elim (Maybe-⊥ (sym hx))
+    ...| yes _
+      with lsplit (ar 0 p) src | inspect (lsplit (ar 0 p)) src
+    ...| s0 , s1 | [ SRC ]
+      with plug 0 p (map pop s0) | inspect (plug 0 p) (map pop s0)
+    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hx))
+    ...| just p' | [ P ]
+      with x
+    ...| [] = ⊥-elim (∷≡[]→⊥ (just-inj hx))
+    ...| (mu z ∷ zs)
+      with p == μ-hd (mu z)
+    ...| no abs = ⊥-elim (abs (trans (sym (plug-spec-fgt 0 p' p (map pop s0) P))
+                                     (cong (fgt 0) (inj-mu (p1 (∷-inj (just-inj hx)))))))
+    ...| yes _
+       = gapplyL-spec ps
+         ((map unpop (ch 0 z) ++ zs , y)
+         , (trans PS (cong just (trans (lsplit-elim (ar 0 p) src SRC)
+                     (cong₂ _++_ (sym (trans (cong (λ Q → map unpop (ch 0 Q))
+                                                   (sym (inj-mu (p1 (∷-inj (just-inj hx))))))
+                                             (trans (cong (map unpop)
+                                                          (plug-spec-ch 0 p' p (map pop s0) P))
+                                                    (map-lemma s0 (λ _ → refl)))))
+                                 (p2 (∷-inj (just-inj hx)))))))
+                  , hy)
+    gapplyL-spec (Dμ-dwn p ∷ ps) ((x , y) , (hx , hy))
+      with D-src p | inspect D-src p | D-dst p | inspect D-dst p
+    ...| nothing | _ | _ | _ = ⊥-elim (Maybe-⊥ (sym hx))
+    ...| just sp | _ | nothing | _ = ⊥-elim (Maybe-⊥ (sym hy))
+    ...| just sp | [ SRCP ] | just dp | [ DSTP ] 
+      with Dμ-src ps | inspect Dμ-src ps | Dμ-dst ps | inspect Dμ-dst ps
+    ...| nothing | _ | _ | _ = ⊥-elim (Maybe-⊥ (sym hx))
+    ...| just sps | _ | nothing | _ = ⊥-elim (Maybe-⊥ (sym hy))
+    ...| just sps | [ SRCPS ] | just dps | [ DSTPS ]
+      with ar 0 dp ≤?-ℕ length dps
+    ...| no  _ = ⊥-elim (Maybe-⊥ (sym hy))
+    ...| yes dp≤dps
+      with ar 0 sp ≤?-ℕ length sps
+    ...| no  _ = ⊥-elim (Maybe-⊥ (sym hx))
+    ...| yes _
+      with lsplit (ar 0 sp) sps | inspect (lsplit (ar 0 sp)) sps
+    ...| sps0 , sps1 | [ SPS ]
+      with lsplit (ar 0 dp) dps | inspect (lsplit (ar 0 dp)) dps
+    ...| dps0 , dps1 | [ DPS ]
+      with plug 0 dp (map pop dps0) | inspect (plug 0 dp) (map pop dps0)
+    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hy))
+    ...| just dp' | [ DP ]
+      with plug 0 sp (map pop sps0) | inspect (plug 0 sp) (map pop sps0)
+    ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hx))
+    ...| just sp' | [ SP ]
+      rewrite just-inj (sym hx)
+            | just-inj (sym hy)
+            | plug-spec-fgt 0 sp' sp (map pop sps0) SP
+            | gapply-spec p ((sp , dp) , SRCP , DSTP)
+            | gapplyL-spec ps ((map unpop (ch 0 sp') ++ sps1 , dps)
+                , trans (trans SRCPS (cong just (lsplit-elim (ar 0 sp) sps SPS)))
+                  ( (cong (λ Q → just (Q ++ sps1))
+                        (sym (trans (cong (map unpop) (plug-spec-ch 0 sp' sp (map pop sps0) SP))
+                             (map-lemma sps0 (λ _ → refl))))) )
+                , DSTPS
+                )
+            | ≤-yes dp≤dps
+            | DPS
+            | DP
+            = refl
 \end{code}

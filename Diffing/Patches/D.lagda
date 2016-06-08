@@ -256,15 +256,15 @@ module Diffing.Patches.D where
       → D-Δ p ≡ just (x , y)
       → (D-src p ≡ just x) × (D-dst p ≡ just y)
 
-  src-dst-Δ-lemma
-      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-      → (x y : ElU ty t)(p : D A t ty)
-      → D-src p ≡ just x
-      → D-dst p ≡ just y
-      → D-Δ p ≡ just (x , y)
+    src-dst-Δ-lemma
+        : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+        → (x y : ElU ty t)(p : D A t ty)
+        → D-src p ≡ just x
+        → D-dst p ≡ just y
+        → D-Δ p ≡ just (x , y)
 \end{code}
 
-\begin{code}
+begin{code}
   src-dst-Δ-lemma x y (D-A x₁) () hy
   src-dst-Δ-lemma unit unit D-unit hx hy = refl
   src-dst-Δ-lemma x y (D-inl p) hx hy
@@ -322,4 +322,4 @@ module Diffing.Patches.D where
           = refl
   src-dst-Δ-lemma x y (D-mu x₁) hx hy = {!!}
   
-\end{code}
+end{code}

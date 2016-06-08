@@ -12,7 +12,4 @@ module Diffing.Patches.Properties.Correctness where
     → (x y : ElU ty t)
     → gapply (gdiff c x y) x ≡ just y
   gdiff-correct {c = c} x y
-    = gapply-Δ-lemma (gdiff c x y)
-      (src-dst-Δ-lemma x y (gdiff c x y)
-        (gdiff-src-lemma c x y)
-        (gdiff-dst-lemma c x y))
+    = gapply-spec (gdiff c x y) (gdiff-wf c x y)
