@@ -1,10 +1,13 @@
 \begin{code}
 open import Prelude
-open import Prelude.NatProperties
-
+open import Prelude.ListProperties
+  using (lsplit-++-lemma; map-lemma; length-map)
 open import Diffing.Universe
+open import CF.Properties
+  using (plug-correct; μ-ar-close-lemma; μ-open-ar-lemma)
 open import Diffing.Patches.Cost
 open import Diffing.Patches.D
+open import Diffing.Patches.Properties.WellFounded
 open import Diffing.Diff
 
 module Diffing.Patches.Id where
@@ -163,87 +166,120 @@ module Diffing.Patches.Id where
   It turns out that we were indeed correct in computing our diff-id:
 
 \begin{code}
+  private
+    helper1 : {n : ℕ}{t : T n}{ty : U (suc n)}
+            → (x : ElU ty (μ ty ∷ t))
+            → ar 0 (fgt 0 x) ≡ length (map unpop (ch 0 x))
+    helper1 x = sym (μ-open-ar-lemma (mu x))
+\end{code}
+
+\begin{code}
   mutual
+    {-# TERMINATING #-}
 \end{code}
 %<*gdiff-id-correct-type>
 \begin{code}
-    gdiff-id-correct 
-      : {n : ℕ}{t : T n}{ty : U n}{c : Cost}
-      → (a : ElU ty t) → gdiff-id a ≡ gdiff c a a
+    gdiff-id-src-lemma 
+      : {n : ℕ}{t : T n}{ty : U n}
+      → (x : ElU ty t) → D-src (gdiff-id x) ≡ just x
 \end{code}
 %</gdiff-id-correct-type>
+%<*gdiffL-id-correct-type>
 \begin{code}
-    gdiff-id-correct unit = refl
-    gdiff-id-correct (inl a) = cong D-inl (gdiff-id-correct a)
-    gdiff-id-correct (inr a) = cong D-inr (gdiff-id-correct a)
-    gdiff-id-correct (a1 , a2) 
-      = cong₂ D-pair (gdiff-id-correct a1) (gdiff-id-correct a2)
-    gdiff-id-correct (top a) = cong D-top (gdiff-id-correct a)
-    gdiff-id-correct (pop a) = cong D-pop (gdiff-id-correct a)
-    gdiff-id-correct {c = c} (mu a)
-      = cong D-mu (gdiffL-id-correct {c = c} (mu a ∷ []))
-    gdiff-id-correct (red a) = cong D-def (gdiff-id-correct a)
+    gdiffL-id-src-lemma 
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (xs : List (ElU (μ ty) t)) → Dμ-src (gdiffL-id xs) ≡ just xs
+\end{code}
+%</gdiffL-id-correct-type>
+\begin{code}
+    gdiff-id-src-lemma unit = refl
+    gdiff-id-src-lemma (inl x) = <M>-intro (gdiff-id-src-lemma x)
+    gdiff-id-src-lemma (inr x) = <M>-intro (gdiff-id-src-lemma x)
+    gdiff-id-src-lemma (x , x₁)
+      rewrite gdiff-id-src-lemma x
+            | gdiff-id-src-lemma x₁
+            = refl
+    gdiff-id-src-lemma (top x) = <M>-intro (gdiff-id-src-lemma x)
+    gdiff-id-src-lemma (pop x) = <M>-intro (gdiff-id-src-lemma x)
+    gdiff-id-src-lemma (red x) = <M>-intro (gdiff-id-src-lemma x)
+    gdiff-id-src-lemma {ty = μ ty} (mu x)
+      rewrite gdiffL-id-src-lemma (μ-ch (mu x) ++ [])
+            | gdiff-id-src-lemma (fgt 0 x)
+            | μ-ar-close-lemma (mu x) []
+            | helper1 x
+            | lsplit-++-lemma (map unpop (ch 0 x)) []
+            | map-lemma {f = unpop} {g = pop {a = μ ty}} (ch 0 x) (λ { (pop x) → refl })
+            | sym (plug-correct 0 x)
+            = refl
 
-  {-
-    private
-      mkDel : {n : ℕ}{t : T n}{ty : U (suc n)}
-            → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-            → Patchμ t ty
-      mkDel a as = (Dμ-del (μ-hd a) ∷ gdiffL (μ-ch a ++ as) (a ∷ as))
+    gdiffL-id-src-lemma [] = refl
+    gdiffL-id-src-lemma {ty = ty} (mu x ∷ xs)
+      rewrite gdiff-id-src-lemma (μ-hd (mu x))
+            | gdiffL-id-src-lemma (μ-ch (mu x) ++ xs)
+            | μ-ar-close-lemma (mu x) xs
+            | helper1 x
+            | lsplit-++-lemma (map unpop (ch 0 x)) xs
+            | map-lemma {f = unpop} {g = pop {a = μ ty}} (ch 0 x) (λ { (pop x) → refl })
+            | sym (plug-correct 0 x)
+            = refl
+\end{code}
 
-      mkDwn : {n : ℕ}{t : T n}{ty : U (suc n)}
-            → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-            → Patchμ t ty
-      mkDwn a as = (Dμ-dwn (gdiff (μ-hd a) (μ-hd a)) ∷
-                    gdiffL (μ-ch a ++ as) (μ-ch a ++ as)) 
-
-      cost-dwn : {n : ℕ}{t : T n}{ty : U (suc n)}
-               → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t))
-               → sum costμ (mkDwn a as) ≡ 0
-      cost-dwn a as 
-        = cong₂ _+_ 
-                (trans (cong cost (sym (gdiff-id-correct (μ-hd a)))) 
-                       (gdiff-id-cost (μ-hd a))) 
-                (trans (cong (sum costμ) (sym (gdiffL-id-correct (μ-ch a ++ as)))) 
-                       (gdiffL-id-cost (μ-ch a ++ as)))
-
-      dwn<del : {n : ℕ}{t : T n}{ty : U (suc n)}
-              → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-              → suc (cost (D-mu (mkDwn a as))) ≤ cost (D-mu (mkDel a as))
-      dwn<del a as rewrite cost-dwn a as
-        = s≤s z≤n
-
-      ss : {n m : ℕ} → suc n ≤ m → n ≤ m
-      ss (s≤s p) = nat-≤-step p
-
-      pi : {n m : ℕ}(a b : n ≤ m) → a ≡ b
-      pi z≤n z≤n = refl
-      pi (s≤s a) (s≤s b) = cong s≤s (pi a b)
-
-      dwn<del? : {n : ℕ}{t : T n}{ty : U (suc n)}
-              → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t)) 
-              → (cost (D-mu (mkDwn a as)) ≤?-ℕ cost (D-mu (mkDel a as)))
-              ≡ yes (ss (dwn<del a as))
-      dwn<del? a as with (cost (D-mu (mkDwn a as)) ≤?-ℕ cost (D-mu (mkDel a as)))
-      ...| yes q = cong yes (pi q (ss (dwn<del a as)))
-      ...| no  q = {!!}
-
-      lemma-1 : {n : ℕ}{t : T n}{ty : U (suc n)}
-              → (a : ElU (μ ty) t)(as : List (ElU (μ ty) t))            
-              → mkDwn a as
-              ≡  mkDel a as
-              ⊔μ mkDwn a as
-      lemma-1 a as with ss (dwn<del a as)
-      lemma-1 a as | prf = {!!}
-    -}   
-
+\begin{code}
+  mutual
     {-# TERMINATING #-}
-    gdiffL-id-correct
-      : {n : ℕ}{t : T n}{ty : U (suc n)}{c : Cost}
-      → (as : List (ElU (μ ty) t)) → gdiffL-id as ≡ gdiffL c as as
-    gdiffL-id-correct [] = refl
-    gdiffL-id-correct (a ∷ as) 
-      = trustme
-      where
-        postulate trustme : ∀{a}{A : Set a} → A
+\end{code}
+%<*gdiff-id-correct-type>
+\begin{code}
+    gdiff-id-dst-lemma 
+      : {n : ℕ}{t : T n}{ty : U n}
+      → (x : ElU ty t) → D-dst (gdiff-id x) ≡ just x
+\end{code}
+%</gdiff-id-correct-type>
+%<*gdiffL-id-correct-type>
+\begin{code}
+    gdiffL-id-dst-lemma 
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (xs : List (ElU (μ ty) t)) → Dμ-dst (gdiffL-id xs) ≡ just xs
+\end{code}
+%</gdiffL-id-correct-type>
+\begin{code}
+    gdiff-id-dst-lemma unit = refl
+    gdiff-id-dst-lemma (inl x) = <M>-intro (gdiff-id-dst-lemma x)
+    gdiff-id-dst-lemma (inr x) = <M>-intro (gdiff-id-dst-lemma x)
+    gdiff-id-dst-lemma (x , x₁)
+      rewrite gdiff-id-dst-lemma x
+            | gdiff-id-dst-lemma x₁
+            = refl
+    gdiff-id-dst-lemma (top x) = <M>-intro (gdiff-id-dst-lemma x)
+    gdiff-id-dst-lemma (pop x) = <M>-intro (gdiff-id-dst-lemma x)
+    gdiff-id-dst-lemma (red x) = <M>-intro (gdiff-id-dst-lemma x)
+    gdiff-id-dst-lemma {ty = μ ty} (mu x)
+      rewrite gdiffL-id-dst-lemma (μ-ch (mu x) ++ [])
+            | gdiff-id-dst-lemma (fgt 0 x)
+            | μ-ar-close-lemma (mu x) []
+            | helper1 x
+            | lsplit-++-lemma (map unpop (ch 0 x)) []
+            | map-lemma {f = unpop} {g = pop {a = μ ty}} (ch 0 x) (λ { (pop x) → refl })
+            | sym (plug-correct 0 x)
+            = refl
+
+    gdiffL-id-dst-lemma [] = refl
+    gdiffL-id-dst-lemma {ty = ty} (mu x ∷ xs)
+      rewrite gdiff-id-dst-lemma (μ-hd (mu x))
+            | gdiffL-id-dst-lemma (μ-ch (mu x) ++ xs)
+            | μ-ar-close-lemma (mu x) xs
+            | helper1 x
+            | lsplit-++-lemma (map unpop (ch 0 x)) xs
+            | map-lemma {f = unpop} {g = pop {a = μ ty}} (ch 0 x) (λ { (pop x) → refl })
+            | sym (plug-correct 0 x)
+            = refl
+\end{code}
+
+  Hence, gdiff-id is well-founded
+
+\begin{code}
+  gdiff-id-wf : {n : ℕ}{t : T n}{ty : U n}
+              → (x : ElU ty t)
+              → WF (gdiff-id x)
+  gdiff-id-wf x = ((x , x) , gdiff-id-src-lemma x , gdiff-id-dst-lemma x)
 \end{code}
