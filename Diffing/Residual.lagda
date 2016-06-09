@@ -164,6 +164,12 @@ module Diffing.Residual where
       = ⊥-elim (||μ-[]-dwn-⊥ x ps (||μ-sym hip))
 \end{code}
 
+  Residuals and patch commutation are remarkably similar.
+  In fact, we can always "mirror" the result of a residual
+  in order to obtain the other residual.
+
+  Proof of this fact in Diffing.Residual.Symmetry
+
 \begin{code}
   on-tail : ∀{a}{A : Set a} → (List A → List A) → List A → List A
   on-tail f [] = []
@@ -180,12 +186,12 @@ module Diffing.Residual where
 
 \begin{code}
   mutual
-    mirror : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-           → (p q : D A t ty) → D A t ty → D A t ty
+    mirror : {A B : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → (p q : D A t ty) → D B t ty → D B t ty
 
     mirrorμ
-      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
-      → (p q r : List (Dμ A t ty)) → List (Dμ A t ty)
+      : {A B : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → (p q : List (Dμ A t ty)) → List (Dμ B t ty) → List (Dμ B t ty)
 
     mirror (D-A x) _ r = r
     mirror _ (D-A x) r = r
