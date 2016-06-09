@@ -163,3 +163,147 @@ module Diffing.Residual where
     resμ (Dμ-dwn x ∷ ps) [] hip
       = ⊥-elim (||μ-[]-dwn-⊥ x ps (||μ-sym hip))
 \end{code}
+
+\begin{code}
+  on-tail : ∀{a}{A : Set a} → (List A → List A) → List A → List A
+  on-tail f [] = []
+  on-tail f (x ∷ xs) = x ∷ f xs
+
+  hd-tail : ∀{a}{A : Set a} → (A → A) → (List A → List A) → List A → List A
+  hd-tail f tl [] = []
+  hd-tail f tl (x ∷ xs) = f x ∷ tl xs
+
+  tail : ∀{a}{A : Set a} → List A → List A
+  tail []       = []
+  tail (_ ∷ xs) = xs
+\end{code}
+
+\begin{code}
+  mutual
+    mirror : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → (p q : D A t ty) → D A t ty → D A t ty
+
+    mirrorμ
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → (p q r : List (Dμ A t ty)) → List (Dμ A t ty)
+
+    mirror (D-A x) _ r = r
+    mirror _ (D-A x) r = r
+    
+    mirror D-unit D-unit r = r
+    
+    mirror (D-inl p) (D-inl q) (D-inl r)
+      = D-inl (mirror p q r)
+    mirror (D-inl p) (D-inl q) r
+      = r
+    mirror (D-inl p) (D-setl x x₁) r
+      = r
+    mirror (D-setl x x₁) (D-inl q) r
+      = r
+    mirror (D-setl x x₁) (D-setl x₂ x₃) r
+      = r
+    
+    mirror (D-inr p) (D-inr q) (D-inr r)
+      = D-inr (mirror p q r)
+    mirror (D-inr p) (D-inr q) r
+      = r 
+    
+    mirror (D-inr p) (D-setr x x₁) r
+      = r
+    mirror (D-setr x x₁) (D-inr q) r
+      = r
+    mirror (D-setr x x₁) (D-setr x₂ x₃) r
+      = r
+    
+    mirror (D-inl p) (D-inr q) r = r
+    mirror (D-inl p) (D-setr x x₁) r = r
+    mirror (D-inr p) (D-inl q) r = r
+    mirror (D-inr p) (D-setl x x₁) r = r
+    mirror (D-setl x x₁) (D-inr q) r = r
+    mirror (D-setl x x₁) (D-setr x₂ x₃) r = r
+    mirror (D-setr x x₁) (D-inl q) r = r
+    mirror (D-setr x x₁) (D-setl x₂ x₃) r = r
+    
+    
+    mirror (D-pair p p₁) (D-pair q q₁) (D-pair r r₁)
+      = D-pair (mirror p q r) (mirror p₁ q₁ r₁)
+    mirror (D-pair p p₁) (D-pair q q₁) (D-A x) = D-A x
+    
+    
+    mirror (D-def p) (D-def q) (D-def r)
+      = D-def (mirror p q r)
+    mirror (D-def p) (D-def q) (D-A x₁)
+      = D-A x₁
+    
+    mirror (D-top p) (D-top q) (D-top r)
+      = D-top (mirror p q r)
+    mirror (D-top p) (D-top q) (D-A x)
+      = D-A x
+    
+    mirror (D-pop p) (D-pop q) (D-pop r)
+      = D-pop (mirror p q r)
+    mirror (D-pop p) (D-pop q) (D-A x)
+      = D-A x
+
+    mirror (D-mu x) (D-mu y) (D-mu r)
+      = D-mu (mirrorμ x y r)
+    mirror (D-mu x) (D-mu y) (D-A r)
+      = D-A r
+
+    mirrorμ [] [] rs = rs
+    mirrorμ  _ (Dμ-A x ∷ _) rs = rs
+    mirrorμ  (Dμ-A x ∷ _) _ rs = rs
+
+    mirrorμ (Dμ-ins a ∷ ps) [] rs
+      = on-tail (mirrorμ ps []) rs
+      
+    mirrorμ [] (Dμ-ins b ∷ qs) rs
+      = on-tail (mirrorμ [] qs) rs
+
+    mirrorμ (Dμ-ins a ∷ ps) (Dμ-ins b ∷ qs) rs
+      with a ≟-U b | b ≟-U a
+    ...| no  abs | yes k   = ⊥-elim (abs (sym k))
+    ...| yes k   | no  abs = ⊥-elim (abs (sym k))
+    ...| no _    | no  _
+      = on-tail (mirrorμ ps qs) rs
+    ...| yes _ | yes _
+      = mirrorμ ps qs rs
+      
+    mirrorμ (Dμ-ins a ∷ ps) (Dμ-del x ∷ qs) rs
+      = on-tail (mirrorμ ps (Dμ-del x ∷ qs)) rs
+      
+    mirrorμ (Dμ-ins a ∷ ps) (Dμ-dwn x ∷ qs) rs
+      = on-tail (mirrorμ ps (Dμ-dwn x ∷ qs)) rs
+      
+    mirrorμ (Dμ-dwn x ∷ ps) (Dμ-ins b ∷ qs) rs
+      = on-tail (mirrorμ (Dμ-dwn x ∷ ps) qs) rs
+                      
+    mirrorμ (Dμ-del x ∷ ps) (Dμ-ins b ∷ qs) rs
+      = on-tail (mirrorμ (Dμ-del x ∷ ps) qs) rs
+      
+    mirrorμ (Dμ-dwn x ∷ ps) (Dμ-dwn y ∷ qs) rs
+      = hd-tail ((λ { (Dμ-dwn k) → Dμ-dwn (mirror x y k) ; k → k }))
+                (mirrorμ ps qs) rs
+                      
+    mirrorμ (Dμ-dwn x ∷ ps) (Dμ-del y ∷ qs) rs
+      with Is-diff-id? x
+    ...| no  _ = on-tail (mirrorμ ps qs) rs
+    ...| yes _ = mirrorμ ps qs (tail rs)
+    
+    mirrorμ (Dμ-del x ∷ ps) (Dμ-del y ∷ qs) rs
+      = mirrorμ ps qs rs
+                     
+    mirrorμ (Dμ-del x ∷ ps) (Dμ-dwn y ∷ qs) rs
+      with Is-diff-id? y
+    ...| no  _ = on-tail (mirrorμ ps qs) rs
+    ...| yes _ = Dμ-del x ∷ mirrorμ ps qs rs
+    
+    mirrorμ [] (Dμ-del x ∷ qs) rs
+      = rs
+    mirrorμ [] (Dμ-dwn x ∷ qs) rs
+      = rs
+    mirrorμ (Dμ-del x ∷ ps) [] rs
+      = rs
+    mirrorμ (Dμ-dwn x ∷ ps) [] rs
+      = rs
+\end{code}

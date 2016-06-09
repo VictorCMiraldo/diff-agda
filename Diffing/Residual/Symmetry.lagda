@@ -14,20 +14,6 @@ module Diffing.Residual.Symmetry where
 \end{code}
 
 \begin{code}
-  on-tail : ∀{a}{A : Set a} → (List A → List A) → List A → List A
-  on-tail f [] = []
-  on-tail f (x ∷ xs) = x ∷ f xs
-
-  hd-tail : ∀{a}{A : Set a} → (A → A) → (List A → List A) → List A → List A
-  hd-tail f tl [] = []
-  hd-tail f tl (x ∷ xs) = f x ∷ tl xs
-
-  tail : ∀{a}{A : Set a} → List A → List A
-  tail []       = []
-  tail (_ ∷ xs) = xs
-\end{code}
-
-\begin{code}
   mutual
 \end{code}
 %<*res-symmetry-type>
@@ -312,22 +298,3 @@ module Diffing.Residual.Symmetry where
     resμ-symmetry (Dμ-dwn x ∷ ps) [] hip
       = ⊥-elim (||μ-[]-dwn-⊥ x ps (||μ-sym hip))
 \end{code}
-
-begin{code}
-  mirror : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
-         → (p q : D A t ty) → D A t ty → D A t ty
-  mirror (D-A x) _ r = r
-  mirror _ (D-A x) r = r
-  mirror D-unit q r = r
-  mirror (D-inl p) (D-inl q) r = ?
-  mirror (D-inl p) (D-inr q) r = ?
-  mirror (D-inl p) (D-setl x x₁) r = ?
-  mirror (D-inl p) (D-setr x x₁) r = ?
-  mirror (D-inr p) q r = {!!}
-  mirror (D-setl x x₁) q r = {!!}
-  mirror (D-setr x x₁) q r = {!!}
-  mirror (D-pair p p₁) q r = {!!}
-  mirror (D-mu x) q r = {!!}
-  mirror (D-def p) q r = {!!}
-  mirror (D-top p) q r = {!!}
-  mirror (D-pop p) q r = {!!}

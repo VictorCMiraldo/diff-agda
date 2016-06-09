@@ -22,12 +22,12 @@ module Diffing.Patches.Id where
 \end{code}
 %<*Is-diff-id-type>
 \begin{code}
-    Is-diff-id : {n : ℕ}{t : T n}{ty : U n}
-               → (d : Patch t ty) → Set
+    Is-diff-id : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+               → (d : D A t ty) → Set
 \end{code}
 %</Is-diff-id-type>
 \begin{code}
-    Is-diff-id (D-A ())
+    Is-diff-id (D-A x) = ⊥
     Is-diff-id D-unit = Unit
     Is-diff-id (D-inl p) = Is-diff-id p
     Is-diff-id (D-inr p) = Is-diff-id p
@@ -41,13 +41,13 @@ module Diffing.Patches.Id where
 \end{code}
 %<*Is-diffL-id-type>
 \begin{code}
-    Is-diffL-id : {n : ℕ}{t : T n}{ty : U (suc n)}
-               → (d : Patchμ t ty) → Set
+    Is-diffL-id : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+               → (d : List (Dμ A t ty)) → Set
 \end{code}
 %</Is-diffL-id-type>
 \begin{code}
     Is-diffL-id [] = Unit
-    Is-diffL-id (Dμ-A () ∷ p)
+    Is-diffL-id (Dμ-A x ∷ p)   = ⊥
     Is-diffL-id (Dμ-ins x ∷ p) = ⊥
     Is-diffL-id (Dμ-del x ∷ p) = ⊥
     Is-diffL-id (Dμ-dwn dx ∷ p) = Is-diff-id dx × Is-diffL-id p
@@ -58,12 +58,12 @@ module Diffing.Patches.Id where
 \end{code}
 %<*Is-diff-id-dec-type>
 \begin{code}
-    Is-diff-id? : {n : ℕ}{t : T n}{ty : U n}
-               → (d : Patch t ty) → Dec (Is-diff-id d)
+    Is-diff-id? : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+               → (d : D A t ty) → Dec (Is-diff-id d)
 \end{code}
 %</Is-diff-id-dec-type>
 \begin{code}
-    Is-diff-id? (D-A ())
+    Is-diff-id? (D-A x) = no (λ ())
     Is-diff-id? D-unit = yes unit
     Is-diff-id? (D-inl p) = Is-diff-id? p
     Is-diff-id? (D-inr p) = Is-diff-id? p
@@ -85,13 +85,13 @@ module Diffing.Patches.Id where
 \end{code}
 %<*Is-diffL-id-dec-type>
 \begin{code}
-    Is-diffL-id? : {n : ℕ}{t : T n}{ty : U (suc n)}
-                → (d : Patchμ t ty) → Dec (Is-diffL-id d)
+    Is-diffL-id? : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+                → (d : List (Dμ A t ty)) → Dec (Is-diffL-id d)
 \end{code}
 %</Is-diffL-id-dec-type>
 \begin{code}
     Is-diffL-id? [] = yes unit
-    Is-diffL-id? (Dμ-A () ∷ p)
+    Is-diffL-id? (Dμ-A x ∷ p)   = no (λ ())
     Is-diffL-id? (Dμ-ins x ∷ p) = no (λ z → z)
     Is-diffL-id? (Dμ-del x ∷ p) = no (λ z → z)
     Is-diffL-id? (Dμ-dwn x ∷ p)
