@@ -223,3 +223,55 @@ module Diffing.Patches.Properties.WellFounded where
   Dμ-dst-wf (p , ((x , y) , (hx , hy))) = y
 \end{code}
 %</D-mu-dst-wf-def>
+
+%<*D-src-lemma-type>
+\begin{code}
+  D-src-lemma : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+              → (p : D A t ty)(hip : WF p)
+              → D-src p ≡ just (D-src-wf (p , hip))
+\end{code}
+%</D-src-lemma-type>
+%<*D-src-lemma-def>
+\begin{code}
+  D-src-lemma p ((sp , dp) , (hsp , hdp)) = hsp
+\end{code}
+%</D-src-lemma-def>
+
+%<*D-dst-lemma-type>
+\begin{code}
+  D-dst-lemma : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+              → (p : D A t ty)(hip : WF p)
+              → D-dst p ≡ just (D-dst-wf (p , hip))
+\end{code}
+%</D-dst-lemma-type>
+%<*D-dst-lemma-def>
+\begin{code}
+  D-dst-lemma p ((sp , dp) , (hsp , hdp)) = hdp
+\end{code}
+%</D-dst-lemma-def>
+
+%<*D-mu-src-lemma-type>
+\begin{code}
+  Dμ-src-lemma : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+               → (p : List (Dμ A t ty))(hip : WFμ p)
+               → Dμ-src p ≡ just (Dμ-src-wf (p , hip))
+\end{code}
+%</D-mu-src-lemma-type>
+%<*D-mu-src-lemma-def>
+\begin{code}
+  Dμ-src-lemma p ((sp , dp) , (hsp , hdp)) = hsp
+\end{code}
+%</D-mu-src-lemma-def>
+
+%<*D-mu-dst-lemma-type>
+\begin{code}
+  Dμ-dst-lemma : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+               → (p : List (Dμ A t ty))(hip : WFμ p)
+               → Dμ-dst p ≡ just (Dμ-dst-wf (p , hip))
+\end{code}
+%</D-mu-dst-lemma-type>
+%<*D-mu-dst-lemma-def>
+\begin{code}
+  Dμ-dst-lemma p ((sp , dp) , (hsp , hdp)) = hdp
+\end{code}
+%</D-mu-dst-lemma-def>
