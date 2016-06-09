@@ -29,6 +29,43 @@ module Diffing.Patches.Properties.WellFounded where
 \end{code}
 %</WF-def>
 
+  Well-Foundedness is proof-irrelevant, since a patch can
+  have at most one source and one destination.
+
+%<*WF-pi-type>
+\begin{code}
+  WF-pi : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+        → {p : D A t ty}(h0 h1 : WF p)
+        → h0 ≡ h1
+\end{code}
+%</WF-pi-type>
+\begin{code}
+  WF-pi {p = p} ((s0 , d0) , hs0 , hd0) ((s1 , d1) , hs1 , hd1)
+    with D-src p | D-dst p
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hs0))
+  ...| just sp | nothing = ⊥-elim (Maybe-⊥ (sym hd0))
+  WF-pi ((sp , .dp) , refl , refl) ((.sp , dp) , refl , refl)
+    | just .sp | just .dp
+    = refl
+\end{code}
+
+%<*WF-mu-pi-type>
+\begin{code}
+  WFμ-pi : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+         → {p : List (Dμ A t ty)}(h0 h1 : WFμ p)
+         → h0 ≡ h1
+\end{code}
+%</WF-mu-pi-type>
+\begin{code}
+  WFμ-pi {p = p} ((s0 , d0) , hs0 , hd0) ((s1 , d1) , hs1 , hd1)
+    with Dμ-src p | Dμ-dst p
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hs0))
+  ...| just sp | nothing = ⊥-elim (Maybe-⊥ (sym hd0))
+  WFμ-pi ((sp , .dp) , refl , refl) ((.sp , dp) , refl , refl)
+    | just .sp | just .dp
+    = refl
+\end{code}
+
 %<*D-inl-wf-type>
 \begin{code}
   D-inl-wf : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}

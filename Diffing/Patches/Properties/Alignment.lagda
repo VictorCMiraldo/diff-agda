@@ -91,6 +91,17 @@ module Diffing.Patches.Properties.Alignment where
 \end{code}
 
 \begin{code}
+    ||μ-elim-sym
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → {p q : List (Dμ A t ty)}{wp : WFμ p}{wq : WFμ q}
+      → {prf : Dμ-src p ≡ Dμ-src q}
+      → (hip : p ||μ q)
+      → ||μ-elim hip ≡ ((wp , wq) , prf)
+      → ||μ-elim (||μ-sym hip) ≡ ((wq , wp) , sym prf)
+    ||μ-elim-sym ((wp , wq) , prf) refl = refl
+\end{code}
+
+\begin{code}
     ||-inl-elim : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
                 → (p q : D A t ty)
                 → D-inl {b = tv} p || D-inl q
@@ -139,7 +150,22 @@ module Diffing.Patches.Properties.Alignment where
     ||-setl-setr-⊥ x a y b ((wp , wq) , prf)
       = inl≡inr→⊥ (just-inj prf)
 
+    ||-setl-elim
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+        (x a : ElU ty t)(y b : ElU tv t)
+      → D-setl {A = A} x y || D-setl a b
+      → x ≡ a
+    ||-setl-elim x a y b ((wp , wq) , prf)
+      = inj-inl (just-inj prf)
 
+    ||-setr-elim
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
+        (x a : ElU ty t)(y b : ElU tv t)
+      → D-setr {A = A} x y || D-setr a b
+      → x ≡ a
+    ||-setr-elim x a y b ((wp , wq) , prf)
+      = inj-inr (just-inj prf)
+      
     ||-pair-elim
       : {A : TU→Set}{n : ℕ}{t : T n}{ty tv : U n}
         (q1 q2 : D A t ty)(r1 r2 : D A t tv)
@@ -405,4 +431,24 @@ module Diffing.Patches.Properties.Alignment where
       with plug 0 a' (map pop sp0)
     ...| nothing  = ⊥-elim (Maybe-⊥ prf)
     ...| just sp' = ∷≡[]→⊥ (sym (just-inj prf))
+\end{code}
+
+\begin{code}
+    ||-pi : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+          → {p q : D A t ty}
+          → (h0 h1 : p || q)
+          → h0 ≡ h1
+    ||-pi {p = p} {q} ((wp0 , wq0) , prf0) ((wp1 , wq1) , prf1)
+      rewrite WF-pi {p = p} wp0 wp1
+            | WF-pi {p = q} wq0 wq1
+            = cong (λ P → (wp1 , wq1) , P) (≡-pi prf0 prf1)
+
+    ||μ-pi : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+          → {p q : List (Dμ A t ty)}
+          → (h0 h1 : p ||μ q)
+          → h0 ≡ h1
+    ||μ-pi {p = p} {q} ((wp0 , wq0) , prf0) ((wp1 , wq1) , prf1)
+      rewrite WFμ-pi {p = p} wp0 wp1
+            | WFμ-pi {p = q} wq0 wq1
+            = cong (λ P → (wp1 , wq1) , P) (≡-pi prf0 prf1)
 \end{code}

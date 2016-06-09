@@ -1,35 +1,19 @@
 \begin{code}
 open import Prelude
-open import Prelude.ListProperties
 open import Diffing.Universe
+
 open import Diffing.Patches.D
 open import Diffing.Patches.Functor
 open import Diffing.Patches.Id
+open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.Alignment
 open import Diffing.Conflicts.C
 open import Diffing.Residual
-open import Diffing.Apply
 
 module Diffing.Residual.Symmetry where
 \end{code}
 
-  An interesting observation, though, is that if (p / q) ≡ just k,
-  then (q / p) ≡ just i, with i ≡ fmap C-sym (op k), for some op.
-
-  What does this mean? 
-
-  Well, we just need to solve the conflicts of (p / q),
-  and this solution can translated to a solution of the
-  conflicts present in (q / p).
-  
-  The result is existentially quantified over an operation
-  as, for instance, if we delete something in (p / q) but not in (q / p),
-  we need to ignore this deleting operation when translating the residuals,
-  therefore they are not really equal. The important part
-  is that their conflicts, modulo op, are symmetric.  
-
 \begin{code}
-  open import Relation.Binary.PropositionalEquality
-
   on-tail : ∀{a}{A : Set a} → (List A → List A) → List A → List A
   on-tail f [] = []
   on-tail f (x ∷ xs) = x ∷ f xs
@@ -41,243 +25,309 @@ module Diffing.Residual.Symmetry where
   tail : ∀{a}{A : Set a} → List A → List A
   tail []       = []
   tail (_ ∷ xs) = xs
-
-  private
-    mutual
-      {-# TERMINATING #-}
-      aux : {n : ℕ}{t : T n}{ty : U n}{k : D C t ty}
-          → (d1 d2 : Patch t ty) 
-          → d1 / d2 ≡ just k
-          → Σ (D C t ty → D C t ty) 
-              (λ op → d2 / d1 ≡ just (D-map C-sym (op k)))
-      aux (D-A ()) _ _
-      aux _ (D-A ()) _
-
-      aux D-unit D-unit refl = id , refl
-
-      aux (D-inl d1) (D-inl d2) prf with <M>-elim prf
-      ...| r , refl , q with aux d1 d2 q
-      ...| op , hip = (λ { (D-inl x) → D-inl (op x) ; x → x } ) 
-                    , <M>-intro hip
-      aux (D-inl d1) (D-setl xa xb) prf with gapply d1 xa
-      aux (D-inl d1) (D-setl xa xb) () | nothing
-      ...| just xa' with xa ≟-U xa'
-      ...| yes _ rewrite sym (just-inj prf) = id , refl
-      ...| no  _ rewrite sym (just-inj prf) = id , refl
-      aux (D-setl xa xb) (D-inl d2) prf with gapply d2 xa
-      aux (D-setl xa xb) (D-inl d2) () | nothing
-      ...| just xa' with xa ≟-U xa'
-      ...| yes _ rewrite sym (just-inj prf) = id , refl
-      ...| no  _ rewrite sym (just-inj prf) = id , refl
-      aux (D-setl xa xb) (D-setl ya yb) prf with xa ≟-U ya | ya ≟-U xa
-      aux (D-setl xa xb) (D-setl ya yb) () | no ¬p | no  _
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | yes _ with xb ≟-U yb | yb ≟-U xb
-      ...| yes q | no ¬q = ⊥-elim (¬q (sym q))
-      ...| no ¬q | yes q = ⊥-elim (¬q (sym q))
-      ...| yes q | yes _ 
-         = id , cong just 
-                (subst (λ P → D-setl ya yb ≡ D-map C-sym P) 
-                  (just-inj prf) (cong₂ D-setl (sym p) (sym q)))
-      ...| no ¬q | no  _  rewrite p | sym (just-inj prf) = id , refl
-
-      aux (D-inr d1) (D-inr d2) prf with <M>-elim prf
-      ...| r , refl , q with aux d1 d2 q
-      ...| op , hip = (λ { (D-inr x) → D-inr (op x) ; x → x } ) 
-                    , <M>-intro hip
-      aux (D-inr d1) (D-setr xa xb) prf with gapply d1 xa
-      aux (D-inr d1) (D-setr xa xb) () | nothing
-      ...| just xa' with xa ≟-U xa'
-      ...| yes _ rewrite sym (just-inj prf) = id , refl
-      ...| no  _ rewrite sym (just-inj prf) = id , refl
-      aux (D-setr xa xb) (D-inr d2) prf with gapply d2 xa
-      aux (D-setr xa xb) (D-inr d2) () | nothing
-      ...| just xa' with xa ≟-U xa'
-      ...| yes _ rewrite sym (just-inj prf) = id , refl
-      ...| no  _ rewrite sym (just-inj prf) = id , refl
-      aux (D-setr xa xb) (D-setr ya yb) prf with xa ≟-U ya | ya ≟-U xa
-      aux (D-setr xa xb) (D-setr ya yb) () | no ¬p | no  _
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | yes _ with xb ≟-U yb | yb ≟-U xb
-      ...| yes q | no ¬q = ⊥-elim (¬q (sym q))
-      ...| no ¬q | yes q = ⊥-elim (¬q (sym q))
-      ...| yes q | yes _ 
-         = id , cong just 
-                 (subst (λ P → D-setr ya yb ≡ D-map C-sym P) 
-                   (just-inj prf) (cong₂ D-setr (sym p) (sym q)))
-      ...| no ¬q | no  _  rewrite p | sym (just-inj prf) = id , refl
-
-      aux (D-inl d1) (D-inr d2) ()
-      aux (D-inl d1) (D-setr xa xb) ()
-      aux (D-inr d1) (D-inl d2) ()
-      aux (D-inr d1) (D-setl x x₁) ()  
-      aux (D-setl xa xb) (D-inr d2) ()      
-      aux (D-setl xa xb) (D-setr ya yb) ()
-      aux (D-setr xa xb) (D-inl d2) ()     
-      aux (D-setr xa xb) (D-setl ya yb) ()
-
-      aux (D-pair d1 d2) (D-pair d3 d4) prf 
-        with <M*>-elim-full {f = D-pair <M> (d1 / d3)} {x = d2 / d4} prf
-      ...| (f1 , a1) , p1 , refl , q1 with <M>-elim p1
-      ...| r1 , r2 , r3 with aux d1 d3 r3 | aux d2 d4 q1
-      ...| op1 , hip1 | op2 , hip2 rewrite hip1 | hip2 | r2 
-         = (λ { (D-pair m n) → D-pair (op1 m) (op2 n) ; x → x }) 
-         , refl
-
-      aux (D-def d1) (D-def d2) prf with <M>-elim prf
-      ...| r , refl , q with aux d1 d2 q
-      ...| op , res = (λ { (D-def x) → D-def (op x) ; x → x })
-                    , <M>-intro res   
-      aux (D-top d1) (D-top d2) prf with <M>-elim prf
-      ...| r , refl , q with aux d1 d2 q
-      ...| op , res = (λ { (D-top x) → D-top (op x) ; x → x })
-                    , <M>-intro res   
-      aux (D-pop d1) (D-pop d2) prf with <M>-elim prf
-      ...| r , refl , q with aux d1 d2 q
-      ...| op , res = (λ { (D-pop x) → D-pop (op x) ; x → x })
-                    , <M>-intro res   
-      aux (D-mu d1) (D-mu d2) prf with <M>-elim prf
-      ...| r , refl , q with aux* d1 d2 q
-      ...| op , res = (λ { (D-mu x) → D-mu (op x) ; x → x })
-                    , <M>-intro res            
-
-      aux* : {n : ℕ}{t : T n}{ty : U (suc n)}{k : List (Dμ C t ty)}
-           → (d1 d2 : Patchμ t ty) 
-           → res d1 d2 ≡ just k
-           → Σ (List (Dμ C t ty) → List (Dμ C t ty)) 
-               (λ op → res d2 d1 ≡ just (Dμ-map C-sym (op k)))
-      aux* (Dμ-A () ∷ _) _ prf
-      aux* _ (Dμ-A () ∷ _) prf
-
-      aux* [] [] refl = id , refl
-
-      aux* (Dμ-ins x ∷ d1) (Dμ-ins y ∷ d2) prf with x ≟-U y | y ≟-U x
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      aux* (Dμ-ins x ∷ d1) (Dμ-ins y ∷ d2) prf | no ¬p | no _ 
-        with <M>-elim prf
-      ...| r , refl , q with aux* d1 d2 q
-      ...| op , hip = on-tail op , <M>-intro hip
-      aux* (Dμ-ins x ∷ d1) (Dμ-ins .x ∷ d2) prf | yes refl | yes _ 
-        with <M>-elim prf
-      ...| r , refl , q with aux* d1 d2 q
-      ...| op , hip rewrite hip 
-         = on-tail op 
-         , cong (λ P → just (Dμ-dwn P ∷ Dμ-map C-sym (op r))) 
-                (sym (D-map-cast C-sym (gdiff-id x)))
-
-      aux* (Dμ-ins x ∷ d1) [] prf with <M>-elim prf
-      ...| r , refl , p with aux* d1 [] p 
-      ...| op , hip = on-tail op , <M>-intro hip
-      aux* [] (Dμ-ins x ∷ d2) prf with <M>-elim prf
-      ...| r , refl , p with aux* [] d2 p
-      ...| op , hip = on-tail op , <M>-intro hip
-
-      aux* (Dμ-ins x ∷ d1) (Dμ-del y ∷ d2) prf with <M>-elim prf
-      ...| r , refl , p with aux* d1 (Dμ-del y ∷ d2) p 
-      ...| op , hip = on-tail op , <M>-intro hip
-      aux* (Dμ-ins x ∷ d1) (Dμ-dwn dy ∷ d2) prf with <M>-elim prf
-      ...| r , refl , p with aux* d1 (Dμ-dwn dy ∷ d2) p 
-      ...| op , hip = on-tail op , <M>-intro hip
-
-      aux* (Dμ-del x ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
-      ...| r , refl , p with aux* (Dμ-del x ∷ d1) d2 p 
-      ...| op , hip = on-tail op , <M>-intro hip
-      aux* (Dμ-dwn dx ∷ d1) (Dμ-ins y ∷ d2) prf with <M>-elim prf
-      ...| r , refl , p with aux* (Dμ-dwn dx ∷ d1) d2 p 
-      ...| op , hip = on-tail op , <M>-intro hip
-
-      aux* [] (Dμ-del x ∷ d2) ()
-      aux* [] (Dμ-dwn dx ∷ d2) ()
-      aux* (Dμ-del x ∷ d1) [] ()
-      aux* (Dμ-dwn dx ∷ d1) [] ()
-
-      aux* (Dμ-del x ∷ d1) (Dμ-del y ∷ d2) prf with x ≟-U y | y ≟-U x
-      aux* (Dμ-del x ∷ d1) (Dμ-del y ∷ d2) () | no ¬p | no _
-      ...| no ¬p | yes p = ⊥-elim (¬p (sym p))
-      ...| yes p | no ¬p = ⊥-elim (¬p (sym p))
-      ...| yes p | yes _ = aux* d1 d2 prf
-
-      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf 
-        with gapply dy x
-      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) () | nothing
-      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just y' with x ≟-U y'
-      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just y' 
-         | no  p with <M>-elim prf
-      ...| r1 , refl , r3 with aux* d1 d2 r3
-      ...| op , hip rewrite hip = on-tail op , refl
-      aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just y'
-         | yes p with <M>-elim prf
-      ...| r1 , refl , r3 with aux* d1 d2 r3
-      ...| op , hip rewrite hip = op ∘ tail , refl
-
-      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf 
-        with gapply dx y
-      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) () | nothing
-      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf | just x' with y ≟-U x'
-      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf | just x' 
-         | no  p with <M>-elim prf
-      ...| r1 , refl , r3 with aux* d1 d2 r3
-      ...| op , hip rewrite hip = on-tail op , refl
-      aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf | just x'
-         | yes p with aux* d1 d2 prf
-      ...| op , hip rewrite hip = _∷_ (Dμ-del y) ∘ op , refl
-
-      aux* (Dμ-dwn dx ∷ d1) (Dμ-dwn dy ∷ d2) prf 
-        with <M*>-elim {x = res d1 d2} prf
-      ...| (f1 , x1) , (p1 , p2) rewrite p1 
-         with <M>-elim (<M*>-to-<M> {f = f1} {x = res d1 d2} prf)
-      ...| r , refl , q with aux* d1 d2 q
-      ...| op , hip with <M>-elim p1
-      ...| rp1 , pp1 , qp1 with <M>-elim qp1
-      ...| rqp1 , pqp1 , qqp1 with aux dx dy qqp1
-      ...| opHd , hipHd rewrite hipHd | pp1 
-         = hd-tail (const (Dμ-dwn (opHd rqp1))) op 
-         , <M>-to-<M*> (<M>-intro hip)
 \end{code}
 
-%<*residual-symmetry-type>
 \begin{code}
-  residual-symmetry-thm
-    : {n : ℕ}{t : T n}{ty : U n}{k : D C t ty}
-    → (d1 d2 : Patch t ty) 
-    → d1 / d2 ≡ just k
-    → Σ (D C t ty → D C t ty) 
-        (λ op → d2 / d1 ≡ just (D-map C-sym (op k)))
+  mutual
 \end{code}
-%</residual-symmetry-type>
+%<*res-symmetry-type>
 \begin{code}
-  residual-symmetry-thm = aux
+    res-symmetry
+      : {n : ℕ}{t : T n}{ty : U n}
+      → (p q : Patch t ty)(hip : p || q)
+      → Σ ({A : TU→Set} → D A t ty → D A t ty)
+          (λ f → res p q hip ≡ D-map C-sym (f (res q p (||-sym hip))))
+\end{code}
+%</res-symmetry-type>
+%<*res-mu-symmetry-type>
+\begin{code}
+    resμ-symmetry
+      : {n : ℕ}{t : T n}{ty : U (suc n)}
+      → (p q : Patchμ t ty)(hip : p ||μ q)
+      → Σ ({A : TU→Set} → List (Dμ A t ty) → List (Dμ A t ty))
+          (λ f → resμ p q hip ≡ Dμ-map C-sym (f (resμ q p (||μ-sym hip))))
+\end{code}
+%</res-mu-symmetry-type>
+\begin{code}
+    res-symmetry (D-A ()) q hip
+    res-symmetry p (D-A ()) hip
+    res-symmetry D-unit D-unit hip
+      = id , refl
+    res-symmetry (D-inl p) (D-inl q) hip
+      with res-symmetry p q (||-inl-elim p q hip)
+    ...| f , rec rewrite rec
+      = (λ { (D-inl k) → D-inl (f k) ; k → k })
+      , cong (λ P → D-inl (D-map C-sym (f (res q p P))))
+             (||-pi (||-sym (||-inl-elim p q hip))
+                    (||-inl-elim q p (||-sym hip)))
+    res-symmetry (D-inl p) (D-setl x y) hip
+      with Is-diff-id? p
+    ...| yes _ = id , refl
+    ...| no  _
+       = id
+       , cong (λ P → D-A (UpdUpd (inl x) (D-dst-wf (D-inl p , P)) (inr y)))
+              (WF-pi {A = ⊥ₚ} {p = D-inl p}
+                (p1 (p1 (||-elim hip))) (p2 (p1 (||-elim (||-sym hip)))))     
+    res-symmetry (D-setl x y) (D-inl q) hip
+      with Is-diff-id? q
+    ...| yes _ = id , refl
+    ...| no  _
+       = id
+       , cong (λ P → D-A (UpdUpd (inl x) (inr y) (D-dst-wf (D-inl q , P))))
+              (WF-pi {A = ⊥ₚ} {p = D-inl q}
+                (p2 (p1 (||-elim hip))) (p1 (p1 (||-elim (||-sym hip)))))  
+    res-symmetry (D-setl x y) (D-setl w z) hip
+      with z ≟-U y | y ≟-U z
+    ...| no  abs | yes k   = ⊥-elim (abs (sym k))
+    ...| yes k   | no  abs = ⊥-elim (abs (sym k))
+    ...| no _    | no  _
+      rewrite ||-setl-elim x w y z hip = id , refl
+    ...| yes y≡z | yes _
+      rewrite y≡z = id , cong D-inr (sym (D-map-cast C-sym (gdiff-id y)))
+    res-symmetry (D-inr p) (D-inr q) hip
+      with res-symmetry p q (||-inr-elim p q hip)
+    ...| f , rec rewrite rec
+      = (λ { (D-inr k) → D-inr (f k) ; k → k })
+      , cong (λ P → D-inr (D-map C-sym (f (res q p P))))
+             (||-pi (||-sym (||-inr-elim p q hip))
+                    (||-inr-elim q p (||-sym hip)))
+    res-symmetry (D-inr p) (D-setr x y) hip
+      with Is-diff-id? p
+    ...| yes _ = id , refl
+    ...| no  _
+       = id
+       , cong (λ P → D-A (UpdUpd (inr x) (D-dst-wf (D-inr p , P)) (inl y)))
+              (WF-pi {A = ⊥ₚ} {p = D-inr p}
+                (p1 (p1 (||-elim hip))) (p2 (p1 (||-elim (||-sym hip))))) 
+    res-symmetry (D-setr x y) (D-inr q) hip
+      with Is-diff-id? q
+    ...| yes _ = id , refl
+    ...| no  _
+       = id
+       , cong (λ P → D-A (UpdUpd (inr x) (inl y) (D-dst-wf (D-inr q , P))))
+              (WF-pi {A = ⊥ₚ} {p = D-inr q}
+                (p2 (p1 (||-elim hip))) (p1 (p1 (||-elim (||-sym hip))))) 
+    res-symmetry (D-setr x y) (D-setr w z) hip
+      with z ≟-U y | y ≟-U z
+    ...| no  abs | yes k   = ⊥-elim (abs (sym k))
+    ...| yes k   | no  abs = ⊥-elim (abs (sym k))
+    ...| no _    | no  _
+      rewrite ||-setr-elim x w y z hip = id , refl
+    ...| yes y≡z | yes _
+      rewrite y≡z = id , cong D-inl (sym (D-map-cast C-sym (gdiff-id y)))
+      
+    res-symmetry (D-inl p) (D-inr q) hip
+      = ⊥-elim (||-inl-inr-⊥ p q hip)
+    res-symmetry (D-inl p) (D-setr x x₁) hip
+      = ⊥-elim (||-inl-setr-⊥ p x₁ x hip)
+    res-symmetry (D-inr p) (D-inl q) hip
+      = ⊥-elim (||-inl-inr-⊥ q p (||-sym hip))
+    res-symmetry (D-inr p) (D-setl x x₁) hip
+      = ⊥-elim (||-inr-setl-⊥ p x x₁ hip)
+    res-symmetry (D-setl xa xb) (D-inr q) hip
+      = ⊥-elim (||-inr-setl-⊥ q xa xb (||-sym hip))
+    res-symmetry (D-setl xa xb) (D-setr xc xd) hip
+      = ⊥-elim (||-setl-setr-⊥ xa xd xb xc hip)
+    res-symmetry (D-setr xa xb) (D-inl q) hip
+      = ⊥-elim (||-inl-setr-⊥ q xb xa (||-sym hip))
+    res-symmetry (D-setr xa xb) (D-setl xc xd) hip
+      = ⊥-elim (||-setl-setr-⊥ xc xb xd xa (||-sym hip))
+      
+    res-symmetry (D-pair p p₁) (D-pair q q₁) hip
+      with res-symmetry p q (p1 (||-pair-elim p q p₁ q₁ hip))
+    ...| f₀ , rec₀
+      with res-symmetry p₁ q₁ (p2 (||-pair-elim p q p₁ q₁ hip))
+    ...| f₁ , rec₁
+      rewrite rec₀ | rec₁
+        = (λ { (D-pair m n) → D-pair (f₀ m) (f₁ n) ; k → k })
+        , cong₂ (λ P Q → D-pair (D-map C-sym (f₀ (res q p P))) (D-map C-sym (f₁ (res q₁ p₁ Q))))
+                (||-pi (||-sym (p1 (||-pair-elim p q p₁ q₁ hip)))
+                       (p1 (||-pair-elim q p q₁ p₁ (||-sym hip))))
+                (||-pi (||-sym (p2 (||-pair-elim p q p₁ q₁ hip)))
+                       (p2 (||-pair-elim q p q₁ p₁ (||-sym hip))))
+    
+    res-symmetry (D-def p) (D-def q) hip
+      with res-symmetry p q (||-def-elim p q hip)
+    ...| f , rec rewrite rec
+      = (λ { (D-def k) → D-def (f k) ; k → k })
+      , cong (λ P → D-def (D-map C-sym (f (res q p P))))
+             (||-pi (||-sym (||-def-elim p q hip))
+                    (||-def-elim q p (||-sym hip)))
+    res-symmetry (D-top p) (D-top q) hip
+      with res-symmetry p q (||-top-elim p q hip)
+    ...| f , rec rewrite rec
+      = (λ { (D-top k) → D-top (f k) ; k → k })
+      , cong (λ P → D-top (D-map C-sym (f (res q p P))))
+             (||-pi (||-sym (||-top-elim p q hip))
+                    (||-top-elim q p (||-sym hip)))
+    res-symmetry (D-pop p) (D-pop q) hip
+      with res-symmetry p q (||-pop-elim p q hip)
+    ...| f , rec rewrite rec
+      = (λ { (D-pop k) → D-pop (f k) ; k → k })
+      , cong (λ P → D-pop (D-map C-sym (f (res q p P))))
+             (||-pi (||-sym (||-pop-elim p q hip))
+                    (||-pop-elim q p (||-sym hip)))
+                    
+    res-symmetry (D-mu x)  (D-mu y) hip
+      with resμ-symmetry x y (||-mu-elim x y hip)
+    ...| f , rec rewrite rec
+      = (λ { (D-mu k) → D-mu (f k) ; k → k })
+      , cong (λ P → D-mu (Dμ-map C-sym (f (resμ y x P))))
+             (||μ-pi (||μ-sym (||-mu-elim x y hip))
+                     (||-mu-elim y x (||-sym hip))) 
+
+    resμ-symmetry [] [] hip = id , refl
+    resμ-symmetry  _ (Dμ-A () ∷ _) _
+    resμ-symmetry  (Dμ-A () ∷ _) _ _
+
+    resμ-symmetry (Dμ-ins a ∷ ps) [] hip
+      with resμ-symmetry ps [] (||μ-ins-elim a ps [] hip)
+    ...| f , rec rewrite rec
+      = on-tail f
+      , cong (λ P → Dμ-A (GrowL a) ∷ Dμ-map C-sym (f (resμ [] ps P)))
+              (||μ-pi (||μ-sym (||μ-ins-elim a ps [] hip))
+                      (||μ-sym (||μ-ins-elim a ps [] (||μ-sym (||μ-sym hip)))))
+    resμ-symmetry [] (Dμ-ins b ∷ qs) hip
+      with resμ-symmetry [] qs (||μ-sym (||μ-ins-elim b qs [] (||μ-sym hip)))
+    ...| f , rec rewrite rec
+      = on-tail f
+      , cong (λ P → Dμ-A (GrowR b) ∷ Dμ-map C-sym (f (resμ qs [] P)))
+             (||μ-pi (||μ-sym (||μ-sym (||μ-ins-elim b qs [] (||μ-sym hip))))
+                     (||μ-ins-elim b qs [] (||μ-sym hip)))
+
+    resμ-symmetry (Dμ-ins a ∷ ps) (Dμ-ins b ∷ qs) hip
+      with a ≟-U b | b ≟-U a
+    ...| no  abs | yes k   = ⊥-elim (abs (sym k))
+    ...| yes k   | no  abs = ⊥-elim (abs (sym k))
+    ...| no _    | no  _
+      with resμ-symmetry ps qs (||μ-ins-ins-elim a b ps qs hip)
+    ...| f , rec rewrite rec
+      = on-tail f , cong (λ P → Dμ-A (GrowLR a b) ∷ Dμ-map C-sym (f (resμ qs ps P)))
+                         (||μ-pi (||μ-sym (||μ-ins-ins-elim a b ps qs hip))
+                                 (||μ-ins-ins-elim b a qs ps (||μ-sym hip)))
+    resμ-symmetry (Dμ-ins a ∷ ps) (Dμ-ins b ∷ qs) hip
+      | yes a≡b | yes _
+      rewrite a≡b with resμ-symmetry ps qs (||μ-ins-ins-elim b b ps qs hip)
+    ...| f , rec rewrite rec
+      = f , cong (λ P → Dμ-map C-sym (f (resμ qs ps P)))
+                 (||μ-pi (||μ-sym (||μ-ins-ins-elim b b ps qs hip))
+                         (||μ-ins-ins-elim b b qs ps (||μ-sym hip))) 
+    resμ-symmetry (Dμ-ins a ∷ ps) (Dμ-del x ∷ qs) hip
+      with resμ-symmetry ps (Dμ-del x ∷ qs) (||μ-ins-elim a ps (Dμ-del x ∷ qs) hip)
+    ...| f , rec rewrite rec
+       = on-tail f
+       , cong (λ P → Dμ-A (GrowL a) ∷ Dμ-map C-sym (f (resμ (Dμ-del x ∷ qs) ps P)))
+              (||μ-pi (||μ-sym (||μ-ins-elim a ps (Dμ-del x ∷ qs) hip))
+                      (||μ-sym (||μ-ins-elim a ps (Dμ-del x ∷ qs) (||μ-sym (||μ-sym hip)))))
+    resμ-symmetry (Dμ-ins a ∷ ps) (Dμ-dwn x ∷ qs) hip
+      with resμ-symmetry ps (Dμ-dwn x ∷ qs) (||μ-ins-elim a ps (Dμ-dwn x ∷ qs) hip)
+    ...| f , rec rewrite rec
+       = on-tail f
+       , cong (λ P → Dμ-A (GrowL a) ∷ Dμ-map C-sym (f (resμ (Dμ-dwn x ∷ qs) ps P)))
+              (||μ-pi (||μ-sym (||μ-ins-elim a ps (Dμ-dwn x ∷ qs) hip))
+                      (||μ-sym (||μ-ins-elim a ps (Dμ-dwn x ∷ qs) (||μ-sym (||μ-sym hip)))))
+    resμ-symmetry (Dμ-dwn x ∷ ps) (Dμ-ins b ∷ qs) hip
+      with resμ-symmetry (Dμ-dwn x ∷ ps) qs
+                (||μ-sym (||μ-ins-elim b qs (Dμ-dwn x ∷ ps) (||μ-sym hip)))
+    ...| f , rec rewrite rec
+      = on-tail f
+      , cong (λ P → Dμ-A (GrowR b) ∷ Dμ-map C-sym (f (resμ qs (Dμ-dwn x ∷ ps) P)))
+              (||μ-pi (||μ-sym (||μ-sym (||μ-ins-elim b qs (Dμ-dwn x ∷ ps) (||μ-sym hip))))
+                      (||μ-ins-elim b qs (Dμ-dwn x ∷ ps) (||μ-sym hip))) 
+    resμ-symmetry (Dμ-del x ∷ ps) (Dμ-ins b ∷ qs) hip
+      with resμ-symmetry (Dμ-del x ∷ ps) qs
+                (||μ-sym (||μ-ins-elim b qs (Dμ-del x ∷ ps) (||μ-sym hip)))
+    ...| f , rec rewrite rec
+      = on-tail f
+      , cong (λ P → Dμ-A (GrowR b) ∷ Dμ-map C-sym (f (resμ qs (Dμ-del x ∷ ps) P)))
+              (||μ-pi (||μ-sym (||μ-sym (||μ-ins-elim b qs (Dμ-del x ∷ ps) (||μ-sym hip))))
+                      (||μ-ins-elim b qs (Dμ-del x ∷ ps) (||μ-sym hip))) 
+    resμ-symmetry (Dμ-dwn x ∷ ps) (Dμ-dwn y ∷ qs) hip
+      with resμ-symmetry ps qs (p1 (||μ-dwn-dwn-elim x y ps qs hip))
+    ...| f , rec rewrite rec
+      with res-symmetry x y (p2 (||μ-dwn-dwn-elim x y ps qs hip))
+    ...| fx , recx rewrite recx
+      = (hd-tail (λ { (Dμ-dwn x) → Dμ-dwn (fx x) ; k → k }) f)
+      , cong₂ (λ P Q → Dμ-dwn (D-map C-sym (fx (res y x P))) ∷ Dμ-map C-sym (f (resμ qs ps Q)))
+              (||-pi (||-sym (p2 (||μ-dwn-dwn-elim x y ps qs hip)))
+                     (p2 (||μ-dwn-dwn-elim y x qs ps (||μ-sym hip))))
+              (||μ-pi (||μ-sym (p1 (||μ-dwn-dwn-elim x y ps qs hip)))
+                      (p1 (||μ-dwn-dwn-elim y x qs ps (||μ-sym hip))))
+                      
+    resμ-symmetry (Dμ-dwn x ∷ ps) (Dμ-del y ∷ qs) hip
+      with Is-diff-id? x
+    resμ-symmetry (Dμ-dwn x ∷ ps) (Dμ-del y ∷ qs) hip | no  _
+      with resμ-symmetry ps qs (||μ-dwn-del-elim y x ps qs hip)
+    ...| f , rec rewrite rec with ||μ-elim hip | inspect ||μ-elim hip
+    ...| ((wps , wqs) , prf) | [ ELIM ]
+      rewrite ||μ-elim-sym hip ELIM
+       = on-tail f
+       , cong₂ (λ P Q → Dμ-A (UpdDel P y) ∷ Dμ-map C-sym (f (resμ qs ps Q)))
+               refl
+               (||μ-pi (||μ-sym (||μ-dwn-del-elim y x ps qs hip))
+                       (||μ-sym (||μ-dwn-del-elim y x ps qs (||μ-sym (||μ-sym hip))))) 
+    resμ-symmetry (Dμ-dwn x ∷ ps) (Dμ-del y ∷ qs) hip | yes _
+      with resμ-symmetry ps qs (||μ-dwn-del-elim y x ps qs hip)
+    ...| f , rec rewrite rec
+      = f ∘ tail
+      , cong (λ P → Dμ-map C-sym (f (resμ qs ps P)))
+             (||μ-pi (||μ-sym (||μ-dwn-del-elim y x ps qs hip))
+                     (||μ-sym (||μ-dwn-del-elim y x ps qs (||μ-sym (||μ-sym hip))))) 
+    
+    resμ-symmetry (Dμ-del x ∷ ps) (Dμ-del y ∷ qs) hip
+      with resμ-symmetry ps qs (p1 (||μ-del-del-elim y x ps qs hip))
+    ...| f , rec rewrite rec
+      = f
+      , cong (λ P → Dμ-map C-sym (f (resμ qs ps P)))
+             (||μ-pi (||μ-sym (p1 (||μ-del-del-elim y x ps qs hip)))
+                     (p1 (||μ-del-del-elim x y qs ps (||μ-sym hip))))
+                     
+    resμ-symmetry (Dμ-del x ∷ ps) (Dμ-dwn y ∷ qs) hip
+      with Is-diff-id? y
+    resμ-symmetry (Dμ-del x ∷ ps) (Dμ-dwn y ∷ qs) hip | no _
+      with resμ-symmetry ps qs (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))
+    ...| f , rec rewrite rec with ||μ-elim hip | inspect ||μ-elim hip
+    ...| ((wps , wqs) , prf) | [ ELIM ]
+      rewrite ||μ-elim-sym hip ELIM
+       = on-tail f
+       , cong₂ (λ P Q → Dμ-A (DelUpd x P) ∷ Dμ-map C-sym (f (resμ qs ps Q)))
+               refl
+               (||μ-pi (||μ-sym (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip))))
+                       (||μ-dwn-del-elim x y qs ps (||μ-sym hip))) 
+    resμ-symmetry (Dμ-del x ∷ ps) (Dμ-dwn y ∷ qs) hip | yes _
+      with resμ-symmetry ps qs (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))
+    ...| f , rec rewrite rec
+      = (_∷_ (Dμ-del x)) ∘ f
+      , cong (λ P → Dμ-del x ∷ Dμ-map C-sym (f (resμ qs ps P)))
+             (||μ-pi (||μ-sym (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip))))
+                     (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))
+    
+    
+    resμ-symmetry [] (Dμ-del x ∷ qs) hip
+      = ⊥-elim (||μ-[]-del-⊥ x qs hip)
+    resμ-symmetry [] (Dμ-dwn x ∷ qs) hip
+      = ⊥-elim (||μ-[]-dwn-⊥ x qs hip)
+    resμ-symmetry (Dμ-del x ∷ ps) [] hip
+      = ⊥-elim (||μ-[]-del-⊥ x ps (||μ-sym hip))
+    resμ-symmetry (Dμ-dwn x ∷ ps) [] hip
+      = ⊥-elim (||μ-[]-dwn-⊥ x ps (||μ-sym hip))
 \end{code}
 
-%<*residualμ-symmetry-type>
-\begin{code}
-  residualμ-symmetry-thm
-    : {n : ℕ}{t : T n}{ty : U (suc n)}{k : List (Dμ C t ty)}
-    → (d1 d2 : Patchμ t ty) 
-    → res d1 d2 ≡ just k
-    → Σ (List (Dμ C t ty) → List (Dμ C t ty)) 
-        (λ op → res d2 d1 ≡ just (Dμ-map C-sym (op k)))
-\end{code}
-%</residualμ-symmetry-type>
-\begin{code}
-  residualμ-symmetry-thm = aux*
-\end{code}
-
-%<*residual-nothing-type>
-\begin{code}
-  residual-nothing 
-    : {n : ℕ}{t : T n}{ty : U n}
-    → (d1 d2 : Patch t ty) 
-    → d1 / d2 ≡ nothing
-    → d2 / d1 ≡ nothing
-\end{code}
-%</residual-nothing-type>
-\begin{code}
-  residual-nothing d1 d2 prf with d2 / d1 | inspect (_/_ d2) d1
-  ...| nothing | [ R ] = refl
-  ...| just d21 | [ R ] with residual-symmetry-thm d2 d1 R
-  ...| op , d12 = ⊥-elim (Maybe-⊥ (trans (sym d12) prf))
-\end{code}
+begin{code}
+  mirror : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+         → (p q : D A t ty) → D A t ty → D A t ty
+  mirror (D-A x) _ r = r
+  mirror _ (D-A x) r = r
+  mirror D-unit q r = r
+  mirror (D-inl p) (D-inl q) r = ?
+  mirror (D-inl p) (D-inr q) r = ?
+  mirror (D-inl p) (D-setl x x₁) r = ?
+  mirror (D-inl p) (D-setr x x₁) r = ?
+  mirror (D-inr p) q r = {!!}
+  mirror (D-setl x x₁) q r = {!!}
+  mirror (D-setr x x₁) q r = {!!}
+  mirror (D-pair p p₁) q r = {!!}
+  mirror (D-mu x) q r = {!!}
+  mirror (D-def p) q r = {!!}
+  mirror (D-top p) q r = {!!}
+  mirror (D-pop p) q r = {!!}
