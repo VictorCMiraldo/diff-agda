@@ -13,7 +13,7 @@ open import Diffing.Patches.Properties.WellFounded
 
 module Diffing.Diff (Δ : Cost) where
 
-  open import Diffing.Patches.D public
+  open import Diffing.Patches.D
 \end{code}
 
   The cost of a diff depends only on the
