@@ -197,3 +197,111 @@ module Diffing.Patches.D where
     Dμ-dst (Dμ-dwn x ∷ p) = D-dst x >>= (λ hdX → Dμ-dst p >>= μ-close hdX >>= (return ∘ cons))
 \end{code}
 %</Dmu-dst-def>
+
+  And now, we define a notion
+  of patch-equality.
+
+%<*D-eq-def>
+\begin{code}
+  _≡-D_ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+        → (p q : D A t ty) → Set
+  p ≡-D q = D-src p ≡ D-src q × D-dst p ≡ D-dst q
+\end{code}
+%</D-eq-def>
+
+%<*Dmu-eq-def>
+\begin{code}
+  _≡-Dμ_ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+        → (p q : List (Dμ A t ty)) → Set
+  p ≡-Dμ q = Dμ-src p ≡ Dμ-src q × Dμ-dst p ≡ Dμ-dst q
+\end{code}
+%</Dmu-eq-def>
+
+  Of course, both relations make an equivalence
+  relation over patches.
+
+%<*D-eq-refl-type>
+\begin{code}
+  ≡-D-refl : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → (p : D A t ty)
+           → p ≡-D p
+\end{code}
+%</D-eq-refl-type>
+%<*D-eq-refl-def>
+\begin{code}
+  ≡-D-refl p = refl , refl
+\end{code}
+%</D-eq-refl-def>
+
+%<*D-eq-sym-type>
+\begin{code}
+  ≡-D-sym : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → (p q : D A t ty)
+           → p ≡-D q
+           → q ≡-D p
+\end{code}
+%</D-eq-sym-type>
+%<*D-eq-sym-def>
+\begin{code}
+  ≡-D-sym p q (hs , hd) = sym hs , sym hd
+\end{code}
+%</D-eq-sym-def>
+
+%<*D-eq-trans-type>
+\begin{code}
+  ≡-D-trans : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+           → (p q r : D A t ty)
+           → p ≡-D q
+           → q ≡-D r
+           → p ≡-D r
+\end{code}
+%</D-eq-trans-type>
+%<*D-eq-trans-def>
+\begin{code}
+  ≡-D-trans p q r (hs0 , hd0) (hs1 , hd1)
+    = trans hs0 hs1 , trans hd0 hd1
+\end{code}
+%</D-eq-trans-def>
+
+%<*Dmu-eq-refl-type>
+\begin{code}
+  ≡-Dμ-refl : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+           → (p : List (Dμ A t ty))
+           → p ≡-Dμ p
+\end{code}
+%</Dmu-eq-refl-type>
+%<*Dmu-eq-refl-def>
+\begin{code}
+  ≡-Dμ-refl p = refl , refl
+\end{code}
+%</Dmu-eq-refl-def>
+
+%<*Dmu-eq-sym-type>
+\begin{code}
+  ≡-Dμ-sym : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+           → (p q : List (Dμ A t ty))
+           → p ≡-Dμ q
+           → q ≡-Dμ p
+\end{code}
+%</Dmu-eq-sym-type>
+%<*Dmu-eq-sym-def>
+\begin{code}
+  ≡-Dμ-sym p q (hs , hd) = sym hs , sym hd
+\end{code}
+%</Dmu-eq-sym-def>
+
+%<*Dmu-eq-trans-type>
+\begin{code}
+  ≡-Dμ-trans : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+           → (p q r : List (Dμ A t ty))
+           → p ≡-Dμ q
+           → q ≡-Dμ r
+           → p ≡-Dμ r
+\end{code}
+%</Dmu-eq-trans-type>
+%<*Dmu-eq-trans-def>
+\begin{code}
+  ≡-Dμ-trans p q r (hs0 , hd0) (hs1 , hd1)
+    = trans hs0 hs1 , trans hd0 hd1
+\end{code}
+%</Dmu-eq-trans-def>

@@ -103,98 +103,98 @@ module Diffing.Patches.Inverse where
 \end{code}
 %<*D-inv-spec-src-type>
 \begin{code}
-    D-inv-spec-src 
+    D-inv-src-lemma 
       : {n : ℕ}{t : T n}{ty : U n}
       → (p : Patch t ty)
       → D-src (D-inv p) ≡ D-dst p
 \end{code}
-%</D-inv-spec-src-type>
-%<*D-mu-inv-spec-src-type>
+%</D-inv-src-lemma-type>
+%<*D-mu-inv-src-lemma-type>
 \begin{code}
-    Dμ-inv-spec-src
+    Dμ-inv-src-lemma
       : {n : ℕ}{t : T n}{ty : U (suc n)}
       → (ps : Patchμ t ty)
       → Dμ-src (Dμ-inv ps) ≡ Dμ-dst ps
 \end{code}
-%<*D-mu-inv-spec-src-type>
+%<*D-mu-inv-src-lemma-type>
 \begin{code}
-    D-inv-spec-src (D-A ())
-    D-inv-spec-src D-unit = refl
-    D-inv-spec-src (D-inl p) = cong (λ P → inl <M> P) (D-inv-spec-src p)
-    D-inv-spec-src (D-inr p) = cong (λ P → inr <M> P) (D-inv-spec-src p)
-    D-inv-spec-src (D-setl x x₁) = refl
-    D-inv-spec-src (D-setr x x₁) = refl
-    D-inv-spec-src (D-pair p p₁)
-     rewrite D-inv-spec-src p
-           | D-inv-spec-src p₁
+    D-inv-src-lemma (D-A ())
+    D-inv-src-lemma D-unit = refl
+    D-inv-src-lemma (D-inl p) = cong (λ P → inl <M> P) (D-inv-src-lemma p)
+    D-inv-src-lemma (D-inr p) = cong (λ P → inr <M> P) (D-inv-src-lemma p)
+    D-inv-src-lemma (D-setl x x₁) = refl
+    D-inv-src-lemma (D-setr x x₁) = refl
+    D-inv-src-lemma (D-pair p p₁)
+     rewrite D-inv-src-lemma p
+           | D-inv-src-lemma p₁
            = refl
-    D-inv-spec-src (D-def p)
-      = cong (λ P → red <M> P) (D-inv-spec-src p)
-    D-inv-spec-src (D-top p)
-      = cong (_<M>_ top) (D-inv-spec-src p)
-    D-inv-spec-src (D-pop p)
-      = cong (_<M>_ pop) (D-inv-spec-src p)
-    D-inv-spec-src (D-mu x)
-      rewrite Dμ-inv-spec-src x = refl
+    D-inv-src-lemma (D-def p)
+      = cong (λ P → red <M> P) (D-inv-src-lemma p)
+    D-inv-src-lemma (D-top p)
+      = cong (_<M>_ top) (D-inv-src-lemma p)
+    D-inv-src-lemma (D-pop p)
+      = cong (_<M>_ pop) (D-inv-src-lemma p)
+    D-inv-src-lemma (D-mu x)
+      rewrite Dμ-inv-src-lemma x = refl
     
-    Dμ-inv-spec-src [] = refl
-    Dμ-inv-spec-src (Dμ-A () ∷ ps)
-    Dμ-inv-spec-src (Dμ-ins x ∷ ps)
-      rewrite Dμ-inv-spec-src ps = refl
-    Dμ-inv-spec-src (Dμ-del x ∷ ps)
-      rewrite Dμ-inv-spec-src ps = refl
-    Dμ-inv-spec-src (Dμ-dwn x ∷ ps)
-      rewrite D-inv-spec-src x
-            | Dμ-inv-spec-src ps = refl
+    Dμ-inv-src-lemma [] = refl
+    Dμ-inv-src-lemma (Dμ-A () ∷ ps)
+    Dμ-inv-src-lemma (Dμ-ins x ∷ ps)
+      rewrite Dμ-inv-src-lemma ps = refl
+    Dμ-inv-src-lemma (Dμ-del x ∷ ps)
+      rewrite Dμ-inv-src-lemma ps = refl
+    Dμ-inv-src-lemma (Dμ-dwn x ∷ ps)
+      rewrite D-inv-src-lemma x
+            | Dμ-inv-src-lemma ps = refl
 \end{code}
 
 \begin{code}
   mutual    
     {-# TERMINATING #-}
 \end{code}
-%<*D-inv-spec-dst-type>
+%<*D-inv-dst-lemma-type>
 \begin{code}
-    D-inv-spec-dst 
+    D-inv-dst-lemma 
       : {n : ℕ}{t : T n}{ty : U n}
       → (p : Patch t ty)
       → D-dst (D-inv p) ≡ D-src p
 \end{code}
-%</D-inv-spec-dst-type>
-%<*D-mu-inv-spec-dst-type>
+%</D-inv-dst-lemma-type>
+%<*D-mu-inv-dst-lemma-type>
 \begin{code}
-    Dμ-inv-spec-dst
+    Dμ-inv-dst-lemma
       : {n : ℕ}{t : T n}{ty : U (suc n)}
       → (ps : Patchμ t ty)
       → Dμ-dst (Dμ-inv ps) ≡ Dμ-src ps
 \end{code}
-%<*D-mu-inv-spec-dst-type>
+%<*D-mu-inv-dst-lemma-type>
 \begin{code}
-    D-inv-spec-dst (D-A ())
-    D-inv-spec-dst D-unit = refl
-    D-inv-spec-dst (D-inl p) = cong (λ P → inl <M> P) (D-inv-spec-dst p)
-    D-inv-spec-dst (D-inr p) = cong (λ P → inr <M> P) (D-inv-spec-dst p)
-    D-inv-spec-dst (D-setl x x₁) = refl
-    D-inv-spec-dst (D-setr x x₁) = refl
-    D-inv-spec-dst (D-pair p p₁)
-     rewrite D-inv-spec-dst p
-           | D-inv-spec-dst p₁
+    D-inv-dst-lemma (D-A ())
+    D-inv-dst-lemma D-unit = refl
+    D-inv-dst-lemma (D-inl p) = cong (λ P → inl <M> P) (D-inv-dst-lemma p)
+    D-inv-dst-lemma (D-inr p) = cong (λ P → inr <M> P) (D-inv-dst-lemma p)
+    D-inv-dst-lemma (D-setl x x₁) = refl
+    D-inv-dst-lemma (D-setr x x₁) = refl
+    D-inv-dst-lemma (D-pair p p₁)
+     rewrite D-inv-dst-lemma p
+           | D-inv-dst-lemma p₁
            = refl
-    D-inv-spec-dst (D-def p)
-      = cong (λ P → red <M> P) (D-inv-spec-dst p)
-    D-inv-spec-dst (D-top p)
-      = cong (_<M>_ top) (D-inv-spec-dst p)
-    D-inv-spec-dst (D-pop p)
-      = cong (_<M>_ pop) (D-inv-spec-dst p)
-    D-inv-spec-dst (D-mu x)
-      rewrite Dμ-inv-spec-dst x = refl
+    D-inv-dst-lemma (D-def p)
+      = cong (λ P → red <M> P) (D-inv-dst-lemma p)
+    D-inv-dst-lemma (D-top p)
+      = cong (_<M>_ top) (D-inv-dst-lemma p)
+    D-inv-dst-lemma (D-pop p)
+      = cong (_<M>_ pop) (D-inv-dst-lemma p)
+    D-inv-dst-lemma (D-mu x)
+      rewrite Dμ-inv-dst-lemma x = refl
     
-    Dμ-inv-spec-dst [] = refl
-    Dμ-inv-spec-dst (Dμ-A () ∷ ps)
-    Dμ-inv-spec-dst (Dμ-ins x ∷ ps)
-      rewrite Dμ-inv-spec-dst ps = refl
-    Dμ-inv-spec-dst (Dμ-del x ∷ ps)
-      rewrite Dμ-inv-spec-dst ps = refl
-    Dμ-inv-spec-dst (Dμ-dwn x ∷ ps)
-      rewrite D-inv-spec-dst x
-            | Dμ-inv-spec-dst ps = refl
+    Dμ-inv-dst-lemma [] = refl
+    Dμ-inv-dst-lemma (Dμ-A () ∷ ps)
+    Dμ-inv-dst-lemma (Dμ-ins x ∷ ps)
+      rewrite Dμ-inv-dst-lemma ps = refl
+    Dμ-inv-dst-lemma (Dμ-del x ∷ ps)
+      rewrite Dμ-inv-dst-lemma ps = refl
+    Dμ-inv-dst-lemma (Dμ-dwn x ∷ ps)
+      rewrite D-inv-dst-lemma x
+            | Dμ-inv-dst-lemma ps = refl
 \end{code}

@@ -91,7 +91,7 @@ module Diffing.Patches.Properties.Alignment where
 \end{code}
 
 \begin{code}
-||μ-elim-sym
+    ||μ-elim-sym
       : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
       → {p q : List (Dμ A t ty)}{wp : WFμ p}{wq : WFμ q}
       → {prf : Dμ-src p ≡ Dμ-src q}

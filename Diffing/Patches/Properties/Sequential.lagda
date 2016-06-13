@@ -35,6 +35,13 @@ module Diffing.Patches.Properties.Sequential where
       → (WF p × WF q) × D-dst p ≡ D-src q
     ⟶-elim hip = hip
 
+    ⟶-intro
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+      → {p q : D A t ty} 
+      → (WF p × WF q) × D-dst p ≡ D-src q
+      → (p ⟶ q)
+    ⟶-intro hip = hip
+
     ⟶μ-elim
       : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
       → {p q : List (Dμ A t ty)} → (p ⟶μ q)
