@@ -485,7 +485,7 @@ module Diffing.Patches.Properties.Sequential where
       : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
       → (x : D A (u1 ∷ t) ty)(y : ValU ty t)(ps qs : List (Dμ A t ty))
       → (Dμ-dwn x ∷ ps) ⟶μ (Dμ-del y ∷ qs)
-      → (D-dst x ≡ just y) × (ps ⟶μ qs)
+      → (WF x) × (D-dst x ≡ just y) × (ps ⟶μ qs)
     ⟶μ-dwn-del x y ps qs ((wp , wq) , prf)
       with Dμ-dwn-wf x ps wp | Dμ-del-wf y qs wq
     ...| wx' , wp' | wq'
@@ -514,7 +514,7 @@ module Diffing.Patches.Properties.Sequential where
     ...| just y' | [ Y ]
       with ∷-inj (just-inj prf)
     ...| prf0 , prf1
-      = (cong just (trans (sym (plug-spec-fgt 0 x' dx (map pop d0) X)) (sym
+      = wx' , (cong just (trans (sym (plug-spec-fgt 0 x' dx (map pop d0) X)) (sym
                    (trans (sym (plug-spec-fgt 0 y' y (map pop s0) Y))
                           (cong (fgt 0) (inj-mu (sym prf0)))))))
       , ((wp' , wq')
