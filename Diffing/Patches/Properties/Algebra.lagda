@@ -67,7 +67,7 @@ module Diffing.Patches.Properties.Algebra
                                                 (p1 wq))))
           wfrq  = ((A , C) , trans (comp-src-lemma Δ r q r⟶q) (p1 wr)
                            , trans (comp-dst-lemma Δ r q r⟶q) (p2 wq))
-          rq⟶p  = ⟶-intro ((wfrq , wfp) , trans (comp-dst-lemma Δ {!!} q {!!})
+          rq⟶p  = ⟶-intro ((wfrq , wfp) , trans {!comp-dst-lemma Δ r q r⟶q!}
                                           (trans (p2 wq) (sym (p1 wp))))
        in (trans (comp-src-lemma Δ r (comp Δ q p q⟶p) r⟶qp)
                  (sym (trans (comp-src-lemma Δ (comp Δ r q r⟶q) p rq⟶p)
