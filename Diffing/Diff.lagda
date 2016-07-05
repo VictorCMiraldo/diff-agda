@@ -120,22 +120,49 @@ module Diffing.Diff (Δ : Cost) where
 \begin{code}
     gdiff : {n : ℕ}{t : T n}{ty : U n} 
           → ElU ty t → ElU ty t → Patch t ty
-    gdiff {ty = var} (top a) (top b)    = D-top (gdiff a b)
-    gdiff {ty = wk u} (pop a) (pop b)  = D-pop (gdiff a b)
-    gdiff {ty = def F x} (red a) (red b) = D-def (gdiff a b)
-    gdiff {ty = u1} unit unit = D-unit
-    gdiff {ty = ty ⊗ tv} (ay , av) (by , bv) 
+    gdiff {ty = u1}       unit unit 
+      = D-unit
+    gdiff {ty = var}      (top a)    (top b)    
+      = D-top (gdiff a b)
+    gdiff {ty = wk u}     (pop a)    (pop b)  
+      = D-pop (gdiff a b)
+    gdiff {ty = def F x}  (red a)    (red b) 
+      = D-def (gdiff a b)
+    gdiff {ty = ty ⊗ tv}  (ay , av)  (by , bv) 
       = D-pair (gdiff ay by) (gdiff av bv)
-    gdiff {ty = ty ⊕ tv} (inl ay) (inl by) = D-inl (gdiff ay by)
-    gdiff {ty = ty ⊕ tv} (inr av) (inr bv) = D-inr (gdiff av bv)
-    gdiff {ty = ty ⊕ tv} (inl ay) (inr bv) = D-setl ay bv
-    gdiff {ty = ty ⊕ tv} (inr av) (inl by) = D-setr av by
-    gdiff {ty = μ ty} a b = D-mu (gdiffL (a ∷ []) (b ∷ []))
+    gdiff {ty = ty ⊕ tv}  (inl ay)   (inl by) 
+      = D-inl (gdiff ay by)
+    gdiff {ty = ty ⊕ tv}  (inr av)   (inr bv) 
+      = D-inr (gdiff av bv)
+    gdiff {ty = ty ⊕ tv}  (inl ay)   (inr bv) 
+      = D-setl ay bv
+    gdiff {ty = ty ⊕ tv}  (inr av)   (inl by) 
+      = D-setr av by
+    gdiff {ty = μ ty}     a          b 
+      = D-mu (gdiffL (a ∷ []) (b ∷ []))
 \end{code}
 %</gdiff-def>
 
 %<*gdiffL-def>
 \begin{code}
+    gdiffL : {n : ℕ}{t : T n}{ty : U (suc n)} 
+           → List (ElU (μ ty) t) → List (ElU (μ ty) t) → Patchμ t ty
+    gdiffL [] [] = []
+    gdiffL [] (y ∷ ys) 
+      = Dμ-ins (μ-hd y) ∷ (gdiffL [] (μ-ch y ++ ys)) 
+    gdiffL (x ∷ xs) [] 
+      = Dμ-del (μ-hd x) ∷ (gdiffL (μ-ch x ++ xs) [])
+    gdiffL (x ∷ xs) (y ∷ ys) 
+      = let
+          hdX , chX = μ-open x
+          hdY , chY = μ-open y
+          d1 = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
+          d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
+          d3 = Dμ-dwn (gdiff hdX hdY) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
+       in d1 ⊔μ d2 ⊔μ d3
+\end{code}
+%</gdiffL-def>
+begin{code}
     gdiffL : {n : ℕ}{t : T n}{ty : U (suc n)} 
            → List (ElU (μ ty) t) → List (ElU (μ ty) t) → Patchμ t ty
     gdiffL [] [] = []
@@ -151,8 +178,7 @@ module Diffing.Diff (Δ : Cost) where
           d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
           d3 = Dμ-dwn (gdiff hdX hdY) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
        in d1 ⊔μ d2 ⊔μ d3
-\end{code}
-%</gdiffL-def>
+end{code}
 
   Now some nice lemmas about diffs.
 
