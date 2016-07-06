@@ -38,16 +38,16 @@ module Diffing.Diff (Δ : Cost) where
 %<*cost-def>
 \begin{code}
     cost (D-A ())
-    cost  D-unit        = 0
-    cost (D-inl d)      = cost d
-    cost (D-inr d)      = cost d
-    cost (D-setl xa xb) = C⊕ Δ xa xb
-    cost (D-setr xa xb) = C⊕ Δ xa xb
-    cost (D-pair da db) = cost da + cost db
-    cost (D-def d)   = cost d
-    cost (D-top d) = cost d
-    cost (D-pop d) = cost d
-    cost (D-mu l)  = costL l
+    cost  D-unit         = 0
+    cost (D-inl d)       = cost d
+    cost (D-inr d)       = cost d
+    cost (D-setl xa xb)  = C⊕ Δ xa xb
+    cost (D-setr xa xb)  = C⊕ Δ xa xb
+    cost (D-pair da db)  = cost da + cost db
+    cost (D-def d)       = cost d
+    cost (D-top d)       = cost d
+    cost (D-pop d)       = cost d
+    cost (D-mu l)        = costL l
 \end{code}
 %</cost-def>
 %<*costmu-type>
@@ -59,9 +59,9 @@ module Diffing.Diff (Δ : Cost) where
 %<*costmu-def>
 \begin{code}
     costμ (Dμ-A ())
-    costμ (Dμ-ins x) = Cμ Δ x
-    costμ (Dμ-del x) = Cμ Δ x
-    costμ (Dμ-dwn x) = cost x
+    costμ (Dμ-ins x)  = Cμ Δ x
+    costμ (Dμ-del x)  = Cμ Δ x
+    costμ (Dμ-dwn x)  = cost x
 \end{code}
 %</costmu-def>
 

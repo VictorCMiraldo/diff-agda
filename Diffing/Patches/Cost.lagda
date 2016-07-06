@@ -17,12 +17,14 @@ module Diffing.Patches.Cost where
   record Cost : Set where
     constructor cost-rec
     field
-      c⊕ : {n : ℕ}{t : T n}{x y : U n} → ElU x t → ElU y t → ℕ
-      cμ : {n : ℕ}{t : T n}{x : U (suc n)} → ElU x (u1 ∷ t) → ℕ
+      c⊕  : {n : ℕ}{t : T n}{x y : U n} 
+          → ElU x t → ElU y t → ℕ
+      cμ  : {n : ℕ}{t : T n}{x : U (suc n)} 
+          → ElU x (u1 ∷ t) → ℕ
 
-      c⊕-sym-lemma : {n : ℕ}{t : T n}{x y : U n}
-                   → (ex : ElU x t)(ey : ElU y t)
-                   → c⊕ ex ey ≡ c⊕ ey ex
+      c⊕-sym-lemma  : {n : ℕ}{t : T n}{x y : U n}
+                    → (ex : ElU x t)(ey : ElU y t)
+                    → c⊕ ex ey ≡ c⊕ ey ex
 \end{code}
 %</Cost-rec>
 

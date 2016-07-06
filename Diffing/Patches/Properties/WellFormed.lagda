@@ -20,14 +20,17 @@ module Diffing.Patches.Properties.WellFormed where
   WF {A} {n} {t} {ty} p
     = Σ (ElU ty t × ElU ty t)
         (λ xy → D-src p ≡ just (p1 xy) × D-dst p ≡ just (p2 xy))
-
+\end{code}
+%</WF-def>
+%<*WFmu-def>
+\begin{code}
   WFμ : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
       → List (Dμ A t ty) → Set
   WFμ {A} {n} {t} {ty} ps
     = Σ (List (ElU (μ ty) t) × List (ElU (μ ty) t))
         (λ xy → Dμ-src ps ≡ just (p1 xy) × Dμ-dst ps ≡ just (p2 xy))
 \end{code}
-%</WF-def>
+%</WFmu-def>
 
   Well-Foundedness is proof-irrelevant, since a patch can
   have at most one source and one destination.
