@@ -8,7 +8,7 @@ open import CF.Properties
   using (plug-spec-ch; plug-spec-fgt)
 
 open import Diffing.Patches.D
-open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.WellFormed
 
 module Diffing.Patches.Properties.Alignment where
 \end{code}

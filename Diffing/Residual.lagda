@@ -5,7 +5,7 @@ open import Diffing.Universe
 open import Diffing.Patches.D
 open import Diffing.Patches.Functor using (cast; forget)
 open import Diffing.Patches.Id
-open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.WellFormed
 open import Diffing.Patches.Properties.Alignment
 open import Diffing.Conflicts.C
 

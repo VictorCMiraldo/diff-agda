@@ -2,7 +2,7 @@
 open import Prelude
 open import Diffing.Universe
 open import Diffing.Patches.D
-open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.WellFormed
 open import Diffing.Patches.Properties.Sequential
 open import Diffing.Patches.Cost
 

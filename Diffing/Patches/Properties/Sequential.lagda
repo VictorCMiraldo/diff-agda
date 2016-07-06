@@ -6,7 +6,7 @@ open import Diffing.Universe
 open import CF.Properties
   using (plug-spec-fgt; plug-spec-ch)
 open import Diffing.Patches.D
-open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.WellFormed
 
 module Diffing.Patches.Properties.Sequential where
 \end{code}

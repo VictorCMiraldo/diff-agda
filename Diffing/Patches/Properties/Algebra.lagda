@@ -6,7 +6,7 @@ open import Diffing.Patches.Cost
 open import Diffing.Patches.Id
 open import Diffing.Patches.Inverse
 open import Diffing.Patches.Composition
-open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.WellFormed
 open import Diffing.Patches.Properties.Alignment
 open import Diffing.Patches.Properties.Sequential
 

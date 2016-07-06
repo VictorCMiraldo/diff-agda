@@ -10,7 +10,7 @@ open import CF.Properties.Base
 open import CF.Properties.Mu
   using (μ-close-correct; μ-ar-close-lemma; μ-open-ar-lemma)
 open import Diffing.Patches.D
-open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.WellFormed
 
 module Diffing.Apply where
 \end{code}

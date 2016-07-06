@@ -7,7 +7,7 @@ open import CF.Properties
   using (plug-correct; μ-ar-close-lemma; μ-open-ar-lemma)
 open import Diffing.Patches.Cost
 open import Diffing.Patches.D
-open import Diffing.Patches.Properties.WellFounded
+open import Diffing.Patches.Properties.WellFormed
 open import Diffing.Diff
 
 module Diffing.Patches.Id where

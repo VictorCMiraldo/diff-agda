@@ -3,7 +3,7 @@ open import Prelude
 open import Diffing.Universe
 open import Diffing.Patches.D
 
-module Diffing.Patches.Properties.WellFounded where
+module Diffing.Patches.Properties.WellFormed where
 \end{code}
 
   Well-Founded Patches are those that have both a source and
