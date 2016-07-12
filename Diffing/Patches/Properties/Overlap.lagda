@@ -2,7 +2,12 @@
 open import Prelude
 open import Diffing.Universe
 open import Diffing.Patches.D
-open import Diffing.Apply
+open import Diffing.Patches.Id
+open import Diffing.Patches.Composition
+open import Diffing.Patches.Properties.WellFormed
+open import Diffing.Patches.Properties.Sequential
+open import Diffing.Patches.Cost
+open import Diffing.Diff
 
 module Diffing.Patches.Properties.Overlap where
 \end{code}
@@ -32,13 +37,13 @@ module Diffing.Patches.Properties.Overlap where
     NoOverlap (D-inl d1)   (D-inl d2) = NoOverlap d1 d2
     NoOverlap (D-inr d1)   (D-inr d2) = NoOverlap d1 d2
     NoOverlap (D-inl d1)   (D-setl x y) 
-      = ∀ x → gapply d1 x ≡ just x
+      = Is-diff-id d1
     NoOverlap (D-inr d1)   (D-setr x y)
-      = ∀ x → gapply d1 x ≡ just x
+      = Is-diff-id d1
     NoOverlap (D-setl x y) (D-inl d2)
-      = ∀ x → gapply d2 x ≡ just x
+      = Is-diff-id d2
     NoOverlap (D-setr x y) (D-inr d2)
-      = ∀ x → gapply d2 x ≡ just x
+      = Is-diff-id d2
     NoOverlap (D-setl x y) (D-setl w z) with x ≟-U w
     ...| no  _ = Unit
     ...| yes _ = y ≡ z
@@ -87,8 +92,10 @@ module Diffing.Patches.Properties.Overlap where
     -- the patches are overlaping.
     -- However, if the elements differ, they are not aligned,
     -- and, therefore, trivially non-overlapping.
-    NoOverlapμ (Dμ-del x ∷ xs) (Dμ-dwn y ∷ ys) = ?
-    NoOverlapμ (Dμ-dwn x ∷ xs) (Dμ-del y ∷ ys) = ?
+    NoOverlapμ (Dμ-del x ∷ xs) (Dμ-dwn y ∷ ys) 
+      = Is-diff-id y × NoOverlapμ xs ys
+    NoOverlapμ (Dμ-dwn x ∷ xs) (Dμ-del y ∷ ys) 
+      = Is-diff-id x × NoOverlapμ xs ys
     -- Here, the units refer to non-aligned patches,
     -- the only really interesting case is the dwn case.
     NoOverlapμ (Dμ-del x ∷ xs) (Dμ-del y ∷ ys) with x ≟-U y
@@ -107,4 +114,37 @@ module Diffing.Patches.Properties.Overlap where
   NoOverlapμ-[] (Dμ-ins x ∷ d1) = refl
   NoOverlapμ-[] (Dμ-del x ∷ d1) = refl
   NoOverlapμ-[] (Dμ-dwn x ∷ d1) = refl
+\end{code}
+
+\begin{code}
+  comp-cost : {n : ℕ}{t : T n}{ty : U n}{Δ : Cost}
+            → (p q : Patch t ty)(hip : p ⟶ q)(ovr : NoOverlap p q)
+            → cost Δ (comp Δ p q hip) ≡ cost Δ p + cost Δ q
+  comp-cost (D-A ()) q hip ovr
+  comp-cost p (D-A ()) hip ovr
+  comp-cost D-unit D-unit hip ovr = refl
+  comp-cost (D-inl p) (D-inl q) hip ovr 
+    = comp-cost p q (⟶-inl p q hip) ovr
+  comp-cost (D-inl p) (D-setl x x₁) hip ovr 
+    = {!!}
+  comp-cost (D-inl p) (D-inr q) hip ovr
+    = ⊥-elim (⟶-inl-inr-⊥ p q hip)
+  comp-cost (D-inl p) (D-setr x x₁) hip ovr 
+    = ⊥-elim (⟶-inl-setr-⊥ p x x₁ hip)
+  comp-cost (D-inr p) q hip ovr = {!!}
+  comp-cost (D-setl x x₁) q hip = {!!}
+  comp-cost (D-setr x x₁) q hip = {!!}
+  comp-cost (D-pair p p₁) (D-pair q q₁) hip ovr = {!!}
+  comp-cost (D-mu x) q hip = {!!}
+  comp-cost (D-def p) q hip = {!!}
+  comp-cost (D-top p) q hip = {!!}
+  comp-cost (D-pop p) q hip = {!!}
+
+  compμ-cost : {n : ℕ}{t : T n}{ty : U (suc n)}{Δ : Cost}
+            → (p q : Patchμ t ty)(hip : p ⟶μ q)(ovr : NoOverlapμ p q)
+            → costL Δ (compμ Δ p q hip) ≡ costL Δ p + costL Δ q
+  compμ-cost [] [] hip ovr = refl
+  compμ-cost [] (x ∷ q) hip ovr = {!!}
+  compμ-cost (x ∷ p) [] hip ovr = {!!}
+  compμ-cost (x ∷ p) (x₁ ∷ q) hip ovr = {!!}
 \end{code}
