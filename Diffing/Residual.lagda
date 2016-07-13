@@ -50,6 +50,7 @@ module Diffing.Residual where
         → D C t ty
 \end{code}
 %</residual-type>
+%<*residual-def>
 \begin{code}
     res (D-A ()) q hip
     res p (D-A ()) hip
@@ -59,32 +60,60 @@ module Diffing.Residual where
       = D-inl (res p q (||-inl-elim p q hip))
     res (D-inl p) (D-setl xa xb) hip
       with Is-diff-id? p
-    ...| yes _ = D-setl xa xb
-    ...| no  _ = D-A (UpdUpd (inl xa) (D-dst-wf ((D-inl p) , p1 (p1 (||-elim hip)))) (inr xb))
+    ...| yes _  = D-setl xa xb
+    ...| no  _  = D-A (UpdUpd  (inl xa) 
+                               (D-dst-wf ((D-inl p) , p1 (p1 (||-elim hip)))) 
+                               (inr xb))
     res (D-setl xa xb) (D-inl q) hip
       with Is-diff-id? q
-    ...| yes _ = D-setl xa xb
-    ...| no  _ = D-A (UpdUpd (inl xa) (inr xb) (D-dst-wf (D-inl q , p2 (p1 (||-elim hip)))))
+    ...| yes _  = D-setl xa xb
+    ...| no  _  = D-A (UpdUpd  (inl xa) 
+                               (inr xb) 
+                               (D-dst-wf (D-inl q , p2 (p1 (||-elim hip)))))
     res (D-setl xa xb) (D-setl xc xd) hip
       with xb ≟-U xd
-    ...| no  _ = D-A (UpdUpd (inl xa) (inr xb) (inr xd))
-    ...| yes _ = cast (gdiff-id (inr xb))
+    ...| no  _  = D-A (UpdUpd  (inl xa) 
+                               (inr xb) 
+                               (inr xd))
+    ...| yes _  = cast (gdiff-id (inr xb))
 
     res (D-inr p) (D-inr q) hip
       = D-inr (res p q (||-inr-elim p q hip))
     res (D-inr p) (D-setr xa xb) hip
       with Is-diff-id? p
-    ...| yes _ = D-setr xa xb
-    ...| no  _ = D-A (UpdUpd (inr xa) (D-dst-wf (D-inr p , p1 (p1 (||-elim hip)))) (inl xb)) 
+    ...| yes _  = D-setr xa xb
+    ...| no  _  = D-A (UpdUpd  (inr xa) 
+                               (D-dst-wf (D-inr p , p1 (p1 (||-elim hip)))) 
+                               (inl xb)) 
     res (D-setr xa xb) (D-inr q) hip
       with Is-diff-id? q
-    ...| yes _ = D-setr xa xb
-    ...| no  _ = D-A (UpdUpd (inr xa) (inl xb) (D-dst-wf (D-inr q , p2 (p1 (||-elim hip))))) 
+    ...| yes _  = D-setr xa xb
+    ...| no  _  = D-A (UpdUpd  (inr xa) 
+                               (inl xb) 
+                               (D-dst-wf (D-inr q , p2 (p1 (||-elim hip))))) 
     res (D-setr xa xb) (D-setr xc xd) hip
       with xb ≟-U xd
-    ...| no  _ = D-A (UpdUpd (inr xa) (inl xb) (inl xd))
-    ...| yes _ = cast (gdiff-id (inl xb)) 
-    
+    ...| no  _  = D-A (UpdUpd (inr xa) (inl xb) (inl xd))
+    ...| yes _  = cast (gdiff-id (inl xb))
+ 
+    res (D-pair d1 d2) (D-pair e1 e2) hip
+      = let d1e1 , d2e2 = ||-pair-elim d1 e1 d2 e2 hip
+         in D-pair (res d1 e1 d1e1) (res d2 e2 d2e2)
+
+    res (D-def p) (D-def q) hip
+      = D-def (res p q (||-def-elim p q hip))
+
+    res (D-top p) (D-top q) hip
+      = D-top (res p q (||-top-elim p q hip))
+
+    res (D-pop p) (D-pop q) hip
+      = D-pop (res p q (||-pop-elim p q hip))
+         
+    res (D-mu x) (D-mu y) hip
+      = D-mu (resμ x y (||-mu-elim x y hip)) 
+\end{code}
+%</residual-def>
+\begin{code}
     res (D-inl p) (D-inr q) hip
       = ⊥-elim (||-inl-inr-⊥ p q hip)
     res (D-inl p) (D-setr x x₁) hip
@@ -101,36 +130,29 @@ module Diffing.Residual where
       = ⊥-elim (||-inl-setr-⊥ q xb xa (||-sym hip))
     res (D-setr xa xb) (D-setl xc xd) hip
       = ⊥-elim (||-setl-setr-⊥ xc xb xd xa (||-sym hip))
-    
-    res (D-pair d1 d2) (D-pair e1 e2) hip
-      = let d1e1 , d2e2 = ||-pair-elim d1 e1 d2 e2 hip
-         in D-pair (res d1 e1 d1e1) (res d2 e2 d2e2)
-
-    res (D-def p) (D-def q) hip
-      = D-def (res p q (||-def-elim p q hip))
-    res (D-top p) (D-top q) hip
-      = D-top (res p q (||-top-elim p q hip))
-    res (D-pop p) (D-pop q) hip
-      = D-pop (res p q (||-pop-elim p q hip))
-         
-    res (D-mu x) (D-mu y) hip
-      = D-mu (resμ x y (||-mu-elim x y hip))    
-
+\end{code}
+\begin{code}
     resμ : {n : ℕ}{t : T n}{ty : U (suc n)}
          → (ps qs : Patchμ t ty) → ps ||μ qs
          → List (Dμ C t ty)
     resμ [] [] hip = []
     resμ  _ (Dμ-A () ∷ _) _
     resμ  (Dμ-A () ∷ _) _ _
-
+\end{code}
+%<*residual-mu-def>
+\begin{code}
     resμ (Dμ-ins a ∷ ps) (Dμ-ins b ∷ qs) hip
       with a ≟-U b
-    ...| yes _ = resμ ps qs (||μ-ins-ins-elim a b ps qs hip)
-    ...| no  _ = Dμ-A (GrowLR a b) ∷ resμ ps qs (||μ-ins-ins-elim a b ps qs hip)
+    ...| yes _  = resμ ps qs (||μ-ins-ins-elim a b ps qs hip)
+    ...| no  _  = Dμ-A (GrowLR a b) 
+                ∷ resμ ps qs (||μ-ins-ins-elim a b ps qs hip)
+
     resμ (Dμ-ins a ∷ ps) qs hip
-      = Dμ-A (GrowL a) ∷ resμ ps qs (||μ-ins-elim a ps qs hip)
+      = Dμ-A (GrowL a) 
+      ∷ resμ ps qs (||μ-ins-elim a ps qs hip)
     resμ ps (Dμ-ins b ∷ qs) hip
-      = Dμ-A (GrowR b) ∷ resμ ps qs (||μ-sym (||μ-ins-elim b qs ps (||μ-sym hip)))
+      = Dμ-A (GrowR b) 
+      ∷ resμ ps qs (||μ-sym (||μ-ins-elim b qs ps (||μ-sym hip)))
 
     resμ (Dμ-dwn x ∷ ps) (Dμ-dwn y ∷ qs) hip
       = let psqs , xy = ||μ-dwn-dwn-elim x y ps qs hip
@@ -152,8 +174,9 @@ module Diffing.Residual where
                ∷ resμ ps qs (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))
     ...| yes _ = Dμ-del x
                ∷ resμ ps qs (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))
-    
-    
+\end{code}
+%</residual-mu-def>
+\begin{code}
     resμ [] (Dμ-del x ∷ qs) hip
       = ⊥-elim (||μ-[]-del-⊥ x qs hip)
     resμ [] (Dμ-dwn x ∷ qs) hip
