@@ -156,9 +156,10 @@ module Diffing.Diff (Δ : Cost) where
       = let
           hdX , chX = μ-open x
           hdY , chY = μ-open y
-          d1 = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
-          d2 = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
-          d3 = Dμ-dwn (gdiff hdX hdY) ∷ (gdiffL (chX ++ xs) (chY ++ ys))
+          d1  = Dμ-ins hdY ∷ (gdiffL (x ∷ xs) (chY ++ ys))
+          d2  = Dμ-del hdX ∷ (gdiffL (chX ++ xs) (y ∷ ys))
+          d3  = Dμ-dwn (gdiff hdX hdY) 
+              ∷ (gdiffL (chX ++ xs) (chY ++ ys))
        in d1 ⊔μ d2 ⊔μ d3
 \end{code}
 %</gdiffL-def>

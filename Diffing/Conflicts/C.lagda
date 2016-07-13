@@ -90,7 +90,8 @@ module Diffing.Conflicts.C where
 
 %<*C-sym>
 \begin{code}
-  C-sym : {n : ℕ}{t : T n}{ty : U n} → C t ty → C t ty
+  C-sym  : {n : ℕ}{t : T n}{ty : U n} 
+         → C t ty → C t ty
   C-sym (UpdUpd o x y) = UpdUpd o y x
   C-sym (DelUpd x y) = UpdDel y x
   C-sym (UpdDel x y) = DelUpd y x

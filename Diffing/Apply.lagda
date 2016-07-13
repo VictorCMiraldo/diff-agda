@@ -107,8 +107,9 @@ module Diffing.Apply where
 
 %<*gapplyL-def>
 \begin{code}
-    gapplyL : {n : ℕ}{t : T n}{ty : U (suc n)}
-            → Patchμ t ty → List (ElU (μ ty) t) → Maybe (List (ElU (μ ty) t))
+    gapplyL  : {n : ℕ}{t : T n}{ty : U (suc n)}
+             → Patchμ t ty → List (ElU (μ ty) t) 
+             → Maybe (List (ElU (μ ty) t))
     gapplyL [] [] = just []
     gapplyL [] _  = nothing
     gapplyL (Dμ-A () ∷ _)
