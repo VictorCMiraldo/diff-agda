@@ -1,10 +1,12 @@
 \begin{code}
 open import Prelude
 open import Prelude.ListProperties
-  using (lsplit-++-lemma; map-lemma; length-map)
+  using (lsplit-++-lemma; map-lemma; length-map
+        ; lsplit-elim; lhead-elim)
 open import Diffing.Universe
 open import CF.Properties
-  using (plug-correct; μ-ar-close-lemma; μ-open-ar-lemma)
+  using (plug-correct; μ-ar-close-lemma; μ-open-ar-lemma; plug-spec-fgt
+        ; plug-spec-ch)
 open import Diffing.Patches.Cost
 open import Diffing.Patches.D
 open import Diffing.Patches.Properties.WellFormed
@@ -282,4 +284,92 @@ module Diffing.Patches.Id where
               → (x : ElU ty t)
               → WF (gdiff-id x)
   gdiff-id-wf x = ((x , x) , gdiff-id-src-lemma x , gdiff-id-dst-lemma x)
+\end{code}
+
+  Now we just need to relate Is-diff-id? with gdiff-id.
+
+\begin{code}
+  is-diff-id-correct
+    : {n : ℕ}{t : T n}{ty : U n}
+    → (p : Patch t ty)(wfp : WF p)(hip : Is-diff-id p)
+    → ∃ (λ x → p ≡ gdiff-id x)
+
+  is-diffL-id-correct
+    : {n : ℕ}{t : T n}{ty : U (suc n)}
+    → (p : Patchμ t ty)(wfp : WFμ p)(hip : Is-diffL-id p)
+    → ∃ (λ x → p ≡ gdiffL-id x)
+
+  is-diff-id-correct (D-A ()) wf hip
+  is-diff-id-correct D-unit wf hip = unit , refl
+  is-diff-id-correct (D-inl p) wf hip 
+    = (inl ×' cong D-inl) (is-diff-id-correct p (D-inl-wf p wf) hip)
+  is-diff-id-correct (D-inr p) wf hip 
+    = (inr ×' cong D-inr) (is-diff-id-correct p (D-inr-wf p wf) hip)
+  is-diff-id-correct (D-setl x x₁) wf ()
+  is-diff-id-correct (D-setr x x₁) wf ()
+  is-diff-id-correct (D-pair p q) wf (hp , hq) 
+    = let xq , pq = is-diff-id-correct q (p2 (D-pair-wf p q wf)) hq
+          xp , pp = is-diff-id-correct p (p1 (D-pair-wf p q wf)) hp
+       in (xp , xq) , cong₂ D-pair pp pq
+  is-diff-id-correct (D-def p) wf hip
+    = (red ×' cong D-def) (is-diff-id-correct p (D-def-wf p wf) hip)
+  is-diff-id-correct (D-top p) wf hip
+    = (top ×' cong D-top) (is-diff-id-correct p (D-top-wf p wf) hip)
+  is-diff-id-correct (D-pop p) wf hip
+    = (pop ×' cong D-pop) (is-diff-id-correct p (D-pop-wf p wf) hip)
+  is-diff-id-correct (D-mu x) wf hip 
+    with is-diffL-id-correct x (D-mu-wf x wf) (p1 hip)
+  ...| xs , prf
+    with wf
+  ...| (mu s , d) , (ps , pd)
+    rewrite prf | gdiffL-id-src-lemma xs | lhead-elim xs ps
+      = mu s , refl
+
+  is-diffL-id-correct [] wf hip = [] , refl
+  is-diffL-id-correct (Dμ-A () ∷ p) wf hip
+  is-diffL-id-correct (Dμ-ins x ∷ p) wf ()
+  is-diffL-id-correct (Dμ-del x ∷ p) wf ()
+  is-diffL-id-correct (Dμ-dwn x ∷ p) wf (hx , hp) 
+    with is-diff-id-correct x (p1 (Dμ-dwn-wf x p wf)) hx
+       | is-diffL-id-correct p (p2 (Dμ-dwn-wf x p wf)) hp
+  ...| xx , px | xp , pp rewrite px | pp
+    with wf
+  ...| (swf , dwf) , (hs , hd) 
+    rewrite gdiff-id-src-lemma xx 
+          | gdiffL-id-src-lemma xp
+    with ar 0 xx ≤?-ℕ length xp
+  ...| no  _ = ⊥-elim (Maybe-⊥ (sym hs))
+  ...| yes _ 
+    with lsplit (ar 0 xx) xp | inspect (lsplit (ar 0 xx)) xp
+  ...| xp0 , xp1 | [ XP ] 
+    with plug 0 xx (map pop xp0) | inspect (plug 0 xx) (map pop xp0)
+  ...| nothing | _ = ⊥-elim (Maybe-⊥ (sym hs))
+  ...| just x' | [ X' ] 
+    = swf 
+    , sym (trans 
+      (cong gdiffL-id (just-inj (sym hs))) 
+      (cong₂ (λ P Q → Dμ-dwn (gdiff-id P) ∷ gdiffL-id Q) 
+             (plug-spec-fgt 0 x' xx (map pop xp0) X') 
+             (sym (trans (lsplit-elim (ar 0 xx) xp XP) 
+                         ((cong (λ P → P ++ xp1) 
+                          (sym (trans (cong (map unpop) (plug-spec-ch 0 x' xx (map pop xp0) X'))
+                                  (map-lemma xp0 (λ _ → refl))))))))))
+\end{code}
+
+\begin{code}
+  idid-cost-lemma
+    : {n : ℕ}{t : T n}{ty : U n}{Δ : Cost}
+    → (p : Patch t ty)(wf : WF p)(hip : Is-diff-id p)
+    → cost Δ p ≡ 0
+  idid-cost-lemma p wf hip 
+    with is-diff-id-correct p wf hip
+  ...| x , px rewrite px = gdiff-id-cost x
+
+  ididμ-cost-lemma
+    : {n : ℕ}{t : T n}{ty : U (suc n)}{Δ : Cost}
+    → (p : Patchμ t ty)(wf : WFμ p)(hip : Is-diffL-id p)
+    → costL Δ p ≡ 0
+  ididμ-cost-lemma p wf hip 
+    with is-diffL-id-correct p wf hip
+  ...| x , px rewrite px = gdiffL-id-cost x
 \end{code}

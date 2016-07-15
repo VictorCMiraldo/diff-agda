@@ -125,8 +125,10 @@ module Diffing.Patches.Properties.Overlap where
   comp-cost D-unit D-unit hip ovr = refl
   comp-cost (D-inl p) (D-inl q) hip ovr 
     = comp-cost p q (⟶-inl p q hip) ovr
-  comp-cost (D-inl p) (D-setl x x₁) hip ovr 
-    = {!!}
+  comp-cost {Δ = Δ} (D-inl p) (D-setl x x₁) hip ovr
+    with ⟶-inl-setl p x x₁ hip
+  ...| hip' with D-dst-lemma p (D-inl-wf p (p1 (p1 (⟶-elim hip))))
+  ...| dp rewrite just-inj (trans (sym dp) hip') = {!!}
   comp-cost (D-inl p) (D-inr q) hip ovr
     = ⊥-elim (⟶-inl-inr-⊥ p q hip)
   comp-cost (D-inl p) (D-setr x x₁) hip ovr 
