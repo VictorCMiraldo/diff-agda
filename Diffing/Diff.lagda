@@ -14,6 +14,14 @@ open import Diffing.Patches.Properties.WellFormed
 module Diffing.Diff (Δ : Cost) where
 
   open import Diffing.Patches.D
+
+  c⊕  : {n : ℕ}{t : T n}{x y : U n} 
+      → ElU x t → ElU y t → ℕ
+  c⊕ = Cost.c⊕ Δ
+
+  cμ  : {n : ℕ}{t : T n}{x : U (suc n)} 
+      → ElU x (u1 ∷ t) → ℕ
+  cμ = Cost.cμ Δ
 \end{code}
 
   The cost of a diff depends only on the
@@ -41,8 +49,8 @@ module Diffing.Diff (Δ : Cost) where
     cost  D-unit         = 0
     cost (D-inl d)       = cost d
     cost (D-inr d)       = cost d
-    cost (D-setl xa xb)  = C⊕ Δ xa xb
-    cost (D-setr xa xb)  = C⊕ Δ xa xb
+    cost (D-setl xa xb)  = c⊕ xa xb
+    cost (D-setr xa xb)  = c⊕ xa xb
     cost (D-pair da db)  = cost da + cost db
     cost (D-def d)       = cost d
     cost (D-top d)       = cost d
@@ -59,8 +67,8 @@ module Diffing.Diff (Δ : Cost) where
 %<*costmu-def>
 \begin{code}
     costμ (Dμ-A ())
-    costμ (Dμ-ins x)  = Cμ Δ x
-    costμ (Dμ-del x)  = Cμ Δ x
+    costμ (Dμ-ins x)  = cμ x
+    costμ (Dμ-del x)  = cμ x
     costμ (Dμ-dwn x)  = cost x
 \end{code}
 %</costmu-def>

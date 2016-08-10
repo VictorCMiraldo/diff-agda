@@ -373,3 +373,23 @@ module Diffing.Patches.Id where
     with is-diffL-id-correct p wf hip
   ...| x , px rewrite px = gdiffL-id-cost x
 \end{code}
+
+\begin{code}
+  idid-dst-src-lemma 
+    : {n : ℕ}{t : T n}{ty : U n}{Δ : Cost}
+    → (p : Patch t ty)(wf : WF p)(hip : Is-diff-id p)
+    → D-dst p ≡ D-src p
+  idid-dst-src-lemma p wf hip
+    with is-diff-id-correct p wf hip
+  ...| x , px rewrite px 
+    = trans (gdiff-id-dst-lemma x) (sym (gdiff-id-src-lemma x))
+
+  ididμ-dst-src-lemma 
+    : {n : ℕ}{t : T n}{ty : U (suc n)}{Δ : Cost}
+    → (p : Patchμ t ty)(wf : WFμ p)(hip : Is-diffL-id p)
+    → Dμ-dst p ≡ Dμ-src p
+  ididμ-dst-src-lemma p wf hip
+    with is-diffL-id-correct p wf hip
+  ...| x , px rewrite px 
+    = trans (gdiffL-id-dst-lemma x) (sym (gdiffL-id-src-lemma x))
+\end{code}
