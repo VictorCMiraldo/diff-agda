@@ -285,3 +285,37 @@ module Diffing.Patches.Functor where
     Dμ-mult (Dμ-ins x ∷ l) = Dμ-ins x ∷ Dμ-mult l
     Dμ-mult (Dμ-del x ∷ l) = Dμ-del x ∷ Dμ-mult l
     Dμ-mult (Dμ-dwn dx ∷ l) = Dμ-dwn (D-mult dx) ∷ Dμ-mult l
+
+  {- A bit like monadic strengths -}
+  mutual
+    D-delta : {A B : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+            → D (λ t ty → A t ty × B t ty) t ty 
+            → D A t ty × D B t ty
+    D-delta (D-A (a , b)) = D-A a , D-A b
+    D-delta D-unit = D-unit , D-unit
+    D-delta (D-inl d) = (D-inl ×' D-inl) (D-delta d)
+    D-delta (D-inr d) = (D-inr ×' D-inr) (D-delta d)
+    D-delta (D-setl x x₁) = D-setl x x₁ , D-setl x x₁
+    D-delta (D-setr x x₁) = D-setr x x₁ , D-setr x x₁
+    D-delta (D-pair d e) 
+      = let da , db = D-delta d
+            ea , eb = D-delta e
+         in D-pair da ea , D-pair db eb
+    D-delta (D-def d) = (D-def ×' D-def) (D-delta d)
+    D-delta (D-top d) = (D-top ×' D-top) (D-delta d)
+    D-delta (D-pop d) = (D-pop ×' D-pop) (D-delta d)
+    D-delta (D-mu x) = (D-mu ×' D-mu) (Dμ-delta x)
+
+    Dμ-delta : {A B : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+             → List (Dμ (λ t ty → A t ty × B t ty) t ty) 
+             → List (Dμ A t ty) × List (Dμ B t ty)
+    Dμ-delta [] = [] , []
+    Dμ-delta (Dμ-A (a , b) ∷ ds) 
+      = (_∷_ (Dμ-A a) ×' _∷_ (Dμ-A b)) (Dμ-delta ds)
+    Dμ-delta (Dμ-ins x ∷ ds) 
+      = (_∷_ (Dμ-ins x) ×' _∷_ (Dμ-ins x)) (Dμ-delta ds)
+    Dμ-delta (Dμ-del x ∷ ds)
+      = (_∷_ (Dμ-del x) ×' _∷_ (Dμ-del x)) (Dμ-delta ds)
+    Dμ-delta (Dμ-dwn x ∷ ds) 
+      = let xa , xb = D-delta x
+         in (_∷_ (Dμ-dwn xa) ×' _∷_ (Dμ-dwn xb)) (Dμ-delta ds)
