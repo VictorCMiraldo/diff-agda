@@ -36,6 +36,18 @@ module Diffing.Patches.Properties.Alignment where
             → p || q
             → (WF p × WF q) × D-src p ≡ D-src q
     ||-elim hip = hip
+
+    ||-wf-p1 : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+             → {p q : D A t ty}
+             → p || q
+             → WF p
+    ||-wf-p1 ((wf , _) , _) = wf
+
+    ||-wf-p2 : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
+             → {p q : D A t ty}
+             → p || q
+             → WF q
+    ||-wf-p2 ((_ , wf) , _) = wf
           
     ||-intro : {A : TU→Set}{n : ℕ}{t : T n}{ty : U n}
             → {p q : D A t ty}
@@ -48,6 +60,18 @@ module Diffing.Patches.Properties.Alignment where
              → p ||μ q
              → (WFμ p × WFμ q) × Dμ-src p ≡ Dμ-src q
     ||μ-elim hip = hip
+
+    ||μ-wf-p1 : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+             → {p q : List (Dμ A t ty)}
+             → p ||μ q
+             → WFμ p
+    ||μ-wf-p1 ((wf , _) , _) = wf
+
+    ||μ-wf-p2 : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+             → {p q : List (Dμ A t ty)}
+             → p ||μ q
+             → WFμ q
+    ||μ-wf-p2 ((_ , wf) , _) = wf
 
     ||μ-intro : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
               → {p q : List (Dμ A t ty)}
@@ -88,6 +112,22 @@ module Diffing.Patches.Properties.Alignment where
              → p ||μ q → q ||μ r → p ||μ r
     ||μ-trans p q r ((wp , wq) , prf1) ((_ , wr) , prf2)
       = (wp , wr) , trans prf1 prf2
+\end{code}
+
+\begin{code}
+    ||μ-wf-p1-sym-elim
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → {p q : List (Dμ A t ty)}
+      → (hip : p ||μ q)
+      → ||μ-wf-p1 (||μ-sym hip) ≡ ||μ-wf-p2 hip
+    ||μ-wf-p1-sym-elim ((wfp , wfq) , h) = refl
+
+    ||μ-wf-p2-sym-elim
+      : {A : TU→Set}{n : ℕ}{t : T n}{ty : U (suc n)}
+      → {p q : List (Dμ A t ty)}
+      → (hip : p ||μ q)
+      → ||μ-wf-p2 (||μ-sym hip) ≡ ||μ-wf-p1 hip
+    ||μ-wf-p2-sym-elim ((wfp , wfq) , h) = refl
 \end{code}
 
 \begin{code}

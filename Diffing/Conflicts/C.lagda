@@ -2,6 +2,7 @@
 open import Prelude
 open import Diffing.Universe
 open import Diffing.Patches.D
+open import Diffing.Patches.Properties.WellFormed
 open import Diffing.Patches.Functor 
   using (forget; forgetμ; ↓_; cast; castμ)
 
@@ -38,9 +39,9 @@ module Diffing.Conflicts.C where
            → ElU (a ⊕ b) t → ElU (a ⊕ b) t → ElU (a ⊕ b) t 
            → C t (a ⊕ b)
     DelUpd : {n : ℕ}{t : T n}{a : U (suc n)}
-           → ValU a t → ValU a t → C t (μ a)
+           → ValU a t → (p : D ⊥ₚ (u1 ∷ t) a) → WF p → C t (μ a)
     UpdDel : {n : ℕ}{t : T n}{a : U (suc n)}
-           → ValU a t → ValU a t → C t (μ a)
+           → (p : D ⊥ₚ (u1 ∷ t) a) → ValU a t → WF p → C t (μ a)
     GrowL  : {n : ℕ}{t : T n}{a : U (suc n)}
            → ValU a t → C t (μ a)
     GrowLR : {n : ℕ}{t : T n}{a : U (suc n)}
@@ -60,8 +61,8 @@ module Diffing.Conflicts.C where
 
   IsGrow? : {n : ℕ}{t : T n}{ty : U n}(c : C t ty) → Dec (IsGrow c)
   IsGrow? (UpdUpd x x₁ x₂) = no id
-  IsGrow? (DelUpd x x₁) = no id
-  IsGrow? (UpdDel x x₁) = no id
+  IsGrow? (DelUpd x x₁ _) = no id
+  IsGrow? (UpdDel x x₁ _) = no id
   IsGrow? (GrowL x) = yes unit
   IsGrow? (GrowLR x x₁) = yes unit
   IsGrow? (GrowR x) = yes unit
@@ -72,14 +73,14 @@ module Diffing.Conflicts.C where
 \begin{code}
   IsUpd : {n : ℕ}{t : T n}{ty : U n} → C t ty → Set
   IsUpd (UpdUpd _ _ _) = Unit
-  IsUpd (UpdDel _ _)   = Unit
-  IsUpd (DelUpd _ _)   = Unit
+  IsUpd (UpdDel _ _ _) = Unit
+  IsUpd (DelUpd _ _ _) = Unit
   IsUpd _ = ⊥
 
   IsUpd? : {n : ℕ}{t : T n}{ty : U n}(c : C t ty) → Dec (IsUpd c)
   IsUpd? (UpdUpd x x₁ x₂) = yes unit
-  IsUpd? (DelUpd x x₁) = yes unit
-  IsUpd? (UpdDel x x₁) = yes unit
+  IsUpd? (DelUpd x x₁ _) = yes unit
+  IsUpd? (UpdDel x x₁ _) = yes unit
   IsUpd? (GrowL x) = no (λ z → z)
   IsUpd? (GrowLR x x₁) = no (λ z → z)
   IsUpd? (GrowR x) = no (λ z → z)
@@ -93,11 +94,11 @@ module Diffing.Conflicts.C where
   C-sym  : {n : ℕ}{t : T n}{ty : U n} 
          → C t ty → C t ty
   C-sym (UpdUpd o x y) = UpdUpd o y x
-  C-sym (DelUpd x y) = UpdDel y x
-  C-sym (UpdDel x y) = DelUpd y x
-  C-sym (GrowL x)    = GrowR x
-  C-sym (GrowR x)    = GrowL x
-  C-sym (GrowLR x y) = GrowLR y x
+  C-sym (DelUpd x y p) = UpdDel y x p
+  C-sym (UpdDel x y p) = DelUpd y x p
+  C-sym (GrowL x)      = GrowR x
+  C-sym (GrowR x)      = GrowL x
+  C-sym (GrowLR x y)   = GrowLR y x
 \end{code}
 %</C-sym>
 
@@ -116,8 +117,8 @@ module Diffing.Conflicts.C where
       ext : {n : ℕ}{t : T n}{ty : U n}
           → (c : C t ty) → C-sym (C-sym c) ≡ c
       ext (UpdUpd o x y) = refl
-      ext (DelUpd x y) = refl
-      ext (UpdDel x y) = refl
+      ext (DelUpd x y p) = refl
+      ext (UpdDel x y p) = refl
       ext (GrowL x)    = refl
       ext (GrowLR x y) = refl
       ext (GrowR x)    = refl

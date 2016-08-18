@@ -62,14 +62,14 @@ module Diffing.Residual where
       with Is-diff-id? p
     ...| yes _  = D-setl xa xb
     ...| no  _  = D-A (UpdUpd  (inl xa) 
-                               (D-dst-wf ((D-inl p) , p1 (p1 (||-elim hip)))) 
+                               (D-dst-wf ((D-inl p) , ||-wf-p1 hip)) 
                                (inr xb))
     res (D-setl xa xb) (D-inl q) hip
       with Is-diff-id? q
     ...| yes _  = D-setl xa xb
     ...| no  _  = D-A (UpdUpd  (inl xa) 
                                (inr xb) 
-                               (D-dst-wf (D-inl q , p2 (p1 (||-elim hip)))))
+                               (D-dst-wf (D-inl q , ||-wf-p2 hip)))
     res (D-setl xa xb) (D-setl xc xd) hip
       with xb ≟-U xd
     ...| no  _  = D-A (UpdUpd  (inl xa) 
@@ -83,14 +83,14 @@ module Diffing.Residual where
       with Is-diff-id? p
     ...| yes _  = D-setr xa xb
     ...| no  _  = D-A (UpdUpd  (inr xa) 
-                               (D-dst-wf (D-inr p , p1 (p1 (||-elim hip)))) 
+                               (D-dst-wf (D-inr p , ||-wf-p1 hip)) 
                                (inl xb)) 
     res (D-setr xa xb) (D-inr q) hip
       with Is-diff-id? q
     ...| yes _  = D-setr xa xb
     ...| no  _  = D-A (UpdUpd  (inr xa) 
                                (inl xb) 
-                               (D-dst-wf (D-inr q , p2 (p1 (||-elim hip))))) 
+                               (D-dst-wf (D-inr q , ||-wf-p2 hip))) 
     res (D-setr xa xb) (D-setr xc xd) hip
       with xb ≟-U xd
     ...| no  _  = D-A (UpdUpd (inr xa) (inl xb) (inl xd))
@@ -160,7 +160,7 @@ module Diffing.Residual where
 
     resμ (Dμ-dwn x ∷ ps) (Dμ-del y ∷ qs) hip
       with Is-diff-id? x
-    ...| no  _ = Dμ-A (UpdDel (D-dst-wf (x , p1 (Dμ-dwn-wf x ps (p1 (p1 (||μ-elim hip)))))) y)
+    ...| no  _ = Dμ-A (UpdDel x y (p1 (Dμ-dwn-wf x ps (||μ-wf-p1 hip))))
                ∷ resμ ps qs (||μ-dwn-del-elim y x ps qs hip)
     ...| yes _ = resμ ps qs (||μ-dwn-del-elim y x ps qs hip)
 
@@ -170,7 +170,7 @@ module Diffing.Residual where
 
     resμ (Dμ-del x ∷ ps) (Dμ-dwn y ∷ qs) hip
       with Is-diff-id? y
-    ...| no  _ = Dμ-A (DelUpd x (D-dst-wf (y , p1 (Dμ-dwn-wf y qs (p2 (p1 (||μ-elim hip)))))))
+    ...| no  _ = Dμ-A (DelUpd x y (p1 (Dμ-dwn-wf y qs (||μ-wf-p2 hip))))
                ∷ resμ ps qs (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))
     ...| yes _ = Dμ-del x
                ∷ resμ ps qs (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))

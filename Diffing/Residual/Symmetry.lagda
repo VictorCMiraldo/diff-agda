@@ -48,14 +48,14 @@ module Diffing.Residual.Symmetry where
     ...| no  _
        = cong (λ P → D-A (UpdUpd (inl x) (D-dst-wf (D-inl p , P)) (inr y)))
               (WF-pi {A = ⊥ₚ} {p = D-inl p}
-                (p1 (p1 (||-elim hip))) (p2 (p1 (||-elim (||-sym hip)))))     
+                (||-wf-p1 hip) (||-wf-p2 (||-sym hip)))     
     res-symmetry (D-setl x y) (D-inl q) hip
       with Is-diff-id? q
     ...| yes _ = refl
     ...| no  _
        = cong (λ P → D-A (UpdUpd (inl x) (inr y) (D-dst-wf (D-inl q , P))))
               (WF-pi {A = ⊥ₚ} {p = D-inl q}
-                (p2 (p1 (||-elim hip))) (p1 (p1 (||-elim (||-sym hip)))))  
+                (||-wf-p2 hip) (||-wf-p1 (||-sym hip)))  
     res-symmetry (D-setl x y) (D-setl w z) hip
       with z ≟-U y | y ≟-U z
     ...| no  abs | yes k   = ⊥-elim (abs (sym k))
@@ -75,14 +75,14 @@ module Diffing.Residual.Symmetry where
     ...| no  _
        = cong (λ P → D-A (UpdUpd (inr x) (D-dst-wf (D-inr p , P)) (inl y)))
               (WF-pi {A = ⊥ₚ} {p = D-inr p}
-                (p1 (p1 (||-elim hip))) (p2 (p1 (||-elim (||-sym hip))))) 
+                (||-wf-p1 hip) (||-wf-p2 (||-sym hip))) 
     res-symmetry (D-setr x y) (D-inr q) hip
       with Is-diff-id? q
     ...| yes _ = refl
     ...| no  _
        = cong (λ P → D-A (UpdUpd (inr x) (inl y) (D-dst-wf (D-inr q , P))))
               (WF-pi {A = ⊥ₚ} {p = D-inr q}
-                (p2 (p1 (||-elim hip))) (p1 (p1 (||-elim (||-sym hip))))) 
+                (||-wf-p2 hip) (||-wf-p1 (||-sym hip))) 
     res-symmetry (D-setr x y) (D-setr w z) hip
       with z ≟-U y | y ≟-U z
     ...| no  abs | yes k   = ⊥-elim (abs (sym k))
@@ -228,10 +228,12 @@ module Diffing.Residual.Symmetry where
       with ||μ-elim hip | inspect ||μ-elim hip
     ...| ((wps , wqs) , prf) | [ ELIM ]
       rewrite ||μ-elim-sym hip ELIM
-       = cong₂ (λ P Q → Dμ-A (UpdDel P y) ∷ Dμ-map C-sym (mirrorμ ps qs (resμ qs ps Q)))
-               refl
-               (||μ-pi (||μ-sym (||μ-dwn-del-elim y x ps qs hip))
-                       (||μ-sym (||μ-dwn-del-elim y x ps qs (||μ-sym (||μ-sym hip))))) 
+            | ||μ-wf-p2-sym-elim hip
+        = cong (_∷_ (Dμ-A _)) (cong (λ Q → Dμ-map C-sym (mirrorμ ps qs (resμ qs ps Q))) 
+              ((||μ-pi (||μ-sym (||μ-dwn-del-elim y x ps qs hip))
+                       (||μ-sym (||μ-dwn-del-elim y x ps qs (||μ-sym (||μ-sym hip)))))))
+
+
     resμ-symmetry (Dμ-dwn x ∷ ps) (Dμ-del y ∷ qs) hip | yes _
       rewrite resμ-symmetry ps qs (||μ-dwn-del-elim y x ps qs hip)
        = cong (λ P → Dμ-map C-sym (mirrorμ ps qs (resμ qs ps P)))
@@ -253,10 +255,10 @@ module Diffing.Residual.Symmetry where
       with ||μ-elim hip | inspect ||μ-elim hip
     ...| ((wps , wqs) , prf) | [ ELIM ]
       rewrite ||μ-elim-sym hip ELIM
-       = cong₂ (λ P Q → Dμ-A (DelUpd x P) ∷ Dμ-map C-sym (mirrorμ ps qs (resμ qs ps Q)))
-               refl
-               (||μ-pi (||μ-sym (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip))))
-                       (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))
+            | ||μ-wf-p1-sym-elim hip
+            = cong (_∷_ (Dμ-A _)) (cong (λ Q → Dμ-map C-sym (mirrorμ ps qs (resμ qs ps Q))) 
+                   ((||μ-pi (||μ-sym (||μ-sym (||μ-dwn-del-elim x y qs ps (||μ-sym hip))))
+                       (||μ-dwn-del-elim x y qs ps (||μ-sym hip)))))       
 
 
     resμ-symmetry (Dμ-del x ∷ ps) (Dμ-dwn y ∷ qs) hip | yes _
