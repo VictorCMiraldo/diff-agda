@@ -1,41 +1,60 @@
 Generic Diffing Formalization in Agda
 =====================================
 
-ISSUE 4: changelog
-------------------
-  1. Conflicts are now indexed by a datatype. This allows a usefull
-     monadic-like multiplication operation (D (D 0) t ty) -> D 0 t ty
-     where 0 represents (const (const Void)).
-  2. Obviously, this introduces even more theoretical questions...
-  
-  
+This repo is divided in 4 main branches, which encode
+four different encodings of the *D* datatype.
 
-This repository contains the Agda formalization
-of our diff algorithm.
+The goal is to have type-safe patches. For non-recursive types
+that is trivial to accomplish. Fixpoints introduce a problem.
 
-Agda code is inside the *Diffing* folder; Directory structure is as follows:
+We found two ways of handling fixpoints, one is linearly, the other is
+following its branching structure.
 
-* **Patches/** , Everything related to patches.
-    * **Diff/** , Properties and specifics of diffs.
-        * **Correctness.agda** , correctness proof.
-        * **Functor.agda** , functorial aspects.
-    * **Diff.lagda** , The actual diff algorithm and correspondent apply function.
-    * **Residual/**
-        * **Symmetry.lagda** , residuals are symmetric modulo some operation.
-        * **SymmetryConflict.lagda** , proves that this operation does NOT 
-                                       introduce any new conflicts.
-    * **Residual.lagda** , Defines the notion of a residual over patches.
-    * **Conflicts/** , Conflict solvers
-        * **Grow.lagda** ,  Solving some grow conflicts automatically.
-    * **Conflicts.lagda** , Definition of conflicts
-    * **Merging/** , Merging specific properties.
-        * **Grow.lagda** , Proves merging of disjoint patches is ok.
-    * **Overlap.lagda** , defines a notion of disjoint patches
-* **Universe/** , universe specific definitions.
-    * **Syntax.lagad** , Defines the syntax of types and their elements.
-    * **Equality.lagda** , gives us a notion of generic element equality.
-    * **Map.lagda** , gives us a notion of generic mapping, in different flavors.
-    * **MuUtils.lagda** , provides some utilities for working with fixed points.
-* **Utils/** , Utility modules.
-    * **Monads.agda** , easier to use than the Monads in agda's std-lib.
-    * **Propositions.agda** , a bunch of propositions for rewriting things here and there.
+# Linear
+
+## linearUntyped
+
+Here, we handle fixpoints in a "serialized" fashion.
+Take the fixpoint of a functor `Fix F`, and functions `hd : Fix F -> F 1`
+and `ch : Fix F -> [Fix F]`, we can serialize any `Fix F` as:
+
+`serialize x = hd x : concat (map serialize (ch x))`
+
+This gives a list of constructors as seen in a pre-order traversal of 
+a value of type `Fix F`.
+
+Patches over fixpoints are then just patches over lists.
+
+Deserialization is inherently partial in this approach, as we can never be
+sure we have the right amount of **ch**ildren.
+
+Since our patches are type-unsafe, we resort to a WF (Well-formed) predicate
+and use the type `\Sigma WF Patch` to rule out pathological patches.
+
+## linearTyped
+
+We can annotate the patches with two **Nat** indexes, hence, a patch `p : Dmu m n`
+isa patch that expects a vector of `m` values and returns a vector of `n` fixpoints.
+
+We can have a total `apply` function here, but defining residuals is extremely complicated.
+Not to mention we have to constantly fight Agda to rewrite these indexes correctly.
+
+# Branching
+
+Another option is to resort to derivatives of datatypes
+and follow the functor's branching structure.
+
+Take the following type as the patches for `Fix F`:
+
+`Gix F = Mod (F 1) [Gix F]`
+`      | Add (Ctx F) (Gix F)`
+`      | Del (Ctx F) (Gix F)`
+
+The one-hole contexts (derivatives of F) provide a nice way to make sure
+we have only one place to keep diffing after inserting or deleting, the `Mod`ify
+constructor, however, has a list of recursive children. If this list does **not**
+contain the correct number of children, we have to fail. (this is encoded in the **treeUntyped** branch).
+
+We can always substitute that list for a vector with the correct length,
+and we gain type-safe patches again, this is done in **treeTyped**. 
+Nevertheless, we still have to fight the typechecker for indicies rewriting here.
