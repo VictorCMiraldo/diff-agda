@@ -5,11 +5,11 @@ open import Diffing.Patches.D
 open import Diffing.Patches.Functor
 open import Diffing.Patches.Id
 open import Diffing.Conflicts.C
-open import Diffing.Residual
-open import Diffing.Residual.Symmetry
+open import Diffing.ResidualPartial
+open import Diffing.Residual.SymmetryPartial
 open import Diffing.Apply
 
-module Diffing.Residual.SymmetryConflict where
+module Diffing.Residual.SymmetryConflictPartial where
 \end{code}
 
   The residual symmetry theorem does not guarantee that the symmetric
@@ -189,26 +189,34 @@ module Diffing.Residual.SymmetryConflict where
         ...| yes p | yes _ = aux* d1 d2 prf
 
         aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf
-         = cool where postulate cool : ∀{a}{A : Set a} → A
-        aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf
-         = cool where postulate cool : ∀{a}{A : Set a} → A
-        {-
-        aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf
           with gapply dy x
         aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) () | nothing
-        ...| just x' with <M>-elim prf
-        ...| s , refl , q with residualμ-symmetry-thm d1 d2 q
+        ...| just x' with x == x'
+        aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just x' 
+           | yes _ with <M>-elim prf
+        ...| (s , refl , q) with residualμ-symmetry-thm d1 d2 q
+        ...| op , hip with aux* d1 d2 q
+        ...| res rewrite hip = res
+        aux* (Dμ-del x ∷ d1) (Dμ-dwn dy ∷ d2) prf | just x' 
+           | no  _ with <M>-elim prf
+        ...| (s , refl , q) with residualμ-symmetry-thm d1 d2 q
         ...| op , hip with aux* d1 d2 q
         ...| res rewrite hip = cong just (cong (_∷_ _) (just-inj res))
-        
-        aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) prf
-          with gapply dx y
-        aux* (Dμ-dwn dx ∷ d1) (Dμ-del y ∷ d2) () | nothing
-        ...| just y' with <M>-elim prf
-        ...| s1 , refl , q1 with <M>-elim (aux* d1 d2 q1)
-        ...| s2 , r2 , q2 rewrite q2 | forget-cast {A = C} dx 
-           = cong just (cong (_∷_ _) (sym r2)) 
-        -}
+
+
+        aux* (Dμ-dwn dy ∷ d1) (Dμ-del x ∷ d2) prf
+          with gapply dy x
+        aux* (Dμ-dwn dy ∷ d1) (Dμ-del x ∷ d2) () | nothing
+        ...| just x' with x == x'
+        aux* (Dμ-dwn dy ∷ d1) (Dμ-del x ∷ d2) prf | just x' 
+           | yes _ with residualμ-symmetry-thm d1 d2 prf
+        ...| op , hip with aux* d1 d2 prf
+        ...| res rewrite hip = res
+        aux* (Dμ-dwn dy ∷ d1) (Dμ-del x ∷ d2) prf | just x' 
+           | no  _ with <M>-elim prf
+        ...| (s , refl , q) with residualμ-symmetry-thm d1 d2 q
+        ...| op , hip with aux* d1 d2 q
+        ...| res rewrite hip = cong just (cong (_∷_ _) (just-inj res))
 
         aux* {k = k} (Dμ-dwn dx ∷ d1) (Dμ-dwn dy ∷ d2) prf
           with <M*>-elim-full {f = _∷_ <M> (Dμ-dwn <M> (dx / dy))} {x = res d1 d2}  prf

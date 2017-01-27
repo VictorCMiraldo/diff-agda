@@ -8,7 +8,7 @@ open import Diffing.Patches.Id
 open import Diffing.Conflicts.C
 open import Diffing.Apply
 
-module Diffing.Residual where
+module Diffing.ResidualPartial where
 \end{code}
 
   Residuals are the heart of a merge. the patch (p / q),

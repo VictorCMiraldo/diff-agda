@@ -6,10 +6,10 @@ open import Diffing.Patches.D
 open import Diffing.Patches.Functor
 open import Diffing.Patches.Id
 open import Diffing.Conflicts.C
-open import Diffing.Residual
+open import Diffing.ResidualPartial
 open import Diffing.Apply
 
-module Diffing.Residual.Symmetry where
+module Diffing.Residual.SymmetryPartial where
 \end{code}
 
   An interesting observation, though, is that if (p / q) ≡ just k,
